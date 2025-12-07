@@ -105,23 +105,27 @@ export default async function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* API 설정 */}
+        {/* 카카오톡 채널 설정 */}
         <Card>
           <CardHeader>
-            <CardTitle>API 설정</CardTitle>
-            <CardDescription>외부 서비스 연동을 위한 API 키를 관리합니다</CardDescription>
+            <CardTitle>카카오톡 채널</CardTitle>
+            <CardDescription>알림톡 발송에 사용할 카카오톡 채널을 등록합니다</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="aligo_key">알리고 API 키</Label>
+              <Label htmlFor="kakao_channel">카카오톡 채널 ID</Label>
               <Input
-                id="aligo_key"
-                type="password"
-                placeholder="알리고 API 키를 입력하세요"
+                id="kakao_channel"
+                placeholder="@채널아이디"
               />
-              <p className="text-xs text-gray-500">카카오 알림톡 발송에 사용됩니다</p>
+              <p className="text-xs text-gray-500">카카오톡 채널 관리자센터에서 확인할 수 있습니다</p>
             </div>
-            <Button disabled>저장하기</Button>
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">
+                셀러포트에서 알림톡 발송 API를 제공합니다. 별도의 알리고 계약이 필요 없습니다.
+              </p>
+            </div>
+            <Button disabled>채널 등록</Button>
           </CardContent>
         </Card>
 
