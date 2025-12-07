@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 
 const menuItems = [
   {
@@ -82,7 +82,7 @@ export function MobileSidebar() {
         <div className="flex flex-col h-full">
           {/* 로고 */}
           <div className="flex items-center h-16 px-4 border-b">
-            <span className="text-xl font-bold">셀러포트</span>
+            <SheetTitle className="text-xl font-bold">셀러포트</SheetTitle>
           </div>
 
           {/* 메뉴 */}
