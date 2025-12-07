@@ -1,7 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import Link from 'next/link'
 
 export default function SubscribersPage() {
   return (
@@ -9,14 +8,22 @@ export default function SubscribersPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">구독자 관리</h1>
-          <p className="text-gray-500 mt-1">플랫폼에서 동기화된 구독자를 관리합니다</p>
+          <p className="text-gray-500 mt-1">구독자를 추가하고 관리합니다</p>
         </div>
-        <Button disabled>
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          동기화
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" disabled>
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            동기화
+          </Button>
+          <Button disabled>
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            구독자 추가
+          </Button>
+        </div>
       </div>
 
       {/* 검색 및 필터 */}
@@ -51,16 +58,40 @@ export default function SubscribersPage() {
             </svg>
             <h3 className="text-lg font-medium text-gray-900 mb-2">구독자가 없습니다</h3>
             <p className="text-gray-500 mb-6 max-w-sm">
-              플랫폼을 연동하면 구독자가 자동으로 동기화됩니다
+              구독자를 직접 추가하거나 플랫폼을 연동하여 자동으로 동기화하세요
             </p>
-            <Link href="/platforms">
-              <Button>
+            <div className="flex gap-3">
+              <Button disabled>
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                플랫폼 연동하기
+                구독자 추가
               </Button>
-            </Link>
+              <Button variant="outline" disabled>
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                엑셀 업로드
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 안내 */}
+      <Card className="mt-6 bg-blue-50 border-blue-200">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p className="text-sm font-medium text-blue-800">구독자 추가 방법</p>
+              <p className="text-xs text-blue-700 mt-1">
+                플랫폼 연동 없이도 구독자를 직접 추가하거나 엑셀 파일로 일괄 업로드할 수 있습니다.
+                인스타그램, 블로그 등 다양한 채널의 구독자를 한 곳에서 관리하세요.
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
