@@ -176,3 +176,189 @@
 .animation-delay-600 {
   animation-delay: 600ms;
 }
+
+/* 느린 펄스 애니메이션 */
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 4s ease-in-out infinite;
+}
+
+/* 플로팅 애니메이션 - 느린 버전 */
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+  }
+  25% {
+    transform: translateY(-20px) translateX(10px);
+  }
+  50% {
+    transform: translateY(-10px) translateX(-10px);
+  }
+  75% {
+    transform: translateY(-30px) translateX(5px);
+  }
+}
+
+.animate-float-slow {
+  animation: float-slow 8s ease-in-out infinite;
+}
+
+/* 플로팅 애니메이션 - 반대 방향 */
+@keyframes float-slow-reverse {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+  }
+  25% {
+    transform: translateY(20px) translateX(-10px);
+  }
+  50% {
+    transform: translateY(10px) translateX(10px);
+  }
+  75% {
+    transform: translateY(30px) translateX(-5px);
+  }
+}
+
+.animate-float-slow-reverse {
+  animation: float-slow-reverse 10s ease-in-out infinite;
+}
+
+/* 플로팅 파티클 */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 0.3;
+  }
+  25% {
+    transform: translateY(-30px) translateX(15px) scale(1.1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(-50px) translateX(-10px) scale(0.9);
+    opacity: 0.4;
+  }
+  75% {
+    transform: translateY(-20px) translateX(20px) scale(1.05);
+    opacity: 0.6;
+  }
+}
+
+.animate-float {
+  animation: float 8s ease-in-out infinite;
+}
+
+/* 그라데이션 텍스트 애니메이션 */
+@keyframes gradient-x {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient {
+  animation: gradient-x 3s ease infinite;
+  background-size: 200% auto;
+}
+
+/* 오로라 애니메이션 */
+@keyframes aurora-1 {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translate(50px, 30px) rotate(5deg) scale(1.05);
+  }
+  50% {
+    transform: translate(20px, 60px) rotate(-5deg) scale(0.95);
+  }
+  75% {
+    transform: translate(-30px, 20px) rotate(3deg) scale(1.02);
+  }
+}
+
+@keyframes aurora-2 {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translate(-40px, 50px) rotate(-5deg) scale(0.98);
+  }
+  50% {
+    transform: translate(-70px, 20px) rotate(5deg) scale(1.05);
+  }
+  75% {
+    transform: translate(-20px, -30px) rotate(-3deg) scale(1);
+  }
+}
+
+@keyframes aurora-3 {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translate(30px, -40px) rotate(3deg) scale(1.03);
+  }
+  50% {
+    transform: translate(-20px, -20px) rotate(-5deg) scale(0.97);
+  }
+  75% {
+    transform: translate(40px, 10px) rotate(5deg) scale(1.02);
+  }
+}
+
+.animate-aurora-1 {
+  animation: aurora-1 15s ease-in-out infinite;
+}
+
+.animate-aurora-2 {
+  animation: aurora-2 18s ease-in-out infinite;
+}
+
+.animate-aurora-3 {
+  animation: aurora-3 20s ease-in-out infinite;
+}
+
+/* 계속 움직이는 그라데이션 배경 */
+.bg-gradient-animate {
+  background: linear-gradient(
+    -45deg,
+    #1e3a5f,
+    #2d1b4e,
+    #1e3a5f,
+    #0f2744,
+    #2d1b4e,
+    #1a1a2e
+  );
+  background-size: 400% 400%;
+  animation: gradient-flow 12s ease infinite;
+}
+
+@keyframes gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  25% {
+    background-position: 100% 50%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  75% {
+    background-position: 0% 100%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
