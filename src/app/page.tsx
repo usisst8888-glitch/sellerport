@@ -18,7 +18,7 @@ export default function Home() {
                 </Button>
               </Link>
               <Link href="/signup">
-                <Button className="bg-white text-black hover:bg-gray-200">
+                <Button className="bg-white text-black hover:bg-gray-200 transition-all duration-300 hover:scale-105">
                   무료로 시작하기
                 </Button>
               </Link>
@@ -32,31 +32,31 @@ export default function Home() {
         <section className="relative overflow-hidden">
           {/* 배경 그라데이션 효과 */}
           <div className="absolute inset-0 bg-gradient-to-b from-blue-600/20 via-transparent to-transparent" />
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-blue-500/30 rounded-full blur-[120px]" />
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-blue-500/30 rounded-full blur-[120px] animate-pulse" />
 
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 sm:py-40 text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/5 text-sm text-gray-300 mb-8">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/5 text-sm text-gray-300 mb-8 animate-fade-in">
               <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
               네이버 스마트스토어 연동 지원
             </div>
 
-            <h2 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-8">
+            <h2 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-8 animate-fade-in-up">
               이커머스 정기구독
               <br />
-              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-gradient">
                 통합 관리 플랫폼
               </span>
             </h2>
 
-            <p className="text-lg sm:text-xl text-gray-400 mb-12 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg sm:text-xl text-gray-400 mb-12 max-w-2xl mx-auto leading-relaxed animate-fade-in-up animation-delay-200">
               여러 플랫폼의 정기구독 고객을 한 곳에서 관리하고,
               <br className="hidden sm:block" />
               카카오 알림톡으로 고객 이탈을 방지하세요.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up animation-delay-400">
               <Link href="/signup">
-                <Button size="lg" className="bg-white text-black hover:bg-gray-200 text-lg px-8 h-14 w-full sm:w-auto">
+                <Button size="lg" className="bg-white text-black hover:bg-gray-200 text-lg px-8 h-14 w-full sm:w-auto transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-white/20">
                   무료로 시작하기
                   <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -64,24 +64,24 @@ export default function Home() {
                 </Button>
               </Link>
               <Link href="#features">
-                <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 text-lg px-8 h-14 w-full sm:w-auto">
+                <Button size="lg" variant="outline" className="border-white/30 bg-transparent text-gray-200 hover:bg-white/10 hover:text-white hover:border-white/50 text-lg px-8 h-14 w-full sm:w-auto transition-all duration-300">
                   자세히 알아보기
                 </Button>
               </Link>
             </div>
 
             {/* 통계 */}
-            <div className="grid grid-cols-3 gap-8 mt-20 pt-12 border-t border-white/10 max-w-2xl mx-auto">
-              <div>
-                <p className="text-3xl sm:text-4xl font-bold">99.9%</p>
+            <div className="grid grid-cols-3 gap-8 mt-20 pt-12 border-t border-white/10 max-w-2xl mx-auto animate-fade-in-up animation-delay-600">
+              <div className="group">
+                <p className="text-3xl sm:text-4xl font-bold transition-transform duration-300 group-hover:scale-110">99.9%</p>
                 <p className="text-sm text-gray-500 mt-1">서비스 안정성</p>
               </div>
-              <div>
-                <p className="text-3xl sm:text-4xl font-bold">10+</p>
+              <div className="group">
+                <p className="text-3xl sm:text-4xl font-bold transition-transform duration-300 group-hover:scale-110">10+</p>
                 <p className="text-sm text-gray-500 mt-1">연동 플랫폼</p>
               </div>
-              <div>
-                <p className="text-3xl sm:text-4xl font-bold">24/7</p>
+              <div className="group">
+                <p className="text-3xl sm:text-4xl font-bold transition-transform duration-300 group-hover:scale-110">24/7</p>
                 <p className="text-sm text-gray-500 mt-1">실시간 모니터링</p>
               </div>
             </div>
@@ -102,8 +102,8 @@ export default function Home() {
             </div>
 
             <div className="grid md:grid-cols-3 gap-6">
-              <div className="group p-8 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-6">
+              <div className="group p-8 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-blue-500/10">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                   <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                   </svg>
@@ -114,8 +114,8 @@ export default function Home() {
                 </p>
               </div>
 
-              <div className="group p-8 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center mb-6">
+              <div className="group p-8 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-yellow-500/10">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                   <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
@@ -126,8 +126,8 @@ export default function Home() {
                 </p>
               </div>
 
-              <div className="group p-8 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-6">
+              <div className="group p-8 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-purple-500/10">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                   <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
@@ -142,15 +142,15 @@ export default function Home() {
         </section>
 
         {/* 지원 플랫폼 */}
-        <section className="py-24 border-t border-white/10 bg-white/[0.02]">
+        <section className="py-24 border-t border-white/10 bg-white/[0.02] overflow-hidden">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <p className="text-center text-gray-500 mb-12">연동 지원 플랫폼</p>
             <div className="flex flex-wrap justify-center items-center gap-12 opacity-60">
-              <span className="text-2xl font-bold text-gray-400">네이버 스마트스토어</span>
-              <span className="text-2xl font-bold text-gray-400">카페24</span>
-              <span className="text-2xl font-bold text-gray-400">아임웹</span>
-              <span className="text-2xl font-bold text-gray-400">고도몰</span>
-              <span className="text-2xl font-bold text-gray-400">메이크샵</span>
+              <span className="text-2xl font-bold text-gray-400 hover:text-white transition-colors duration-300 cursor-default">네이버 스마트스토어</span>
+              <span className="text-2xl font-bold text-gray-400 hover:text-white transition-colors duration-300 cursor-default">카페24</span>
+              <span className="text-2xl font-bold text-gray-400 hover:text-white transition-colors duration-300 cursor-default">아임웹</span>
+              <span className="text-2xl font-bold text-gray-400 hover:text-white transition-colors duration-300 cursor-default">고도몰</span>
+              <span className="text-2xl font-bold text-gray-400 hover:text-white transition-colors duration-300 cursor-default">메이크샵</span>
             </div>
           </div>
         </section>
@@ -174,14 +174,15 @@ export default function Home() {
                 { name: 'Basic', price: '50,000', subscribers: '100명', platforms: '2개', features: ['알림톡 1,000건/월', '우선 지원'] },
                 { name: 'Pro', price: '100,000', subscribers: '500명', platforms: '4개', popular: true, features: ['알림톡 5,000건/월', '이탈 예측', 'API 액세스'] },
                 { name: 'Enterprise', price: '별도 협의', subscribers: '무제한', platforms: '무제한', features: ['알림톡 무제한', '전담 매니저', 'SLA 보장'] },
-              ].map((plan) => (
+              ].map((plan, index) => (
                 <div
                   key={plan.name}
-                  className={`relative rounded-2xl p-8 transition-all duration-300 ${
+                  className={`relative rounded-2xl p-8 transition-all duration-500 hover:-translate-y-2 ${
                     plan.popular
-                      ? 'bg-gradient-to-b from-blue-600 to-blue-700 scale-105 shadow-2xl shadow-blue-500/20'
-                      : 'bg-white/5 border border-white/10 hover:border-white/20'
+                      ? 'bg-gradient-to-b from-blue-600 to-blue-700 scale-105 shadow-2xl shadow-blue-500/20 hover:shadow-blue-500/40'
+                      : 'bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/10'
                   }`}
+                  style={{ animationDelay: `${index * 100}ms` }}
                 >
                   {plan.popular && (
                     <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-semibold bg-white text-blue-600 px-3 py-1 rounded-full">
@@ -214,7 +215,7 @@ export default function Home() {
                   </ul>
                   <Link href="/signup" className="block">
                     <Button
-                      className={`w-full ${
+                      className={`w-full transition-all duration-300 hover:scale-105 ${
                         plan.popular
                           ? 'bg-white text-blue-600 hover:bg-gray-100'
                           : 'bg-white/10 hover:bg-white/20 text-white'
@@ -230,8 +231,9 @@ export default function Home() {
         </section>
 
         {/* CTA 섹션 */}
-        <section className="py-32 border-t border-white/10">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <section className="py-32 border-t border-white/10 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-t from-blue-600/10 via-transparent to-transparent" />
+          <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h3 className="text-4xl sm:text-5xl font-bold mb-6">
               지금 바로 시작하세요
             </h3>
@@ -239,7 +241,7 @@ export default function Home() {
               무료로 시작하고, 비즈니스가 성장하면 업그레이드하세요.
             </p>
             <Link href="/signup">
-              <Button size="lg" className="bg-white text-black hover:bg-gray-200 text-lg px-10 h-14">
+              <Button size="lg" className="bg-white text-black hover:bg-gray-200 text-lg px-10 h-14 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-white/20">
                 무료 체험 시작하기
                 <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -263,17 +265,17 @@ export default function Home() {
               <div>
                 <h6 className="font-semibold mb-4 text-gray-300">서비스</h6>
                 <ul className="space-y-3 text-sm text-gray-500">
-                  <li><Link href="#features" className="hover:text-white transition-colors">기능 소개</Link></li>
-                  <li><Link href="#" className="hover:text-white transition-colors">요금제</Link></li>
-                  <li><Link href="#" className="hover:text-white transition-colors">고객 사례</Link></li>
+                  <li><Link href="#features" className="hover:text-white transition-colors duration-300">기능 소개</Link></li>
+                  <li><Link href="#" className="hover:text-white transition-colors duration-300">요금제</Link></li>
+                  <li><Link href="#" className="hover:text-white transition-colors duration-300">고객 사례</Link></li>
                 </ul>
               </div>
               <div>
                 <h6 className="font-semibold mb-4 text-gray-300">회사</h6>
                 <ul className="space-y-3 text-sm text-gray-500">
-                  <li><Link href="#" className="hover:text-white transition-colors">이용약관</Link></li>
-                  <li><Link href="#" className="hover:text-white transition-colors">개인정보처리방침</Link></li>
-                  <li><Link href="#" className="hover:text-white transition-colors">문의하기</Link></li>
+                  <li><Link href="#" className="hover:text-white transition-colors duration-300">이용약관</Link></li>
+                  <li><Link href="#" className="hover:text-white transition-colors duration-300">개인정보처리방침</Link></li>
+                  <li><Link href="#" className="hover:text-white transition-colors duration-300">문의하기</Link></li>
                 </ul>
               </div>
             </div>
