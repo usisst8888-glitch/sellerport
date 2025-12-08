@@ -132,7 +132,7 @@ export function NaverConnectDialog({ children, onSuccess }: NaverConnectDialogPr
               <li>발급된 ID와 시크릿을 위에 입력</li>
             </ol>
             <a
-              href="https://api.commerce.naver.com"
+              href="https://apicenter.commerce.naver.com/ko/basic/main"
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-blue-600 underline mt-2 inline-block"
