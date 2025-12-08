@@ -15,47 +15,89 @@ interface Platform {
   created_at: string
 }
 
+// 플랫폼 로고 컴포넌트
+const NaverLogo = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z" fill="#03C75A"/>
+  </svg>
+)
+
+const Cafe24Logo = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 100 100" fill="none">
+    <rect width="100" height="100" rx="20" fill="#1A1A1A"/>
+    <text x="50" y="62" textAnchor="middle" fill="white" fontSize="32" fontWeight="bold" fontFamily="Arial">C24</text>
+  </svg>
+)
+
+const ImwebLogo = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 100 100" fill="none">
+    <rect width="100" height="100" rx="20" fill="#6366F1"/>
+    <text x="50" y="65" textAnchor="middle" fill="white" fontSize="28" fontWeight="bold" fontFamily="Arial">IM</text>
+  </svg>
+)
+
+const GodoLogo = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 100 100" fill="none">
+    <rect width="100" height="100" rx="20" fill="#FF6B35"/>
+    <text x="50" y="62" textAnchor="middle" fill="white" fontSize="24" fontWeight="bold" fontFamily="Arial">GODO</text>
+  </svg>
+)
+
+const MakeshopLogo = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 100 100" fill="none">
+    <rect width="100" height="100" rx="20" fill="#E91E63"/>
+    <text x="50" y="62" textAnchor="middle" fill="white" fontSize="20" fontWeight="bold" fontFamily="Arial">MAKE</text>
+  </svg>
+)
+
+const CoupangLogo = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 100 100" fill="none">
+    <rect width="100" height="100" rx="20" fill="#E31837"/>
+    <path d="M25 50C25 36.2 36.2 25 50 25C58.5 25 66 29.5 70.5 36L62 42C59.5 38 55 35 50 35C41.7 35 35 41.7 35 50C35 58.3 41.7 65 50 65C55 65 59.5 62 62 58L70.5 64C66 70.5 58.5 75 50 75C36.2 75 25 63.8 25 50Z" fill="white"/>
+  </svg>
+)
+
 const platformConfigs = [
   {
     id: 'naver',
     name: '네이버 스마트스토어',
     description: '커머스 API 인증',
-    icon: '🛒',
+    logo: NaverLogo,
     status: 'available',
   },
   {
     id: 'cafe24',
     name: '카페24',
     description: 'OAuth 2.0 인증',
-    icon: '🏪',
+    logo: Cafe24Logo,
     status: 'coming_soon',
   },
   {
     id: 'imweb',
     name: '아임웹',
     description: 'API Key 인증',
-    icon: '🌐',
+    logo: ImwebLogo,
     status: 'coming_soon',
   },
   {
     id: 'godo',
     name: '고도몰',
     description: 'API Key 인증',
-    icon: '🛍️',
+    logo: GodoLogo,
     status: 'coming_soon',
   },
   {
     id: 'makeshop',
     name: '메이크샵',
     description: 'API Key 인증',
-    icon: '🏬',
+    logo: MakeshopLogo,
     status: 'coming_soon',
   },
   {
     id: 'coupang',
     name: '쿠팡',
     description: 'HMAC 인증',
-    icon: '📦',
+    logo: CoupangLogo,
     status: 'coming_soon',
   },
 ]
@@ -104,9 +146,13 @@ export default function PlatformsPage() {
     }
   }
 
-  const getPlatformIcon = (type: string) => {
+  const getPlatformLogo = (type: string) => {
     const config = platformConfigs.find(p => p.id === type)
-    return config?.icon || '🔗'
+    if (config?.logo) {
+      const Logo = config.logo
+      return <Logo className="w-8 h-8" />
+    }
+    return <span className="text-2xl">🔗</span>
   }
 
   return (
@@ -141,7 +187,7 @@ export default function PlatformsPage() {
                   className="flex items-center justify-between p-4 border rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">{getPlatformIcon(platform.platform_type)}</span>
+                    {getPlatformLogo(platform.platform_type)}
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="font-medium text-gray-900">{platform.platform_name}</h3>
@@ -189,7 +235,7 @@ export default function PlatformsPage() {
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-3xl">{platform.icon}</span>
+                  {<platform.logo className="w-10 h-10" />}
                   <div>
                     <h3 className="font-semibold text-gray-900">{platform.name}</h3>
                     <p className="text-sm text-gray-500">{platform.description}</p>
