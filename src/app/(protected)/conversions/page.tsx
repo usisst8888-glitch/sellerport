@@ -13,11 +13,16 @@ interface Slot {
   tracking_url: string
   clicks: number
   conversions: number
+  revenue: number
+  ad_spend: number
   status: string
   created_at: string
   products?: {
+    id: string
     name: string
     image_url: string | null
+    price: number
+    cost: number
   } | null
 }
 
@@ -25,6 +30,15 @@ interface Product {
   id: string
   name: string
   external_product_id: string
+  price: number
+  cost: number
+}
+
+// ROAS 기준 신호등 색상 반환
+function getSignalLight(roas: number): { color: string; bg: string; text: string; label: string } {
+  if (roas >= 300) return { color: 'emerald', bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: '🟢 좋음' }
+  if (roas >= 150) return { color: 'amber', bg: 'bg-amber-500/20', text: 'text-amber-400', label: '🟡 보통' }
+  return { color: 'red', bg: 'bg-red-500/20', text: 'text-red-400', label: '🔴 주의' }
 }
 
 export default function ConversionsPage() {
@@ -43,8 +57,13 @@ export default function ConversionsPage() {
     utmMedium: 'cpc',
     utmCampaign: '',
     targetUrl: '',
-    name: ''
+    name: '',
+    adSpend: 0 // 광고비
   })
+
+  // 광고비 수정 모달
+  const [editingSlot, setEditingSlot] = useState<Slot | null>(null)
+  const [editAdSpend, setEditAdSpend] = useState(0)
 
   const fetchSlots = async () => {
     try {
@@ -64,9 +83,33 @@ export default function ConversionsPage() {
     const supabase = createClient()
     const { data } = await supabase
       .from('products')
-      .select('id, name, external_product_id')
+      .select('id, name, external_product_id, price, cost')
       .order('name')
     setProducts(data || [])
+  }
+
+  // 광고비 업데이트
+  const handleUpdateAdSpend = async () => {
+    if (!editingSlot) return
+
+    try {
+      const response = await fetch(`/api/slots/${editingSlot.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adSpend: editAdSpend })
+      })
+
+      const result = await response.json()
+      if (result.success) {
+        setMessage({ type: 'success', text: '광고비가 업데이트되었습니다' })
+        setEditingSlot(null)
+        fetchSlots()
+      } else {
+        setMessage({ type: 'error', text: result.error || '업데이트에 실패했습니다' })
+      }
+    } catch {
+      setMessage({ type: 'error', text: '업데이트 중 오류가 발생했습니다' })
+    }
   }
 
   useEffect(() => {
@@ -99,7 +142,8 @@ export default function ConversionsPage() {
           utmMedium: formData.utmMedium,
           utmCampaign: formData.utmCampaign,
           targetUrl: formData.targetUrl,
-          name: formData.name || `${formData.utmSource} - ${formData.utmCampaign}`
+          name: formData.name || `${formData.utmSource} - ${formData.utmCampaign}`,
+          adSpend: formData.adSpend || 0
         })
       })
 
@@ -114,7 +158,8 @@ export default function ConversionsPage() {
           utmMedium: 'cpc',
           utmCampaign: '',
           targetUrl: '',
-          name: ''
+          name: '',
+          adSpend: 0
         })
         fetchSlots()
       } else {
@@ -129,7 +174,10 @@ export default function ConversionsPage() {
 
   const totalClicks = slots.reduce((sum, s) => sum + (s.clicks || 0), 0)
   const totalConversions = slots.reduce((sum, s) => sum + (s.conversions || 0), 0)
+  const totalRevenue = slots.reduce((sum, s) => sum + (s.revenue || 0), 0)
+  const totalAdSpend = slots.reduce((sum, s) => sum + (s.ad_spend || 0), 0)
   const avgConversionRate = totalClicks > 0 ? ((totalConversions / totalClicks) * 100).toFixed(2) : '0.00'
+  const totalRoas = totalAdSpend > 0 ? Math.round((totalRevenue / totalAdSpend) * 100) : 0
   const activeSlots = slots.filter(s => s.status === 'active').length
 
   return (
@@ -174,7 +222,7 @@ export default function ConversionsPage() {
       )}
 
       {/* 통계 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <div className="rounded-xl bg-slate-800/50 border border-white/5 p-4">
           <p className="text-xs text-slate-500 uppercase tracking-wider">활성 슬롯</p>
           <p className="text-2xl font-bold text-white mt-1">{activeSlots}<span className="text-sm font-normal text-slate-400 ml-1">개</span></p>
@@ -188,8 +236,19 @@ export default function ConversionsPage() {
           <p className="text-2xl font-bold text-emerald-400 mt-1">{totalConversions.toLocaleString()}</p>
         </div>
         <div className="rounded-xl bg-slate-800/50 border border-white/5 p-4">
-          <p className="text-xs text-slate-500 uppercase tracking-wider">평균 전환율</p>
-          <p className="text-2xl font-bold text-blue-400 mt-1">{avgConversionRate}%</p>
+          <p className="text-xs text-slate-500 uppercase tracking-wider">총 광고비</p>
+          <p className="text-2xl font-bold text-white mt-1">{totalAdSpend.toLocaleString()}<span className="text-sm font-normal text-slate-400 ml-1">원</span></p>
+        </div>
+        <div className="rounded-xl bg-slate-800/50 border border-white/5 p-4">
+          <p className="text-xs text-slate-500 uppercase tracking-wider">총 매출</p>
+          <p className="text-2xl font-bold text-blue-400 mt-1">{totalRevenue.toLocaleString()}<span className="text-sm font-normal text-slate-400 ml-1">원</span></p>
+        </div>
+        <div className={`rounded-xl border p-4 ${totalRoas >= 300 ? 'bg-emerald-500/10 border-emerald-500/30' : totalRoas >= 150 ? 'bg-amber-500/10 border-amber-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
+          <p className="text-xs text-slate-500 uppercase tracking-wider">전체 ROAS</p>
+          <p className={`text-2xl font-bold mt-1 ${totalRoas >= 300 ? 'text-emerald-400' : totalRoas >= 150 ? 'text-amber-400' : 'text-red-400'}`}>
+            {totalRoas}%
+            <span className="text-sm font-normal ml-1">{totalRoas >= 300 ? '🟢' : totalRoas >= 150 ? '🟡' : '🔴'}</span>
+          </p>
         </div>
       </div>
 
@@ -238,11 +297,19 @@ export default function ConversionsPage() {
           ) : slots.length > 0 ? (
             slots.map((slot) => {
               const conversionRate = slot.clicks > 0 ? ((slot.conversions / slot.clicks) * 100).toFixed(2) : '0.00'
+              const slotRoas = slot.ad_spend > 0 ? Math.round((slot.revenue / slot.ad_spend) * 100) : 0
+              const signal = getSignalLight(slotRoas)
               return (
                 <div key={slot.id} className="p-4 hover:bg-white/5 transition-colors">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
+                        {/* ROAS 신호등 */}
+                        {slot.ad_spend > 0 && (
+                          <span className={`px-2 py-0.5 text-xs rounded ${signal.bg} ${signal.text}`}>
+                            {signal.label} {slotRoas}%
+                          </span>
+                        )}
                         <span className="px-2 py-0.5 text-xs font-mono bg-slate-700 text-slate-300 rounded">
                           {slot.id}
                         </span>
@@ -256,11 +323,11 @@ export default function ConversionsPage() {
                       </div>
                       <p className="text-sm font-medium text-white mb-1">{slot.name}</p>
                       {slot.products?.name && (
-                        <p className="text-xs text-slate-500">{slot.products.name}</p>
+                        <p className="text-xs text-slate-500">🛒 {slot.products.name}</p>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-6 text-right">
+                    <div className="flex items-center gap-4 text-right">
                       <div>
                         <p className="text-sm font-medium text-white">{(slot.clicks || 0).toLocaleString()}</p>
                         <p className="text-xs text-slate-500">클릭</p>
@@ -270,8 +337,20 @@ export default function ConversionsPage() {
                         <p className="text-xs text-slate-500">전환</p>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-blue-400">{conversionRate}%</p>
-                        <p className="text-xs text-slate-500">전환율</p>
+                        <p className="text-sm font-medium text-blue-400">{(slot.revenue || 0).toLocaleString()}원</p>
+                        <p className="text-xs text-slate-500">매출</p>
+                      </div>
+                      <div>
+                        <button
+                          onClick={() => {
+                            setEditingSlot(slot)
+                            setEditAdSpend(slot.ad_spend || 0)
+                          }}
+                          className="text-sm font-medium text-white hover:text-blue-400 transition-colors"
+                        >
+                          {(slot.ad_spend || 0).toLocaleString()}원
+                        </button>
+                        <p className="text-xs text-slate-500">광고비 ✏️</p>
                       </div>
                     </div>
                   </div>
@@ -445,6 +524,21 @@ export default function ConversionsPage() {
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">광고비 (선택)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={formData.adSpend || ''}
+                    onChange={(e) => setFormData({ ...formData, adSpend: Number(e.target.value) })}
+                    className="w-full px-4 py-2.5 pr-10 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">원</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">이 슬롯에 투입된 광고비 (ROAS 계산에 사용)</p>
+              </div>
             </div>
 
             <div className="p-6 border-t border-white/5 flex gap-3 justify-end">
@@ -468,6 +562,66 @@ export default function ConversionsPage() {
                     발급 중...
                   </>
                 ) : '슬롯 발급'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 광고비 수정 모달 */}
+      {editingSlot && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl bg-slate-800 border border-white/10 shadow-2xl">
+            <div className="p-6 border-b border-white/5">
+              <h3 className="text-lg font-semibold text-white">광고비 수정</h3>
+              <p className="text-sm text-slate-400 mt-1">{editingSlot.name}</p>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">광고비</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={editAdSpend}
+                    onChange={(e) => setEditAdSpend(Number(e.target.value))}
+                    className="w-full px-4 py-2.5 pr-10 rounded-xl bg-slate-900/50 border border-white/10 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">원</span>
+                </div>
+              </div>
+
+              {/* 예상 ROAS 표시 */}
+              {editAdSpend > 0 && (
+                <div className="p-3 rounded-xl bg-slate-900/50">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-400">예상 ROAS</span>
+                    <span className={`font-medium ${
+                      Math.round((editingSlot.revenue / editAdSpend) * 100) >= 300 ? 'text-emerald-400' :
+                      Math.round((editingSlot.revenue / editAdSpend) * 100) >= 150 ? 'text-amber-400' :
+                      'text-red-400'
+                    }`}>
+                      {Math.round((editingSlot.revenue / editAdSpend) * 100)}%
+                      {Math.round((editingSlot.revenue / editAdSpend) * 100) >= 300 ? ' 🟢' :
+                       Math.round((editingSlot.revenue / editAdSpend) * 100) >= 150 ? ' 🟡' : ' 🔴'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-white/5 flex gap-3 justify-end">
+              <button
+                onClick={() => setEditingSlot(null)}
+                className="px-4 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleUpdateAdSpend}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors"
+              >
+                저장
               </button>
             </div>
           </div>

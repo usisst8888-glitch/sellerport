@@ -65,12 +65,14 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { name, status, targetUrl } = body
+    const { name, status, targetUrl, adSpend, productId } = body
 
     const updateData: Record<string, unknown> = {}
     if (name !== undefined) updateData.name = name
     if (status !== undefined) updateData.status = status
     if (targetUrl !== undefined) updateData.target_url = targetUrl
+    if (adSpend !== undefined) updateData.ad_spend = adSpend
+    if (productId !== undefined) updateData.product_id = productId
 
     const { data: slot, error } = await supabase
       .from('slots')

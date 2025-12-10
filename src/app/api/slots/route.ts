@@ -19,14 +19,17 @@ export async function GET() {
       return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 })
     }
 
-    // 슬롯 목록 조회
+    // 슬롯 목록 조회 (products의 price, cost 포함)
     const { data: slots, error } = await supabase
       .from('slots')
       .select(`
         *,
         products (
+          id,
           name,
-          image_url
+          image_url,
+          price,
+          cost
         )
       `)
       .eq('user_id', user.id)
@@ -57,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { productId, utmSource, utmMedium, utmCampaign, targetUrl, name } = body
+    const { productId, utmSource, utmMedium, utmCampaign, targetUrl, name, adSpend } = body
 
     if (!utmSource || !utmMedium || !utmCampaign || !targetUrl) {
       return NextResponse.json({ error: '필수 항목이 누락되었습니다' }, { status: 400 })
@@ -94,7 +97,9 @@ export async function POST(request: NextRequest) {
         tracking_url: trackingUrl,
         status: 'active',
         clicks: 0,
-        conversions: 0
+        conversions: 0,
+        revenue: 0,
+        ad_spend: adSpend || 0
       })
       .select()
       .single()

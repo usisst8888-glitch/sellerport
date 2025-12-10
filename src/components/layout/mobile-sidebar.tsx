@@ -1,13 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 
-const menuItems = [
+interface MenuItem {
+  title: string
+  href: string
+  icon: React.ReactNode
+  badge?: string
+  adminOnly?: boolean
+}
+
+const menuItems: MenuItem[] = [
   {
     title: '대시보드',
     href: '/dashboard',
@@ -91,11 +99,45 @@ const menuItems = [
       </svg>
     ),
   },
+  {
+    title: '회원 관리',
+    href: '/admin',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+    ),
+    adminOnly: true,
+  },
 ]
 
 export function MobileSidebar() {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
+  const [userType, setUserType] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch('/api/profile')
+        const data = await response.json()
+        if (data.success) {
+          setUserType(data.data.userType)
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile:', error)
+      }
+    }
+    fetchProfile()
+  }, [])
+
+  // 관리자/매니저가 아니면 adminOnly 메뉴 필터링
+  const filteredMenuItems = menuItems.filter(item => {
+    if (item.adminOnly) {
+      return userType === 'admin' || userType === 'manager'
+    }
+    return true
+  })
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -122,7 +164,7 @@ export function MobileSidebar() {
 
           {/* 메뉴 */}
           <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
-            {menuItems.map((item) => {
+            {filteredMenuItems.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
               return (
                 <Link
@@ -154,18 +196,24 @@ export function MobileSidebar() {
             })}
           </nav>
 
-          {/* 슬롯 정보 */}
+          {/* 이용 현황 */}
           <div className="flex-shrink-0 px-3 py-4 border-t border-white/5">
             <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-white/5 p-4">
               <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
-              <p className="text-xs text-slate-500 uppercase tracking-wider">활성 슬롯</p>
-              <p className="text-lg font-semibold text-white mt-1">0개</p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-slate-500">이용중인 슬롯</p>
+                <p className="text-sm font-semibold text-white">0개</p>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-slate-500">알림 잔액</p>
+                <p className="text-sm font-semibold text-white">0건</p>
+              </div>
               <Link
                 href="/billing"
                 onClick={() => setOpen(false)}
                 className="mt-3 inline-flex items-center text-xs text-blue-400 hover:text-blue-300 transition-colors group"
               >
-                슬롯 충전하기
+                충전하기
                 <svg className="w-3 h-3 ml-1 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>

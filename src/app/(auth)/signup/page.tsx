@@ -245,10 +245,10 @@ export default function SignupPage() {
               <Label htmlFor="phone" className="text-slate-300">
                 전화번호
                 {isPhoneVerified && (
-                  <span className="ml-2 text-xs text-emerald-400">인증완료</span>
+                  <span className="ml-2 text-xs text-emerald-400">✓ 인증완료</span>
                 )}
               </Label>
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
                 <Input
                   id="phone"
                   type="tel"
@@ -257,16 +257,16 @@ export default function SignupPage() {
                   onChange={(e) => setPhone(formatPhone(e.target.value))}
                   disabled={isPhoneVerified}
                   required
-                  className="flex-1 bg-slate-700 border-slate-600 text-white placeholder:text-slate-500 disabled:opacity-60"
+                  className="flex-1 h-11 bg-slate-700 border-slate-600 text-white placeholder:text-slate-500 disabled:opacity-60"
                 />
-                <Button
+                <button
                   type="button"
                   onClick={handleSendCode}
                   disabled={sendingCode || isPhoneVerified || countdown > 0}
-                  className="px-4 bg-slate-600 hover:bg-slate-500 text-white disabled:opacity-50"
+                  className="h-11 px-4 rounded-lg bg-slate-600 hover:bg-slate-500 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
                 >
                   {sendingCode ? '발송중...' : countdown > 0 ? `${Math.floor(countdown / 60)}:${(countdown % 60).toString().padStart(2, '0')}` : '인증요청'}
-                </Button>
+                </button>
               </div>
             </div>
 
@@ -274,7 +274,7 @@ export default function SignupPage() {
             {codeSent && !isPhoneVerified && (
               <div className="space-y-2">
                 <Label htmlFor="code" className="text-slate-300">인증번호</Label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   <Input
                     id="code"
                     type="text"
@@ -282,16 +282,16 @@ export default function SignupPage() {
                     value={verificationCode}
                     onChange={(e) => setVerificationCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
                     maxLength={6}
-                    className="flex-1 bg-slate-700 border-slate-600 text-white placeholder:text-slate-500 tracking-widest text-center font-mono"
+                    className="flex-1 h-11 bg-slate-700 border-slate-600 text-white placeholder:text-slate-500 tracking-widest text-center font-mono"
                   />
-                  <Button
+                  <button
                     type="button"
                     onClick={handleVerifyCode}
                     disabled={verifyingCode || verificationCode.length !== 6}
-                    className="px-4 bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50"
+                    className="h-11 px-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
                   >
                     {verifyingCode ? '확인중...' : '확인'}
-                  </Button>
+                  </button>
                 </div>
                 {countdown > 0 && (
                   <p className="text-xs text-slate-500">
