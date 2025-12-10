@@ -393,11 +393,21 @@ export default function ConversionsPage() {
                   onChange={(e) => setFormData({ ...formData, utmSource: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white focus:border-blue-500 focus:outline-none transition-colors"
                 >
-                  <option value="naver">네이버</option>
-                  <option value="google">구글</option>
-                  <option value="meta">메타 (페이스북/인스타)</option>
-                  <option value="kakao">카카오</option>
-                  <option value="youtube">유튜브</option>
+                  <optgroup label="광고 플랫폼">
+                    <option value="naver">네이버</option>
+                    <option value="google">구글</option>
+                    <option value="meta">메타 (페이스북/인스타)</option>
+                    <option value="kakao">카카오</option>
+                    <option value="youtube">유튜브</option>
+                    <option value="tiktok">틱톡</option>
+                  </optgroup>
+                  <optgroup label="자체 채널">
+                    <option value="direct">다이렉트 (직접 유입)</option>
+                    <option value="blog">블로그</option>
+                    <option value="instagram">인스타그램 (자체)</option>
+                    <option value="cafe">카페/커뮤니티</option>
+                    <option value="referral">지인 추천</option>
+                  </optgroup>
                 </select>
               </div>
 
@@ -408,11 +418,20 @@ export default function ConversionsPage() {
                   onChange={(e) => setFormData({ ...formData, utmMedium: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white focus:border-blue-500 focus:outline-none transition-colors"
                 >
-                  <option value="cpc">CPC (클릭당 과금)</option>
-                  <option value="cpm">CPM (노출당 과금)</option>
-                  <option value="display">디스플레이</option>
-                  <option value="social">소셜</option>
-                  <option value="email">이메일</option>
+                  <optgroup label="유료 광고">
+                    <option value="cpc">CPC (클릭당 과금)</option>
+                    <option value="cpm">CPM (노출당 과금)</option>
+                    <option value="display">디스플레이</option>
+                    <option value="shopping">쇼핑 광고</option>
+                  </optgroup>
+                  <optgroup label="자체 채널">
+                    <option value="organic">오가닉 (자연 유입)</option>
+                    <option value="social">소셜 미디어</option>
+                    <option value="email">이메일/뉴스레터</option>
+                    <option value="sms">SMS/알림톡</option>
+                    <option value="referral">추천/리퍼럴</option>
+                    <option value="influencer">인플루언서</option>
+                  </optgroup>
                 </select>
               </div>
 

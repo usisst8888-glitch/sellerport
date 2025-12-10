@@ -334,6 +334,53 @@ export function createAligoClient(
 }
 
 /**
+ * 알리고 SMS 발송 (단문)
+ * 참조: https://smartsms.aligo.in/admin/api/spec.html
+ */
+export async function sendSMS(
+  receiver: string,
+  message: string,
+  sender?: string
+): Promise<{ success: boolean; error?: string }> {
+  const apiKey = process.env.ALIGO_API_KEY
+  const userId = process.env.ALIGO_USER_ID
+  const senderPhone = sender || process.env.ALIGO_SENDER_PHONE
+
+  if (!apiKey || !userId || !senderPhone) {
+    console.error('Aligo SMS config missing:', { apiKey: !!apiKey, userId: !!userId, senderPhone: !!senderPhone })
+    throw new Error('알리고 SMS 설정이 없습니다')
+  }
+
+  const formData = new FormData()
+  formData.append('key', apiKey)
+  formData.append('user_id', userId)
+  formData.append('sender', senderPhone)
+  formData.append('receiver', receiver)
+  formData.append('msg', message)
+  formData.append('msg_type', 'SMS') // SMS, LMS, MMS
+
+  try {
+    const response = await fetch('https://apis.aligo.in/send/', {
+      method: 'POST',
+      body: formData,
+    })
+
+    const result = await response.json()
+
+    // result_code: 1 = 성공
+    if (result.result_code === '1') {
+      return { success: true }
+    } else {
+      console.error('Aligo SMS error:', result)
+      return { success: false, error: result.message || '발송 실패' }
+    }
+  } catch (error) {
+    console.error('Aligo SMS fetch error:', error)
+    return { success: false, error: error instanceof Error ? error.message : '알 수 없는 오류' }
+  }
+}
+
+/**
  * 알림 메시지 템플릿 헬퍼
  */
 export const AlertTemplates = {
