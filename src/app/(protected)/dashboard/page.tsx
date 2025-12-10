@@ -1,119 +1,267 @@
 import { createClient } from '@/lib/supabase/server'
-import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+
+// 신호등 상태 타입
+type TrafficLight = 'green' | 'yellow' | 'red' | 'gray'
+
+// 신호등 판정 함수
+function getTrafficLight(roas: number): TrafficLight {
+  if (roas >= 300) return 'green'
+  if (roas >= 150) return 'yellow'
+  if (roas > 0) return 'red'
+  return 'gray'
+}
+
+function getTrafficLightColor(status: TrafficLight) {
+  switch (status) {
+    case 'green':
+      return 'bg-emerald-500 shadow-emerald-500/50'
+    case 'yellow':
+      return 'bg-amber-500 shadow-amber-500/50'
+    case 'red':
+      return 'bg-red-500 shadow-red-500/50 animate-pulse'
+    default:
+      return 'bg-slate-500'
+  }
+}
+
+function getStatusText(status: TrafficLight) {
+  switch (status) {
+    case 'green':
+      return '효율 좋음'
+    case 'yellow':
+      return '주의 필요'
+    case 'red':
+      return '개선 필요'
+    default:
+      return '데이터 없음'
+  }
+}
+
+function formatCurrency(value: number) {
+  if (value >= 1000000) {
+    return `${(value / 1000000).toFixed(1)}M`
+  } else if (value >= 1000) {
+    return `${(value / 1000).toFixed(0)}K`
+  }
+  return value.toLocaleString()
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // 프로필 정보 가져오기
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user?.id)
-    .single()
+  // 캠페인 목록 조회
+  const { data: campaigns } = await supabase
+    .from('campaigns')
+    .select(`
+      *,
+      products (
+        id,
+        name,
+        image_url,
+        price
+      )
+    `)
+    .eq('user_id', user?.id)
+    .order('created_at', { ascending: false })
 
-  const planLabels: Record<string, string> = {
-    free: 'Free',
-    basic: 'Basic',
-    pro: 'Pro',
-    enterprise: 'Enterprise'
-  }
+  // 캠페인에 신호등 상태 추가
+  const campaignsWithLight = (campaigns || []).map(campaign => ({
+    ...campaign,
+    trafficLight: getTrafficLight(campaign.roas || 0)
+  }))
+
+  // 신호등 통계 계산
+  const greenCount = campaignsWithLight.filter(c => c.trafficLight === 'green').length
+  const yellowCount = campaignsWithLight.filter(c => c.trafficLight === 'yellow').length
+  const redCount = campaignsWithLight.filter(c => c.trafficLight === 'red').length
+
+  // 전체 통계
+  const totalAdSpend = campaignsWithLight.reduce((sum, c) => sum + (c.spent || 0), 0)
+  const totalRevenue = campaignsWithLight.reduce((sum, c) => sum + (c.revenue || 0), 0)
+  const totalProfit = totalRevenue - totalAdSpend // 간단한 순이익 계산 (실제로는 원가도 빼야 함)
+  const averageRoas = totalAdSpend > 0 ? Math.round((totalRevenue / totalAdSpend) * 100) : 0
+
+  // 빨간불 캠페인
+  const redLightCampaigns = campaignsWithLight.filter(c => c.trafficLight === 'red')
 
   return (
     <div className="space-y-6">
       {/* 페이지 헤더 */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">대시보드</h1>
-        <p className="text-slate-400 mt-1">정기구독 관리 현황을 한눈에 확인하세요</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+            대시보드
+            <span className="text-2xl">🚦</span>
+          </h1>
+          <p className="text-slate-400 mt-1">광고 효율을 신호등으로 한눈에 확인하세요</p>
+        </div>
+        <Link
+          href="/conversions"
+          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
+        >
+          전환 추적 설정
+        </Link>
       </div>
 
-      {/* 통계 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* 현재 플랜 */}
-        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-white/5 p-5 hover:border-white/10 transition-all duration-300">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-violet-500/10 rounded-full blur-2xl group-hover:bg-violet-500/20 transition-colors" />
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
-                <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                </svg>
-              </div>
-              <p className="text-sm text-slate-400">현재 플랜</p>
-            </div>
-            <p className="text-2xl font-bold text-white">
-              {planLabels[profile?.plan || 'free']}
-            </p>
-            <p className="text-sm text-slate-500 mt-1">
-              {profile?.plan === 'free' ? '무료 플랜 사용 중' : '구독 중'}
-            </p>
-          </div>
-        </div>
-
-        {/* 구독자 수 */}
-        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-white/5 p-5 hover:border-white/10 transition-all duration-300">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-colors" />
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <p className="text-sm text-slate-400">총 구독자</p>
-            </div>
-            <p className="text-2xl font-bold text-white">
-              {profile?.subscriber_count || 0}<span className="text-lg font-normal text-slate-400 ml-1">명</span>
-            </p>
-            <p className="text-sm text-slate-500 mt-1">
-              {profile?.plan === 'free' ? '최대 10명' :
-               profile?.plan === 'basic' ? '최대 100명' :
-               profile?.plan === 'pro' ? '최대 500명' : '무제한'}
-            </p>
-          </div>
-        </div>
-
-        {/* 연동 플랫폼 */}
-        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-white/5 p-5 hover:border-white/10 transition-all duration-300">
+      {/* 신호등 요약 카드 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* 초록불 */}
+        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-emerald-500/20 p-5 hover:border-emerald-500/40 transition-all duration-300">
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-colors" />
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
+          <div className="relative flex items-center gap-4">
+            <div className="flex flex-col items-center gap-2">
+              <div className={`w-12 h-12 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/50 flex items-center justify-center`}>
+                <span className="text-xl">🟢</span>
               </div>
-              <p className="text-sm text-slate-400">연동 플랫폼</p>
             </div>
-            <p className="text-2xl font-bold text-white">
-              {profile?.platform_count || 0}<span className="text-lg font-normal text-slate-400 ml-1">개</span>
-            </p>
-            <p className="text-sm text-slate-500 mt-1">
-              {profile?.plan === 'free' ? '최대 1개' :
-               profile?.plan === 'basic' ? '최대 2개' :
-               profile?.plan === 'pro' ? '최대 4개' : '무제한'}
-            </p>
+            <div className="flex-1">
+              <p className="text-sm text-emerald-400 font-medium">ROAS 300%+</p>
+              <p className="text-3xl font-bold text-white">{greenCount}<span className="text-lg font-normal text-slate-400 ml-1">개</span></p>
+              <p className="text-sm text-slate-500">효율 좋음</p>
+            </div>
           </div>
         </div>
 
-        {/* 오늘 발송 */}
-        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-white/5 p-5 hover:border-white/10 transition-all duration-300">
+        {/* 노란불 */}
+        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-amber-500/20 p-5 hover:border-amber-500/40 transition-all duration-300">
           <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-colors" />
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
-                <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
+          <div className="relative flex items-center gap-4">
+            <div className="flex flex-col items-center gap-2">
+              <div className={`w-12 h-12 rounded-full bg-amber-500 shadow-lg shadow-amber-500/50 flex items-center justify-center`}>
+                <span className="text-xl">🟡</span>
               </div>
-              <p className="text-sm text-slate-400">오늘 발송 예정</p>
             </div>
-            <p className="text-2xl font-bold text-white">
-              0<span className="text-lg font-normal text-slate-400 ml-1">건</span>
-            </p>
-            <p className="text-sm text-slate-500 mt-1">알림톡 발송 대기</p>
+            <div className="flex-1">
+              <p className="text-sm text-amber-400 font-medium">ROAS 150-300%</p>
+              <p className="text-3xl font-bold text-white">{yellowCount}<span className="text-lg font-normal text-slate-400 ml-1">개</span></p>
+              <p className="text-sm text-slate-500">주의 필요</p>
+            </div>
           </div>
+        </div>
+
+        {/* 빨간불 */}
+        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-red-500/20 p-5 hover:border-red-500/40 transition-all duration-300">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 rounded-full blur-2xl group-hover:bg-red-500/20 transition-colors" />
+          <div className="relative flex items-center gap-4">
+            <div className="flex flex-col items-center gap-2">
+              <div className={`w-12 h-12 rounded-full bg-red-500 shadow-lg shadow-red-500/50 animate-pulse flex items-center justify-center`}>
+                <span className="text-xl">🔴</span>
+              </div>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-red-400 font-medium">ROAS 150% 미만</p>
+              <p className="text-3xl font-bold text-white">{redCount}<span className="text-lg font-normal text-slate-400 ml-1">개</span></p>
+              <p className="text-sm text-slate-500">개선 필요</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 전체 통계 */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="rounded-xl bg-slate-800/50 border border-white/5 p-4">
+          <p className="text-xs text-slate-500 uppercase tracking-wider">총 광고비</p>
+          <p className="text-xl font-bold text-white mt-1">{formatCurrency(totalAdSpend)}원</p>
+        </div>
+        <div className="rounded-xl bg-slate-800/50 border border-white/5 p-4">
+          <p className="text-xs text-slate-500 uppercase tracking-wider">총 매출</p>
+          <p className="text-xl font-bold text-white mt-1">{formatCurrency(totalRevenue)}원</p>
+        </div>
+        <div className="rounded-xl bg-slate-800/50 border border-white/5 p-4">
+          <p className="text-xs text-slate-500 uppercase tracking-wider">평균 ROAS</p>
+          <p className="text-xl font-bold text-white mt-1">{averageRoas}%</p>
+        </div>
+        <div className="rounded-xl bg-slate-800/50 border border-white/5 p-4">
+          <p className="text-xs text-slate-500 uppercase tracking-wider">순이익</p>
+          <p className={`text-xl font-bold mt-1 ${totalProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            {totalProfit >= 0 ? '+' : ''}{formatCurrency(totalProfit)}원
+          </p>
+        </div>
+      </div>
+
+      {/* 캠페인별 신호등 현황 */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-white/5">
+        <div className="p-6 border-b border-white/5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-white">캠페인별 광고 효율</h2>
+              <p className="text-sm text-slate-400 mt-0.5">빨간불 캠페인은 즉시 점검이 필요합니다</p>
+            </div>
+            <Link
+              href="/products"
+              className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              전체 보기
+            </Link>
+          </div>
+        </div>
+
+        <div className="divide-y divide-white/5">
+          {campaignsWithLight.length > 0 ? (
+            campaignsWithLight.slice(0, 10).map((campaign) => (
+              <div
+                key={campaign.id}
+                className="flex items-center gap-4 p-4 hover:bg-white/5 transition-colors"
+              >
+                {/* 신호등 */}
+                <div className={`w-4 h-4 rounded-full ${getTrafficLightColor(campaign.trafficLight)} shadow-lg`} />
+
+                {/* 캠페인 정보 */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">{campaign.name}</p>
+                  <p className="text-xs text-slate-500">{campaign.platform} · {campaign.products?.name || '상품 미연결'}</p>
+                </div>
+
+                {/* ROAS */}
+                <div className="text-right">
+                  <p className={`text-sm font-bold ${
+                    campaign.trafficLight === 'green' ? 'text-emerald-400' :
+                    campaign.trafficLight === 'yellow' ? 'text-amber-400' : 'text-red-400'
+                  }`}>
+                    ROAS {campaign.roas || 0}%
+                  </p>
+                  <p className="text-xs text-slate-500">{getStatusText(campaign.trafficLight)}</p>
+                </div>
+
+                {/* 광고비/매출 */}
+                <div className="hidden md:block text-right w-28">
+                  <p className="text-sm text-slate-300">{formatCurrency(campaign.spent || 0)}원</p>
+                  <p className="text-xs text-slate-500">광고비</p>
+                </div>
+
+                <div className="hidden md:block text-right w-28">
+                  <p className="text-sm text-slate-300">{formatCurrency(campaign.revenue || 0)}원</p>
+                  <p className="text-xs text-slate-500">매출</p>
+                </div>
+
+                {/* 상태 변경 버튼 */}
+                {campaign.trafficLight === 'red' && (
+                  <Link
+                    href={`/products?campaign=${campaign.id}`}
+                    className="px-3 py-1.5 text-xs font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors"
+                  >
+                    점검하기
+                  </Link>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-slate-700/30 flex items-center justify-center mb-4">
+                <span className="text-3xl">🚦</span>
+              </div>
+              <p className="text-slate-400 mb-2">아직 등록된 캠페인이 없습니다</p>
+              <p className="text-sm text-slate-500 mb-4">플랫폼을 연동하고 캠페인을 등록하세요</p>
+              <Link
+                href="/platforms"
+                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-medium border border-white/10 hover:border-white/20 transition-all"
+              >
+                플랫폼 연동하기
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 
@@ -127,39 +275,39 @@ export default async function DashboardPage() {
             <p className="text-sm text-slate-400 mb-5">셀러포트를 시작하려면 아래 단계를 따라주세요</p>
 
             <div className="space-y-2">
-              <Link href="/settings" className="flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/5 transition-all duration-200 group">
+              <Link href="/platforms" className="flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/5 transition-all duration-200 group">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-lg shadow-blue-500/20">
                   1
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium text-white">사업자 정보 등록</p>
-                  <p className="text-sm text-slate-500">설정에서 사업자 정보를 입력하세요</p>
+                  <p className="font-medium text-white">플랫폼 연동</p>
+                  <p className="text-sm text-slate-500">스마트스토어, 쿠팡, 카페24 등 연동</p>
                 </div>
                 <svg className="w-5 h-5 text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </Link>
 
-              <Link href="/platforms" className="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/5 transition-all duration-200 group">
+              <Link href="/conversions" className="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/5 transition-all duration-200 group">
                 <div className="w-10 h-10 rounded-xl bg-slate-700/50 text-slate-400 flex items-center justify-center font-bold text-sm border border-slate-600">
                   2
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium text-slate-300">플랫폼 연동</p>
-                  <p className="text-sm text-slate-500">스마트스토어, 카페24 등을 연동하세요</p>
+                  <p className="font-medium text-slate-300">전환 추적 설정</p>
+                  <p className="text-sm text-slate-500">UTM 태그 및 슬롯 발급</p>
                 </div>
                 <svg className="w-5 h-5 text-slate-700 group-hover:text-slate-400 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </Link>
 
-              <Link href="/subscribers" className="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/5 transition-all duration-200 group">
+              <Link href="/profit" className="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/5 transition-all duration-200 group">
                 <div className="w-10 h-10 rounded-xl bg-slate-700/50 text-slate-400 flex items-center justify-center font-bold text-sm border border-slate-600">
                   3
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium text-slate-300">구독자 동기화</p>
-                  <p className="text-sm text-slate-500">플랫폼에서 구독자를 불러옵니다</p>
+                  <p className="font-medium text-slate-300">수익 계산 설정</p>
+                  <p className="text-sm text-slate-500">원가, 마진, 세금 설정</p>
                 </div>
                 <svg className="w-5 h-5 text-slate-700 group-hover:text-slate-400 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -169,26 +317,46 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* 최근 활동 */}
+        {/* 빨간불 알림 */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-white/5 p-6">
-          <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-purple-500/5 rounded-full blur-3xl" />
+          <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-red-500/5 rounded-full blur-3xl" />
           <div className="relative">
-            <h2 className="text-lg font-semibold text-white mb-1">최근 활동</h2>
-            <p className="text-sm text-slate-400 mb-5">최근 발송 및 구독자 변동 내역</p>
+            <h2 className="text-lg font-semibold text-white mb-1 flex items-center gap-2">
+              빨간불 알림
+              <span className="px-2 py-0.5 text-xs font-medium bg-red-500/20 text-red-400 rounded-full">
+                {redCount}
+              </span>
+            </h2>
+            <p className="text-sm text-slate-400 mb-5">즉시 점검이 필요한 캠페인</p>
 
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-slate-700/30 flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
+            {redLightCampaigns.length > 0 ? (
+              <div className="space-y-3">
+                {redLightCampaigns.slice(0, 3).map((campaign) => (
+                  <div key={campaign.id} className="flex items-center gap-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+                    <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-white truncate">{campaign.name}</p>
+                      <p className="text-xs text-red-400">
+                        ROAS {campaign.roas || 0}% · {campaign.platform}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/products?campaign=${campaign.id}`}
+                      className="px-3 py-1.5 text-xs font-medium text-white bg-red-500 hover:bg-red-400 rounded-lg transition-colors"
+                    >
+                      점검
+                    </Link>
+                  </div>
+                ))}
               </div>
-              <p className="text-slate-400 mb-4">아직 활동 내역이 없습니다</p>
-              <Link href="/platforms">
-                <Button className="bg-white/5 hover:bg-white/10 text-white border border-white/10 hover:border-white/20 transition-all">
-                  플랫폼 연동하기
-                </Button>
-              </Link>
-            </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-3">
+                  <span className="text-2xl">✅</span>
+                </div>
+                <p className="text-slate-400">모든 캠페인의 광고 효율이 양호합니다</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

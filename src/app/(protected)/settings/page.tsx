@@ -1,17 +1,124 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import Link from 'next/link'
 
-export default async function SettingsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+interface Profile {
+  id: string
+  email: string
+  businessName: string | null
+  businessNumber: string | null
+  ownerName: string | null
+  phone: string | null
+  plan: string
+  planStartedAt: string | null
+  planExpiresAt: string | null
+  subscriberCount: number
+  platformCount: number
+  createdAt?: string
+  isNewUser?: boolean
+}
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user?.id)
-    .single()
+const PLAN_DETAILS: Record<string, { name: string; subscribers: number; platforms: number }> = {
+  free: { name: 'Free', subscribers: 10, platforms: 1 },
+  basic: { name: 'Basic', subscribers: 100, platforms: 3 },
+  pro: { name: 'Pro', subscribers: 500, platforms: 10 },
+  enterprise: { name: 'Enterprise', subscribers: 10000, platforms: 100 },
+}
+
+export default function SettingsPage() {
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // 폼 상태
+  const [formData, setFormData] = useState({
+    businessName: '',
+    businessNumber: '',
+    ownerName: '',
+    phone: '',
+  })
+
+  // 프로필 로드
+  useEffect(() => {
+    fetchProfile()
+  }, [])
+
+  const fetchProfile = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/profile')
+      const data = await response.json()
+
+      if (data.success) {
+        setProfile(data.data)
+        setFormData({
+          businessName: data.data.businessName || '',
+          businessNumber: data.data.businessNumber || '',
+          ownerName: data.data.ownerName || '',
+          phone: data.data.phone || '',
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch profile:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 프로필 저장
+  const handleSave = async () => {
+    try {
+      setSaving(true)
+      setMessage(null)
+
+      const response = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setProfile(data.data)
+        setMessage({ type: 'success', text: '저장되었습니다' })
+        setTimeout(() => setMessage(null), 3000)
+      } else {
+        setMessage({ type: 'error', text: data.error || '저장에 실패했습니다' })
+      }
+    } catch (error) {
+      console.error('Failed to save profile:', error)
+      setMessage({ type: 'error', text: '저장에 실패했습니다' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // 변경사항 확인
+  const hasChanges = profile && (
+    formData.businessName !== (profile.businessName || '') ||
+    formData.businessNumber !== (profile.businessNumber || '') ||
+    formData.ownerName !== (profile.ownerName || '') ||
+    formData.phone !== (profile.phone || '')
+  )
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-400">설정을 불러오는 중...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const currentPlan = PLAN_DETAILS[profile?.plan || 'free']
 
   return (
     <div>
@@ -19,6 +126,17 @@ export default async function SettingsPage() {
         <h1 className="text-2xl font-bold text-white">설정</h1>
         <p className="text-slate-400 mt-1">계정 및 사업자 정보를 관리합니다</p>
       </div>
+
+      {/* 메시지 표시 */}
+      {message && (
+        <div className={`mb-6 p-4 rounded-xl border ${
+          message.type === 'success'
+            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+            : 'bg-red-500/10 border-red-500/30 text-red-400'
+        }`}>
+          {message.text}
+        </div>
+      )}
 
       <div className="space-y-6">
         {/* 계정 정보 */}
@@ -30,7 +148,7 @@ export default async function SettingsPage() {
             <div className="space-y-2">
               <Label className="text-slate-300">이메일</Label>
               <Input
-                value={user?.email || ''}
+                value={profile?.email || ''}
                 className="bg-slate-700 border-slate-600 text-white"
                 disabled
               />
@@ -38,7 +156,7 @@ export default async function SettingsPage() {
             <div className="space-y-2">
               <Label className="text-slate-300">가입일</Label>
               <Input
-                value={user?.created_at ? new Date(user.created_at).toLocaleDateString('ko-KR') : ''}
+                value={profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('ko-KR') : '-'}
                 className="bg-slate-700 border-slate-600 text-white"
                 disabled
               />
@@ -58,7 +176,8 @@ export default async function SettingsPage() {
                 <Input
                   id="business_name"
                   placeholder="상호명을 입력하세요"
-                  defaultValue={profile?.business_name || ''}
+                  value={formData.businessName}
+                  onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
                   className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
                 />
               </div>
@@ -67,7 +186,8 @@ export default async function SettingsPage() {
                 <Input
                   id="business_number"
                   placeholder="000-00-00000"
-                  defaultValue={profile?.business_number || ''}
+                  value={formData.businessNumber}
+                  onChange={(e) => setFormData({ ...formData, businessNumber: e.target.value })}
                   className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
                 />
               </div>
@@ -76,7 +196,8 @@ export default async function SettingsPage() {
                 <Input
                   id="owner_name"
                   placeholder="대표자명을 입력하세요"
-                  defaultValue={profile?.owner_name || ''}
+                  value={formData.ownerName}
+                  onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
                   className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
                 />
               </div>
@@ -85,12 +206,24 @@ export default async function SettingsPage() {
                 <Input
                   id="phone"
                   placeholder="010-0000-0000"
-                  defaultValue={profile?.phone || ''}
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
                 />
               </div>
             </div>
-            <Button className="bg-blue-600 hover:bg-blue-500 text-white" disabled>저장하기</Button>
+            <Button
+              onClick={handleSave}
+              disabled={saving || !hasChanges}
+              className="bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50"
+            >
+              {saving ? (
+                <span className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  저장 중...
+                </span>
+              ) : '저장하기'}
+            </Button>
           </div>
         </div>
 
@@ -101,10 +234,37 @@ export default async function SettingsPage() {
 
           <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg">
             <div>
-              <p className="font-semibold text-lg text-white">Free 플랜</p>
-              <p className="text-sm text-slate-400">구독자 10명, 플랫폼 1개</p>
+              <p className="font-semibold text-lg text-white">{currentPlan.name} 플랜</p>
+              <p className="text-sm text-slate-400">
+                구독자 {currentPlan.subscribers}명, 플랫폼 {currentPlan.platforms}개
+              </p>
+              {profile?.planExpiresAt && (
+                <p className="text-xs text-slate-500 mt-1">
+                  만료일: {new Date(profile.planExpiresAt).toLocaleDateString('ko-KR')}
+                </p>
+              )}
             </div>
-            <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700" disabled>플랜 업그레이드</Button>
+            <Link href="/payment">
+              <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
+                플랜 업그레이드
+              </Button>
+            </Link>
+          </div>
+
+          {/* 사용량 */}
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            <div className="p-3 bg-slate-900/50 rounded-lg">
+              <p className="text-xs text-slate-500">연결된 플랫폼</p>
+              <p className="text-lg font-semibold text-white">
+                {profile?.platformCount || 0} / {currentPlan.platforms}
+              </p>
+            </div>
+            <div className="p-3 bg-slate-900/50 rounded-lg">
+              <p className="text-xs text-slate-500">구독자 수</p>
+              <p className="text-lg font-semibold text-white">
+                {profile?.subscriberCount || 0} / {currentPlan.subscribers}
+              </p>
+            </div>
           </div>
         </div>
 

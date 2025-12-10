@@ -14,6 +14,14 @@ interface Platform {
   created_at: string
 }
 
+// 로딩 상태 타입
+interface LoadingState {
+  [key: string]: {
+    verifying?: boolean
+    syncing?: boolean
+  }
+}
+
 // 플랫폼 로고 컴포넌트
 const NaverLogo = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -104,6 +112,8 @@ const platformConfigs = [
 export default function PlatformsPage() {
   const [connectedPlatforms, setConnectedPlatforms] = useState<Platform[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingStates, setLoadingStates] = useState<LoadingState>({})
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   const fetchPlatforms = async () => {
     const supabase = createClient()
@@ -119,6 +129,63 @@ export default function PlatformsPage() {
   useEffect(() => {
     fetchPlatforms()
   }, [])
+
+  // 연동 검증
+  const handleVerify = async (platformId: string) => {
+    setLoadingStates(prev => ({ ...prev, [platformId]: { ...prev[platformId], verifying: true } }))
+    setMessage(null)
+
+    try {
+      const response = await fetch('/api/naver/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platformId })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setMessage({ type: 'success', text: result.message })
+        fetchPlatforms()
+      } else {
+        setMessage({ type: 'error', text: result.error })
+      }
+    } catch {
+      setMessage({ type: 'error', text: '검증 중 오류가 발생했습니다' })
+    } finally {
+      setLoadingStates(prev => ({ ...prev, [platformId]: { ...prev[platformId], verifying: false } }))
+    }
+  }
+
+  // 데이터 동기화
+  const handleSync = async (platformId: string) => {
+    setLoadingStates(prev => ({ ...prev, [platformId]: { ...prev[platformId], syncing: true } }))
+    setMessage(null)
+
+    try {
+      const response = await fetch('/api/naver/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platformId, syncType: 'all' })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setMessage({
+          type: 'success',
+          text: `동기화 완료: 상품 ${result.results.products.synced}개, 주문 ${result.results.orders.synced}개`
+        })
+        fetchPlatforms()
+      } else {
+        setMessage({ type: 'error', text: result.error })
+      }
+    } catch {
+      setMessage({ type: 'error', text: '동기화 중 오류가 발생했습니다' })
+    } finally {
+      setLoadingStates(prev => ({ ...prev, [platformId]: { ...prev[platformId], syncing: false } }))
+    }
+  }
 
   const handleDisconnect = async (platformId: string) => {
     if (!confirm('정말 연동을 해제하시겠습니까?')) return
@@ -140,6 +207,8 @@ export default function PlatformsPage() {
         return <span className="px-2 py-1 text-xs font-medium bg-red-500/20 text-red-400 rounded-full">오류</span>
       case 'expired':
         return <span className="px-2 py-1 text-xs font-medium bg-yellow-500/20 text-yellow-400 rounded-full">만료됨</span>
+      case 'pending_verification':
+        return <span className="px-2 py-1 text-xs font-medium bg-amber-500/20 text-amber-400 rounded-full">검증 필요</span>
       default:
         return <span className="px-2 py-1 text-xs font-medium bg-slate-600 text-slate-300 rounded-full">대기중</span>
     }
@@ -159,9 +228,31 @@ export default function PlatformsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white">플랫폼 연동</h1>
-          <p className="text-slate-400 mt-1">이커머스 플랫폼을 연동하여 구독자를 관리하세요</p>
+          <p className="text-slate-400 mt-1">이커머스 플랫폼을 연동하여 상품과 주문을 관리하세요</p>
         </div>
       </div>
+
+      {/* 메시지 표시 */}
+      {message && (
+        <div className={`mb-6 p-4 rounded-xl border ${
+          message.type === 'success'
+            ? 'bg-green-500/10 border-green-500/30 text-green-400'
+            : 'bg-red-500/10 border-red-500/30 text-red-400'
+        }`}>
+          <div className="flex items-center gap-2">
+            {message.type === 'success' ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )}
+            <span className="text-sm">{message.text}</span>
+          </div>
+        </div>
+      )}
 
       {/* 연동된 플랫폼 */}
       <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 mb-6">
@@ -198,9 +289,43 @@ export default function PlatformsPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:bg-slate-700" disabled>
-                    동기화
-                  </Button>
+                  {platform.status === 'pending_verification' ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-amber-500/50 text-amber-400 hover:bg-amber-500/20"
+                      onClick={() => handleVerify(platform.id)}
+                      disabled={loadingStates[platform.id]?.verifying}
+                    >
+                      {loadingStates[platform.id]?.verifying ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-3 w-3" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          검증 중...
+                        </>
+                      ) : '검증하기'}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                      onClick={() => handleSync(platform.id)}
+                      disabled={loadingStates[platform.id]?.syncing || platform.status !== 'connected'}
+                    >
+                      {loadingStates[platform.id]?.syncing ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-3 w-3" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          동기화 중...
+                        </>
+                      ) : '동기화'}
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
