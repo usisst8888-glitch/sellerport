@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Select } from '@/components/ui/select'
 
 // 플랫폼별 수수료 구조
 // 네이버: 채널별, 카테고리별로 다름 (결제수수료 별도)
@@ -249,6 +250,96 @@ interface CalcResult {
   bepQuantity: number
 }
 
+// API 응답 타입
+interface ProfitCalculateResponse {
+  success: boolean
+  data?: {
+    input: {
+      salePrice: number
+      quantity: number
+      productCost: number
+      platform: string
+      channel?: string
+      category?: string
+      feeRate: number
+      feeBreakdown: string
+    }
+    breakdown: {
+      revenue: number
+      totalCost: number
+      platformFee: number
+      platformFeeRate: number
+      shippingCost: number
+      shippingIncome: number
+      netShipping: number
+      adCost: number
+      packagingCost: number
+      otherCost: number
+      totalExpense: number
+    }
+    result: {
+      profit: number
+      marginRate: number
+      profitPerUnit: number
+      roas: number
+      bepQuantity: number
+    }
+    status: {
+      isProfitable: boolean
+      roasLight: 'green' | 'yellow' | 'red'
+      marginStatus: 'excellent' | 'good' | 'low' | 'loss'
+    }
+  }
+  error?: string
+}
+
+interface ProfitStatsResponse {
+  success: boolean
+  data?: {
+    summary: {
+      totalProducts: number
+      totalRevenue: number
+      totalCost: number
+      totalPlatformFee: number
+      totalProfit: number
+      avgMarginRate: number
+      totalAdSpend: number
+      totalAdRevenue: number
+      overallRoas: number
+      netProfitAfterAd: number
+    }
+    advertising: {
+      totalAdSpend: number
+      totalAdRevenue: number
+      totalConversions: number
+      totalClicks: number
+      overallRoas: number
+      conversionRate: number
+      activeSlots: number
+    }
+    products: {
+      total: number
+      stats: any[]
+      top: Array<{
+        name: string
+        marginRate: number
+        profit: number
+      }>
+    }
+    trackingLinks: {
+      total: number
+      stats: any[]
+      top: Array<{
+        name: string
+        roas: number
+        revenue: number
+        adSpend: number
+      }>
+    }
+  }
+  error?: string
+}
+
 function formatCurrency(value: number) {
   return value.toLocaleString()
 }
@@ -263,12 +354,15 @@ function getSignalLight(roas: number): { bg: string; text: string; label: string
 export default function ProfitPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [orders, setOrders] = useState<Order[]>([])
-  const [slots, setSlots] = useState<Slot[]>([])
+  const [trackingLinks, setTrackingLinks] = useState<Slot[]>([])
   const [productProfits, setProductProfits] = useState<ProductProfit[]>([])
   const [loading, setLoading] = useState(true)
   const [showCalculator, setShowCalculator] = useState(false)
   const [calculating, setCalculating] = useState(false)
   const [calcResult, setCalcResult] = useState<CalcResult | null>(null)
+  const [calcError, setCalcError] = useState<string | null>(null)
+  const [statsLoading, setStatsLoading] = useState(false)
+  const [stats, setStats] = useState<ProfitStatsResponse['data'] | null>(null)
 
   // 계산기 상태
   const [calcValues, setCalcValues] = useState({
@@ -313,27 +407,28 @@ export default function ProfitPage() {
   // 데이터 로드
   useEffect(() => {
     fetchData()
+    fetchStats()
   }, [])
 
   const fetchData = async () => {
     try {
       setLoading(true)
 
-      // 상품 목록과 슬롯 목록 동시에 가져오기
-      const [productsRes, slotsRes] = await Promise.all([
+      // 상품 목록과 추적 링크 목록 동시에 가져오기
+      const [productsRes, trackingLinksRes] = await Promise.all([
         fetch('/api/products'),
-        fetch('/api/slots')
+        fetch('/api/tracking-links')
       ])
 
       const productsData = await productsRes.json()
-      const slotsData = await slotsRes.json()
+      const trackingLinksData = await trackingLinksRes.json()
 
       if (productsData.success) {
         setProducts(productsData.data || [])
       }
 
-      if (slotsData.success) {
-        setSlots(slotsData.data || [])
+      if (trackingLinksData.success) {
+        setTrackingLinks(trackingLinksData.data || [])
       }
 
       // 상품별 수익 계산
@@ -343,6 +438,24 @@ export default function ProfitPage() {
       console.error('Failed to fetch data:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // 통계 데이터 가져오기 (백엔드 API)
+  const fetchStats = async () => {
+    try {
+      setStatsLoading(true)
+      const response = await fetch('/api/profit/stats')
+      const data: ProfitStatsResponse = await response.json()
+
+      if (data.success && data.data) {
+        setStats(data.data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch stats:', error)
+      // 통계는 선택적이므로 에러가 나도 무시
+    } finally {
+      setStatsLoading(false)
     }
   }
 
@@ -377,68 +490,90 @@ export default function ProfitPage() {
     setProductProfits(profits)
   }
 
-  // 클라이언트 측에서 직접 마진 계산 (실시간)
-  const handleCalculate = () => {
+  // 백엔드 API를 통한 마진 계산
+  const handleCalculate = async () => {
     if (calcValues.sellingPrice <= 0) {
       setCalcResult(null)
+      setCalcError(null)
       return
     }
 
-    const feeInfo = calculatePlatformFee(
-      calcValues.platform,
-      calcValues.channel,
-      calcValues.category,
-      calcValues.sellingPrice,
-      calcValues.useCustomFee ? calcValues.customFeeRate : undefined
-    )
+    setCalculating(true)
+    setCalcError(null)
 
-    const revenue = calcValues.sellingPrice * calcValues.quantity
-    const totalCost = calcValues.cost * calcValues.quantity
-    const platformFee = Math.round(revenue * (feeInfo.feeRate / 100))
-    const shippingTotal = calcValues.shippingCost * calcValues.quantity
-    const adSpend = calcValues.adSpend
+    try {
+      const response = await fetch('/api/profit/calculate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          salePrice: calcValues.sellingPrice,
+          quantity: calcValues.quantity,
+          productCost: calcValues.cost,
+          shippingCost: calcValues.shippingCost * calcValues.quantity,
+          shippingIncome: 0,
+          platform: calcValues.platform,
+          channel: calcValues.channel,
+          category: calcValues.category,
+          customFeeRate: calcValues.useCustomFee ? calcValues.customFeeRate : undefined,
+          adCost: calcValues.adSpend,
+        }),
+      })
 
-    const totalExpense = totalCost + platformFee + shippingTotal + adSpend
-    const profit = revenue - totalExpense
-    const marginRate = revenue > 0 ? (profit / revenue) * 100 : 0
-    const roas = adSpend > 0 ? (revenue / adSpend) * 100 : 0
+      const data: ProfitCalculateResponse = await response.json()
 
-    // 손익분기점 계산
-    const profitPerUnit = calcValues.sellingPrice - calcValues.cost - (calcValues.sellingPrice * feeInfo.feeRate / 100) - calcValues.shippingCost
-    const bepQuantity = profitPerUnit > 0 && adSpend > 0 ? Math.ceil(adSpend / profitPerUnit) : 0
+      if (!data.success || !data.data) {
+        setCalcError(data.error || '계산 중 오류가 발생했습니다')
+        setCalcResult(null)
+        return
+      }
 
-    setCalcResult({
-      platformFee,
-      shippingCost: shippingTotal,
-      adSpend,
-      totalCost: totalExpense,
-      revenue,
-      profit,
-      marginRate,
-      roas,
-      bepQuantity
-    })
+      // 백엔드 응답을 기존 CalcResult 형식으로 변환
+      const result = data.data
+      setCalcResult({
+        platformFee: result.breakdown.platformFee,
+        shippingCost: result.breakdown.netShipping,
+        adSpend: result.breakdown.adCost,
+        totalCost: result.breakdown.totalExpense,
+        revenue: result.breakdown.revenue,
+        profit: result.result.profit,
+        marginRate: result.result.marginRate,
+        roas: result.result.roas,
+        bepQuantity: result.result.bepQuantity,
+      })
+    } catch (error) {
+      console.error('Calculation error:', error)
+      setCalcError('서버와 통신 중 오류가 발생했습니다')
+      setCalcResult(null)
+    } finally {
+      setCalculating(false)
+    }
   }
 
-  // 입력값 변경 시 자동 계산
+  // 입력값 변경 시 자동 계산 (디바운스)
   useEffect(() => {
-    handleCalculate()
+    const timer = setTimeout(() => {
+      handleCalculate()
+    }, 500) // 500ms 디바운스
+
+    return () => clearTimeout(timer)
   }, [calcValues])
 
-  // 전체 통계 계산
-  const totalRevenue = productProfits.reduce((sum, p) => sum + (p.sellingPrice * Math.max(1, p.salesCount)), 0)
-  const totalCost = productProfits.reduce((sum, p) => sum + ((p.cost + p.platformFee + p.shippingCost + p.adSpend) * Math.max(1, p.salesCount)), 0)
-  const totalProfit = productProfits.reduce((sum, p) => sum + (p.margin * Math.max(1, p.salesCount)), 0)
-  const avgMarginRate = productProfits.length > 0
+  // 전체 통계 계산 (백엔드 stats 우선, 없으면 클라이언트 계산)
+  const totalRevenue = stats?.summary?.totalRevenue ?? productProfits.reduce((sum, p) => sum + (p.sellingPrice * Math.max(1, p.salesCount)), 0)
+  const totalCost = stats?.summary?.totalCost ?? productProfits.reduce((sum, p) => sum + ((p.cost + p.platformFee + p.shippingCost + p.adSpend) * Math.max(1, p.salesCount)), 0)
+  const totalProfit = stats?.summary?.totalProfit ?? productProfits.reduce((sum, p) => sum + (p.margin * Math.max(1, p.salesCount)), 0)
+  const avgMarginRate = stats?.summary?.avgMarginRate ?? (productProfits.length > 0
     ? productProfits.reduce((sum, p) => sum + p.marginRate, 0) / productProfits.length
-    : 0
+    : 0)
 
-  // 슬롯별 통계 계산
-  const totalSlotAdSpend = slots.reduce((sum, s) => sum + (s.ad_spend || 0), 0)
-  const totalSlotRevenue = slots.reduce((sum, s) => sum + (s.revenue || 0), 0)
-  const totalSlotConversions = slots.reduce((sum, s) => sum + (s.conversions || 0), 0)
-  const totalSlotRoas = totalSlotAdSpend > 0 ? Math.round((totalSlotRevenue / totalSlotAdSpend) * 100) : 0
-  const activeSlots = slots.filter(s => s.status === 'active').length
+  // 추적 링크별 통계 계산
+  const totalLinkAdSpend = trackingLinks.reduce((sum, s) => sum + (s.ad_spend || 0), 0)
+  const totalLinkRevenue = trackingLinks.reduce((sum, s) => sum + (s.revenue || 0), 0)
+  const totalLinkConversions = trackingLinks.reduce((sum, s) => sum + (s.conversions || 0), 0)
+  const totalLinkRoas = totalLinkAdSpend > 0 ? Math.round((totalLinkRevenue / totalLinkAdSpend) * 100) : 0
+  const activeLinks = trackingLinks.filter(s => s.status === 'active').length
 
   if (loading) {
     return (
@@ -459,33 +594,57 @@ export default function ProfitPage() {
           <h1 className="text-2xl font-bold text-white">수익 계산</h1>
           <p className="text-slate-400 mt-1">원가, 수수료, 세금을 고려한 실제 마진을 계산하세요</p>
         </div>
-        <button
-          onClick={() => setShowCalculator(true)}
-          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors flex items-center gap-2"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-          </svg>
-          마진 계산기
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchStats}
+            disabled={statsLoading}
+            className="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+          >
+            <svg className={`w-4 h-4 ${statsLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {statsLoading ? '새로고침 중...' : '통계 새로고침'}
+          </button>
+          <button
+            onClick={() => setShowCalculator(true)}
+            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            마진 계산기
+          </button>
+        </div>
       </div>
 
-      {/* 통계 카드 */}
+      {/* 통계 카드 - 백엔드 API 연동 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="rounded-xl bg-slate-800/50 border border-white/5 p-4">
-          <p className="text-xs text-slate-500 uppercase tracking-wider">등록 상품</p>
-          <p className="text-2xl font-bold text-white mt-1">{productProfits.length}<span className="text-sm font-normal text-slate-400 ml-1">개</span></p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-slate-500 uppercase tracking-wider">등록 상품</p>
+            {stats && <span className="text-xs text-emerald-500">API</span>}
+          </div>
+          <p className="text-2xl font-bold text-white mt-1">{stats?.summary?.totalProducts ?? productProfits.length}<span className="text-sm font-normal text-slate-400 ml-1">개</span></p>
         </div>
         <div className="rounded-xl bg-slate-800/50 border border-white/5 p-4">
-          <p className="text-xs text-slate-500 uppercase tracking-wider">예상 매출 (1개씩)</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-slate-500 uppercase tracking-wider">예상 매출 (1개씩)</p>
+            {stats && <span className="text-xs text-emerald-500">API</span>}
+          </div>
           <p className="text-2xl font-bold text-white mt-1">{formatCurrency(totalRevenue)}<span className="text-sm font-normal text-slate-400 ml-1">원</span></p>
         </div>
         <div className="rounded-xl bg-slate-800/50 border border-white/5 p-4">
-          <p className="text-xs text-slate-500 uppercase tracking-wider">예상 순이익</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-slate-500 uppercase tracking-wider">예상 순이익</p>
+            {stats && <span className="text-xs text-emerald-500">API</span>}
+          </div>
           <p className="text-2xl font-bold text-emerald-400 mt-1">{formatCurrency(totalProfit)}<span className="text-sm font-normal text-slate-400 ml-1">원</span></p>
         </div>
         <div className="rounded-xl bg-slate-800/50 border border-white/5 p-4">
-          <p className="text-xs text-slate-500 uppercase tracking-wider">평균 마진율</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-slate-500 uppercase tracking-wider">평균 마진율</p>
+            {stats && <span className="text-xs text-emerald-500">API</span>}
+          </div>
           <p className="text-2xl font-bold text-blue-400 mt-1">{avgMarginRate.toFixed(1)}<span className="text-sm font-normal text-slate-400 ml-1">%</span></p>
         </div>
       </div>
@@ -533,8 +692,8 @@ export default function ProfitPage() {
         </div>
       </div>
 
-      {/* 슬롯별 ROAS 현황 - 전환추적과 연동 */}
-      {slots.length > 0 && (
+      {/* 추적 링크별 ROAS 현황 - 전환추적과 연동 */}
+      {trackingLinks.length > 0 && (
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-900/30 to-slate-800/40 border border-blue-500/20">
           <div className="p-6 border-b border-white/5">
             <div className="flex items-center justify-between">
@@ -543,23 +702,23 @@ export default function ProfitPage() {
                   <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
-                  슬롯별 광고 성과
+                  추적 링크별 광고 성과
                 </h2>
-                <p className="text-sm text-slate-400 mt-0.5">전환 추적에서 연동된 슬롯별 ROAS</p>
+                <p className="text-sm text-slate-400 mt-0.5">전환 추적에서 연동된 추적 링크별 ROAS</p>
               </div>
               <div className="flex items-center gap-4">
                 <div className="text-right">
                   <p className="text-xs text-slate-500">총 광고비</p>
-                  <p className="text-lg font-bold text-white">{formatCurrency(totalSlotAdSpend)}원</p>
+                  <p className="text-lg font-bold text-white">{formatCurrency(totalLinkAdSpend)}원</p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-slate-500">총 매출</p>
-                  <p className="text-lg font-bold text-blue-400">{formatCurrency(totalSlotRevenue)}원</p>
+                  <p className="text-lg font-bold text-blue-400">{formatCurrency(totalLinkRevenue)}원</p>
                 </div>
-                <div className={`px-3 py-2 rounded-xl ${getSignalLight(totalSlotRoas).bg}`}>
+                <div className={`px-3 py-2 rounded-xl ${getSignalLight(totalLinkRoas).bg}`}>
                   <p className="text-xs text-slate-500">전체 ROAS</p>
-                  <p className={`text-lg font-bold ${getSignalLight(totalSlotRoas).text}`}>
-                    {totalSlotRoas}% {getSignalLight(totalSlotRoas).label}
+                  <p className={`text-lg font-bold ${getSignalLight(totalLinkRoas).text}`}>
+                    {totalLinkRoas}% {getSignalLight(totalLinkRoas).label}
                   </p>
                 </div>
               </div>
@@ -567,46 +726,46 @@ export default function ProfitPage() {
           </div>
 
           <div className="divide-y divide-white/5">
-            {slots.filter(s => s.ad_spend > 0).map((slot) => {
-              const slotRoas = slot.ad_spend > 0 ? Math.round((slot.revenue / slot.ad_spend) * 100) : 0
-              const signal = getSignalLight(slotRoas)
+            {trackingLinks.filter(s => s.ad_spend > 0).map((link) => {
+              const linkRoas = link.ad_spend > 0 ? Math.round((link.revenue / link.ad_spend) * 100) : 0
+              const signal = getSignalLight(linkRoas)
               // 상품 원가 기반 순이익 계산
-              const productCost = slot.products?.cost || 0
-              const estimatedProfit = slot.revenue - (productCost * slot.conversions) - slot.ad_spend
+              const productCost = link.products?.cost || 0
+              const estimatedProfit = link.revenue - (productCost * link.conversions) - link.ad_spend
 
               return (
-                <div key={slot.id} className="p-4 hover:bg-white/5 transition-colors">
+                <div key={link.id} className="p-4 hover:bg-white/5 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className={`px-2 py-0.5 text-xs rounded ${signal.bg} ${signal.text}`}>
-                          {signal.label} {slotRoas}%
+                          {signal.label} {linkRoas}%
                         </span>
-                        <span className="text-sm font-medium text-white">{slot.name}</span>
+                        <span className="text-sm font-medium text-white">{link.name}</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <span>{slot.utm_source}</span>
+                        <span>{link.utm_source}</span>
                         <span>·</span>
-                        <span>{slot.utm_medium}</span>
-                        {slot.products?.name && (
+                        <span>{link.utm_medium}</span>
+                        {link.products?.name && (
                           <>
                             <span>·</span>
-                            <span className="text-slate-400">🛒 {slot.products.name}</span>
+                            <span className="text-slate-400">🛒 {link.products.name}</span>
                           </>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-6 text-right">
                       <div>
-                        <p className="text-sm font-medium text-white">{slot.conversions}</p>
+                        <p className="text-sm font-medium text-white">{link.conversions}</p>
                         <p className="text-xs text-slate-500">전환</p>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-red-400">-{formatCurrency(slot.ad_spend)}원</p>
+                        <p className="text-sm font-medium text-red-400">-{formatCurrency(link.ad_spend)}원</p>
                         <p className="text-xs text-slate-500">광고비</p>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-blue-400">{formatCurrency(slot.revenue)}원</p>
+                        <p className="text-sm font-medium text-blue-400">{formatCurrency(link.revenue)}원</p>
                         <p className="text-xs text-slate-500">매출</p>
                       </div>
                       {productCost > 0 && (
@@ -622,10 +781,10 @@ export default function ProfitPage() {
                 </div>
               )
             })}
-            {slots.filter(s => s.ad_spend > 0).length === 0 && (
+            {trackingLinks.filter(s => s.ad_spend > 0).length === 0 && (
               <div className="p-8 text-center">
-                <p className="text-slate-400">광고비가 입력된 슬롯이 없습니다</p>
-                <p className="text-xs text-slate-500 mt-1">전환 추적에서 슬롯의 광고비를 입력하세요</p>
+                <p className="text-slate-400">광고비가 입력된 추적 링크가 없습니다</p>
+                <p className="text-xs text-slate-500 mt-1">전환 추적에서 추적 링크의 광고비를 입력하세요</p>
               </div>
             )}
           </div>
@@ -713,38 +872,38 @@ export default function ProfitPage() {
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-slate-300">판매 플랫폼</label>
                 <div className="flex gap-2">
-                  <select
+                  <Select
                     value={calcValues.platform}
                     onChange={(e) => handlePlatformChange(e.target.value)}
-                    className="flex-1 px-3 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white text-sm focus:border-blue-500 focus:outline-none transition-colors"
+                    className="flex-1 text-sm"
                   >
                     {Object.entries(PLATFORM_FEE_CONFIG).map(([key, config]) => (
                       <option key={key} value={key}>{config.name}</option>
                     ))}
-                  </select>
+                  </Select>
 
                   {currentChannels.length > 0 && (
-                    <select
+                    <Select
                       value={calcValues.channel}
                       onChange={(e) => setCalcValues({...calcValues, channel: e.target.value, category: 'default'})}
-                      className="flex-1 px-3 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white text-sm focus:border-blue-500 focus:outline-none transition-colors"
+                      className="flex-1 text-sm"
                     >
                       {currentChannels.map(channel => (
                         <option key={channel.id} value={channel.id}>{channel.name}</option>
                       ))}
-                    </select>
+                    </Select>
                   )}
 
                   {currentCategories.length > 0 && (
-                    <select
+                    <Select
                       value={calcValues.category}
                       onChange={(e) => setCalcValues({...calcValues, category: e.target.value})}
-                      className="flex-1 px-3 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white text-sm focus:border-blue-500 focus:outline-none transition-colors"
+                      className="flex-1 text-sm"
                     >
                       {currentCategories.map(cat => (
                         <option key={cat.id} value={cat.id}>{cat.name} ({cat.fee}%)</option>
                       ))}
-                    </select>
+                    </Select>
                   )}
                 </div>
               </div>
@@ -869,7 +1028,11 @@ export default function ProfitPage() {
                   )}
                 </div>
 
-                {calcResult ? (
+                {calcError ? (
+                  <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+                    <p className="text-sm text-red-400">{calcError}</p>
+                  </div>
+                ) : calcResult ? (
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-400">총 매출</span>

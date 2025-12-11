@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createAligoClient } from '@/lib/aligo/alimtalk-api'
 
 // 서비스 롤 키로 Supabase 접근 (RLS 우회)
 function getSupabaseAdmin() {
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
     // 일일 리포트를 원하는 사용자 목록
     const { data: settings } = await supabase
       .from('alert_settings')
-      .select('user_id, kakao_phone')
+      .select('user_id, kakao_phone, kakao_enabled')
       .eq('daily_report_enabled', true)
 
     if (!settings || settings.length === 0) {
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
 
       // 오늘 클릭 수
       const { count: clickCount } = await supabase
-        .from('slot_clicks')
+        .from('tracking_link_clicks')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', setting.user_id)
         .gte('created_at', today.toISOString())
@@ -112,10 +113,36 @@ export async function GET(request: NextRequest) {
 
       reportsSent++
 
-      // 알림톡 발송 (설정된 경우)
-      if (setting.kakao_phone) {
-        console.log(`[DailyReport] Would send to ${setting.kakao_phone}`)
-        // TODO: 실제 알림톡 발송
+      // 알림톡 발송 (시스템 알리고 설정 사용)
+      if (setting.kakao_enabled && setting.kakao_phone &&
+          process.env.ALIGO_API_KEY && process.env.ALIGO_USER_ID && process.env.ALIGO_SENDER_KEY) {
+        try {
+          const aligoClient = createAligoClient(
+            process.env.ALIGO_API_KEY,
+            process.env.ALIGO_USER_ID,
+            process.env.ALIGO_SENDER_KEY
+          )
+
+          const alimtalkMessage = `[셀러포트 일일 리포트]\n\n${dateStr} 실적 요약\n${message}`
+
+          const result = await aligoClient.sendAlimtalk({
+            receiver: setting.kakao_phone,
+            templateCode: 'SELLERPORT_DAILY_REPORT',
+            message: alimtalkMessage,
+            failover: {
+              type: 'LMS',
+              message: alimtalkMessage,
+            },
+          })
+
+          if (result.success) {
+            console.log(`[DailyReport] Sent to ${setting.kakao_phone}, messageId: ${result.messageId}`)
+          } else {
+            console.error(`[DailyReport] Failed to send to ${setting.kakao_phone}: ${result.error}`)
+          }
+        } catch (aligoError) {
+          console.error(`[DailyReport] Aligo error for ${setting.kakao_phone}:`, aligoError)
+        }
       }
     }
 

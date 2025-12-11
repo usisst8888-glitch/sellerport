@@ -92,6 +92,9 @@ export default function ProductsPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [showCreateAdModal, setShowCreateAdModal] = useState(false)
   const [showCreateProductModal, setShowCreateProductModal] = useState(false)
+  const [showCostModal, setShowCostModal] = useState(false)
+  const [costForm, setCostForm] = useState({ cost: 0 })
+  const [savingCost, setSavingCost] = useState(false)
 
   // 캠페인 폼 상태
   const [campaignForm, setCampaignForm] = useState({
@@ -167,6 +170,36 @@ export default function ProductsPage() {
       }
     } catch (error) {
       console.error('캠페인 생성 에러:', error)
+    }
+  }
+
+  // 원가 수정 핸들러
+  const handleOpenCostModal = (product: Product) => {
+    setSelectedProduct(product)
+    setCostForm({ cost: product.cost || 0 })
+    setShowCostModal(true)
+  }
+
+  const handleSaveCost = async () => {
+    if (!selectedProduct) return
+
+    setSavingCost(true)
+    try {
+      const res = await fetch(`/api/products/${selectedProduct.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cost: costForm.cost })
+      })
+
+      if (res.ok) {
+        setShowCostModal(false)
+        setSelectedProduct(null)
+        fetchProducts()
+      }
+    } catch (error) {
+      console.error('원가 수정 에러:', error)
+    } finally {
+      setSavingCost(false)
     }
   }
 
@@ -301,9 +334,21 @@ export default function ProductsPage() {
                         )}
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500 mb-3">
-                      {product.platform_type || '플랫폼 미연결'} · {product.category || '카테고리 없음'}
-                      {product.margin && <span className="ml-2 text-emerald-400">마진 {product.margin}%</span>}
+                    <p className="text-xs text-slate-500 mb-3 flex items-center flex-wrap gap-2">
+                      <span>{product.platform_type || '플랫폼 미연결'} · {product.category || '카테고리 없음'}</span>
+                      {product.cost > 0 ? (
+                        <>
+                          <span className="text-slate-400">원가 {product.cost.toLocaleString()}원</span>
+                          <span className="text-emerald-400">마진 {product.margin}%</span>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => handleOpenCostModal(product)}
+                          className="text-amber-400 hover:text-amber-300 underline"
+                        >
+                          원가 등록 필요
+                        </button>
+                      )}
                     </p>
 
                     {/* 광고 캠페인 목록 */}
@@ -403,6 +448,16 @@ export default function ProductsPage() {
                     <div>
                       <p className="text-sm text-white">{product.price?.toLocaleString()}원</p>
                       <p className="text-xs text-slate-500">판매가</p>
+                    </div>
+                    <div
+                      onClick={() => handleOpenCostModal(product)}
+                      className="cursor-pointer hover:bg-white/5 rounded-lg p-2 -m-2 transition-colors"
+                      title="클릭하여 원가 수정"
+                    >
+                      <p className={`text-sm ${product.cost > 0 ? 'text-white' : 'text-amber-400'}`}>
+                        {product.cost > 0 ? `${product.cost.toLocaleString()}원` : '미등록'}
+                      </p>
+                      <p className="text-xs text-slate-500">원가</p>
                     </div>
                     <div>
                       <p className="text-sm text-white">{product.stock}개</p>
@@ -531,6 +586,82 @@ export default function ProductsPage() {
               >
                 플랫폼 연동하기
               </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 원가 수정 모달 */}
+      {showCostModal && selectedProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-slate-800 border border-white/10 shadow-2xl">
+            <div className="p-6 border-b border-white/5">
+              <h3 className="text-lg font-semibold text-white">원가 설정</h3>
+              <p className="text-sm text-slate-400 mt-1">{selectedProduct.name}</p>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/50">
+                <span className="text-slate-400">판매가</span>
+                <span className="text-white font-medium">{selectedProduct.price?.toLocaleString()}원</span>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">원가 (상품원가 + 배송비 + 수수료 등)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={costForm.cost}
+                    onChange={(e) => setCostForm({ cost: Number(e.target.value) })}
+                    placeholder="원가를 입력하세요"
+                    className="w-full px-4 py-3 pr-12 rounded-xl bg-slate-900/50 border border-white/10 text-white text-lg focus:border-blue-500 focus:outline-none transition-colors"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">원</span>
+                </div>
+              </div>
+
+              {costForm.cost > 0 && selectedProduct.price > 0 && (
+                <div className="p-4 rounded-xl bg-slate-900/50 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">예상 순이익</span>
+                    <span className={`font-semibold ${selectedProduct.price - costForm.cost > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {(selectedProduct.price - costForm.cost).toLocaleString()}원
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">마진율</span>
+                    <span className={`font-semibold ${((selectedProduct.price - costForm.cost) / selectedProduct.price * 100) > 20 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      {Math.round((selectedProduct.price - costForm.cost) / selectedProduct.price * 100)}%
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <p className="text-xs text-slate-500">
+                정확한 순이익 계산을 위해 상품 원가, 배송비, 플랫폼 수수료, 포장비 등을 모두 포함한 총 비용을 입력하세요.
+              </p>
+            </div>
+
+            <div className="p-6 border-t border-white/5 flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowCostModal(false)
+                  setSelectedProduct(null)
+                }}
+                className="px-4 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleSaveCost}
+                disabled={savingCost}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-medium transition-colors flex items-center gap-2"
+              >
+                {savingCost && (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                )}
+                저장
+              </button>
             </div>
           </div>
         </div>

@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
             .eq('external_product_id', String(order.originProductNo))
             .single()
 
-          // UTM 파라미터에서 슬롯/캠페인 정보 추출
+          // UTM 파라미터에서 추적 링크/캠페인 정보 추출
           const inflowPath = order.inflowPathType || ''
           const utmParams = parseUtmFromInflowPath(inflowPath)
 
@@ -138,25 +138,25 @@ export async function POST(request: NextRequest) {
           let campaignId = null
 
           if (utmParams.utm_campaign) {
-            // UTM campaign으로 슬롯 찾기
-            const { data: slot } = await supabase
-              .from('slots')
+            // UTM campaign으로 추적 링크 찾기
+            const { data: trackingLink } = await supabase
+              .from('tracking_links')
               .select('id, campaign_id')
               .eq('user_id', platform.user_id)
               .eq('utm_campaign', utmParams.utm_campaign)
               .single()
 
-            if (slot) {
-              campaignId = slot.campaign_id
+            if (trackingLink) {
+              campaignId = trackingLink.campaign_id
 
-              // 해당 슬롯의 최근 클릭 중 미전환 클릭 찾기
+              // 해당 추적 링크의 최근 클릭 중 미전환 클릭 찾기
               const thirtyDaysAgo = new Date()
               thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
               const { data: click } = await supabase
-                .from('slot_clicks')
+                .from('tracking_link_clicks')
                 .select('*')
-                .eq('slot_id', slot.id)
+                .eq('tracking_link_id', trackingLink.id)
                 .eq('is_converted', false)
                 .gte('created_at', thirtyDaysAgo.toISOString())
                 .order('created_at', { ascending: false })
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
               utm_source: utmParams.utm_source,
               utm_medium: utmParams.utm_medium,
               utm_campaign: utmParams.utm_campaign,
-              slot_id: matchedClick?.slot_id || null,
+              tracking_link_id: matchedClick?.tracking_link_id || null,
               click_id: matchedClick?.click_id || null,
               campaign_id: campaignId,
               inflow_path: inflowPath,
@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
 
             // 클릭을 전환됨으로 표시
             await supabase
-              .from('slot_clicks')
+              .from('tracking_link_clicks')
               .update({
                 is_converted: true,
                 converted_order_id: newOrder.id,
@@ -232,21 +232,21 @@ export async function POST(request: NextRequest) {
               })
               .eq('id', matchedClick.id)
 
-            // 슬롯 전환 수 증가
-            const { data: slot } = await supabase
-              .from('slots')
+            // 추적 링크 전환 수 증가
+            const { data: trackingLink } = await supabase
+              .from('tracking_links')
               .select('conversions, revenue')
-              .eq('id', matchedClick.slot_id)
+              .eq('id', matchedClick.tracking_link_id)
               .single()
 
-            if (slot) {
+            if (trackingLink) {
               await supabase
-                .from('slots')
+                .from('tracking_links')
                 .update({
-                  conversions: (slot.conversions || 0) + 1,
-                  revenue: (slot.revenue || 0) + order.totalPaymentAmount
+                  conversions: (trackingLink.conversions || 0) + 1,
+                  revenue: (trackingLink.revenue || 0) + order.totalPaymentAmount
                 })
-                .eq('id', matchedClick.slot_id)
+                .eq('id', matchedClick.tracking_link_id)
             }
 
             // 캠페인 전환 수 및 매출 증가

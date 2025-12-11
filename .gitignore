@@ -40,3 +40,6 @@ vercel.env
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# claude code agents (local development automation)
+/agents/

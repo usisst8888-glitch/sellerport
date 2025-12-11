@@ -7,7 +7,7 @@
  * - 주문 상태 변경
  */
 
-import crypto from 'crypto'
+import bcrypt from 'bcryptjs'
 
 interface NaverApiConfig {
   applicationId: string
@@ -20,6 +20,45 @@ interface NaverTokenResponse {
   token_type: string
 }
 
+// 채널 상품 정보 (실제 응답에서 상품 정보가 여기에 있음)
+interface NaverChannelProduct {
+  groupProductNo?: number
+  originProductNo: number
+  channelProductNo: number
+  channelServiceType: string // STOREFARM, WINDOW, AFFILIATE
+  injectProductNo?: number
+  categoryId: string
+  name: string
+  sellerManagementCode?: string
+  statusType: string // WAIT, SALE, OUTOFSTOCK, etc.
+  channelProductDisplayStatusType?: string
+  salePrice: number
+  discountedPrice?: number
+  stockQuantity: number
+  knowledgeShoppingProductRegistration?: boolean
+  deliveryAttributeType?: string
+  deliveryFee?: number
+  returnFee?: number
+  exchangeFee?: number
+  representativeImage?: {
+    url: string
+  }
+  modelId?: number
+  modelName?: string
+  brandName?: string
+  manufacturerName?: string
+  regDate?: string
+  modifiedDate?: string
+}
+
+// 상품 목록 조회 응답의 contents 항목
+interface NaverProductContent {
+  groupProductNo?: number
+  originProductNo: number
+  channelProducts: NaverChannelProduct[]
+}
+
+// 하위 호환성을 위한 기존 인터페이스 (내부 변환용)
 interface NaverProduct {
   originProductNo: number
   name: string
@@ -53,6 +92,43 @@ interface NaverOrder {
   inflowPathType?: string // 유입경로
 }
 
+// 정산 관련 인터페이스
+interface NaverSettlement {
+  productOrderId: string
+  orderId: string
+  settleAmount: number // 정산 금액 (수수료 차감 후 실제 받는 금액)
+  settleExpectDate: string // 정산 예정일
+  commissionAmount: number // 판매 수수료
+  paymentCommission: number // 결제 수수료
+  totalCommission: number // 총 수수료 (판매 + 결제)
+  saleAmount: number // 판매 금액
+  deliveryFeeAmount: number // 배송비
+  productName: string
+  quantity: number
+  orderDate: string
+  settleStatus: string // 정산 상태 (SCHEDULED: 정산예정, COMPLETED: 정산완료, DEFERRED: 정산보류)
+}
+
+interface NaverSettlementsResponse {
+  data: {
+    contents: NaverSettlement[]
+    totalElements: number
+    totalPages: number
+  }
+}
+
+// 정산 내역 export용 인터페이스
+export interface NaverSettlementInfo {
+  productOrderId: string
+  orderId: string
+  settlementAmount: number // 실제 정산 금액
+  totalCommission: number // 총 수수료
+  commissionRate: number // 수수료율 (계산값)
+  saleAmount: number // 판매 금액
+  settleStatus: string
+  settleExpectDate: string
+}
+
 interface NaverOrdersResponse {
   data: {
     contents: NaverOrder[]
@@ -61,9 +137,15 @@ interface NaverOrdersResponse {
   }
 }
 
+// 상품 목록 조회 API 실제 응답 형식
 interface NaverProductsResponse {
-  contents: NaverProduct[]
+  contents: NaverProductContent[]
+  page: number
+  size: number
   totalElements: number
+  totalPages: number
+  first?: boolean
+  last?: boolean
 }
 
 export class NaverCommerceAPI {
@@ -77,13 +159,18 @@ export class NaverCommerceAPI {
   }
 
   /**
-   * HMAC-SHA256 서명 생성
+   * bcrypt 기반 client_secret_sign 생성
+   * 네이버 커머스 API 인증 방식:
+   * 1. password = client_id + "_" + timestamp
+   * 2. bcrypt hash with client_secret as salt
+   * 3. base64 encode the result
    */
-  private generateSignature(timestamp: string, method: string, path: string): string {
-    const message = `${timestamp}.${method}.${path}`
-    const hmac = crypto.createHmac('sha256', this.config.applicationSecret)
-    hmac.update(message)
-    return hmac.digest('base64')
+  private generateClientSecretSign(timestamp: string): string {
+    const password = `${this.config.applicationId}_${timestamp}`
+    // client_secret을 salt로 사용하여 bcrypt 해싱
+    const hashed = bcrypt.hashSync(password, this.config.applicationSecret)
+    // base64 인코딩
+    return Buffer.from(hashed).toString('base64')
   }
 
   /**
@@ -96,18 +183,18 @@ export class NaverCommerceAPI {
     }
 
     const timestamp = Date.now().toString()
-    const path = '/external/v1/oauth2/token'
-    const signature = this.generateSignature(timestamp, 'POST', path)
+    const clientSecretSign = this.generateClientSecretSign(timestamp)
 
     const params = new URLSearchParams({
       client_id: this.config.applicationId,
       timestamp: timestamp,
-      client_secret_sign: signature,
+      client_secret_sign: clientSecretSign,
       grant_type: 'client_credentials',
       type: 'SELF',
     })
 
-    const response = await fetch(`${this.baseUrl}${path}`, {
+    const tokenPath = '/external/v1/oauth2/token'
+    const response = await fetch(`${this.baseUrl}${tokenPath}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -133,6 +220,11 @@ export class NaverCommerceAPI {
   private async request<T>(method: string, path: string, body?: object): Promise<T> {
     const token = await this.getAccessToken()
 
+    console.log(`[NaverAPI] ${method} ${path}`)
+    if (body) {
+      console.log('[NaverAPI] Request body:', JSON.stringify(body))
+    }
+
     const response = await fetch(`${this.baseUrl}${path}`, {
       method,
       headers: {
@@ -142,39 +234,88 @@ export class NaverCommerceAPI {
       body: body ? JSON.stringify(body) : undefined,
     })
 
+    const responseText = await response.text()
+    console.log(`[NaverAPI] Response status: ${response.status}`)
+    console.log(`[NaverAPI] Response body: ${responseText.substring(0, 1000)}`)
+
     if (!response.ok) {
-      const error = await response.text()
-      throw new Error(`네이버 API 오류 (${response.status}): ${error}`)
+      throw new Error(`네이버 API 오류 (${response.status}): ${responseText}`)
     }
 
-    return response.json()
+    try {
+      return JSON.parse(responseText) as T
+    } catch {
+      throw new Error(`네이버 API JSON 파싱 오류: ${responseText}`)
+    }
   }
 
   /**
    * 상품 목록 조회
+   * POST /v1/products/search API 사용
+   *
+   * @param page 페이지 번호 (1부터 시작, API 스펙에 따름)
+   * @param size 페이지 크기 (기본 50, 최대 500)
    */
-  async getProducts(page: number = 0, size: number = 100): Promise<NaverProductsResponse> {
-    return this.request('GET', `/external/v2/products?page=${page}&size=${size}`)
+  async getProducts(page: number = 1, size: number = 100): Promise<NaverProductsResponse> {
+    // 판매 중인 상품만 조회 (SALE 상태)
+    const response = await this.request<NaverProductsResponse>(
+      'POST',
+      '/external/v1/products/search',
+      {
+        page: page < 1 ? 1 : page, // 페이지는 1부터 시작
+        size: Math.min(size, 500), // 최대 500개
+        productStatusTypes: ['SALE', 'WAIT', 'OUTOFSTOCK'], // 판매중, 판매대기, 품절 상품 조회
+        orderType: 'REG_DATE' // 등록일순 정렬
+      }
+    )
+    return response
+  }
+
+  /**
+   * 채널 상품 정보를 기존 NaverProduct 형식으로 변환
+   * (하위 호환성 유지용)
+   */
+  convertToNaverProduct(content: NaverProductContent): NaverProduct | null {
+    const channelProduct = content.channelProducts?.[0]
+    if (!channelProduct) return null
+
+    return {
+      originProductNo: content.originProductNo,
+      name: channelProduct.name,
+      salePrice: channelProduct.salePrice,
+      stockQuantity: channelProduct.stockQuantity,
+      channelProducts: content.channelProducts.map(cp => ({
+        channelProductNo: cp.channelProductNo,
+        channelServiceType: cp.channelServiceType,
+        categoryId: cp.categoryId,
+        statusType: cp.statusType
+      })),
+      images: {
+        representativeImage: channelProduct.representativeImage
+      }
+    }
   }
 
   /**
    * 상품 상세 조회
    */
-  async getProduct(productNo: number): Promise<NaverProduct> {
-    const response = await this.request<{ contents: NaverProduct[] }>(
+  async getProduct(productNo: number): Promise<NaverProduct | null> {
+    const response = await this.request<NaverProductsResponse>(
       'POST',
-      '/external/v2/products/search',
+      '/external/v1/products/search',
       {
         searchKeywordType: 'PRODUCT_NO',
-        searchKeywords: [productNo.toString()],
+        originProductNos: [productNo],
+        page: 1,
+        size: 1
       }
     )
 
     if (!response.contents || response.contents.length === 0) {
-      throw new Error(`상품을 찾을 수 없습니다: ${productNo}`)
+      return null
     }
 
-    return response.contents[0]
+    return this.convertToNaverProduct(response.contents[0])
   }
 
   /**
@@ -249,6 +390,128 @@ export class NaverCommerceAPI {
       totalRevenue,
       orders,
     }
+  }
+
+  /**
+   * 정산 내역 조회 (상품주문번호 기반)
+   * 네이버 Commerce API: /external/v1/settlements/product-orders
+   *
+   * @param productOrderIds 상품주문번호 배열 (최대 100개)
+   * @returns 정산 정보 배열
+   */
+  async getSettlementsByProductOrderIds(productOrderIds: string[]): Promise<NaverSettlementInfo[]> {
+    if (productOrderIds.length === 0) {
+      return []
+    }
+
+    // 최대 100개씩 분할 요청
+    const chunks: string[][] = []
+    for (let i = 0; i < productOrderIds.length; i += 100) {
+      chunks.push(productOrderIds.slice(i, i + 100))
+    }
+
+    const allSettlements: NaverSettlementInfo[] = []
+
+    for (const chunk of chunks) {
+      try {
+        const response = await this.request<NaverSettlementsResponse>(
+          'POST',
+          '/external/v1/settlements/product-orders',
+          {
+            productOrderIds: chunk
+          }
+        )
+
+        const settlements = response.data?.contents || []
+
+        for (const settlement of settlements) {
+          // 수수료율 계산 (판매금액 기준)
+          const commissionRate = settlement.saleAmount > 0
+            ? Math.round((settlement.totalCommission / settlement.saleAmount) * 100 * 100) / 100
+            : 0
+
+          allSettlements.push({
+            productOrderId: settlement.productOrderId,
+            orderId: settlement.orderId,
+            settlementAmount: settlement.settleAmount,
+            totalCommission: settlement.totalCommission,
+            commissionRate,
+            saleAmount: settlement.saleAmount,
+            settleStatus: settlement.settleStatus,
+            settleExpectDate: settlement.settleExpectDate
+          })
+        }
+      } catch (error) {
+        console.error('Settlement fetch error for chunk:', error)
+        // 일부 실패해도 계속 진행
+      }
+    }
+
+    return allSettlements
+  }
+
+  /**
+   * 기간별 정산 내역 조회
+   *
+   * @param startDate 조회 시작일
+   * @param endDate 조회 종료일
+   * @param page 페이지 번호 (0부터 시작)
+   * @returns 정산 내역
+   */
+  async getSettlementsByDate(
+    startDate: Date,
+    endDate: Date,
+    page: number = 0
+  ): Promise<{
+    settlements: NaverSettlementInfo[]
+    totalElements: number
+    totalPages: number
+  }> {
+    const response = await this.request<NaverSettlementsResponse>(
+      'POST',
+      '/external/v1/settlements/product-orders/search',
+      {
+        searchType: 'SETTLE_EXPECT_DATE', // 정산 예정일 기준
+        searchStartDate: startDate.toISOString().split('T')[0],
+        searchEndDate: endDate.toISOString().split('T')[0],
+        pageNumber: page,
+        pageSize: 100
+      }
+    )
+
+    const settlements = (response.data?.contents || []).map(settlement => {
+      const commissionRate = settlement.saleAmount > 0
+        ? Math.round((settlement.totalCommission / settlement.saleAmount) * 100 * 100) / 100
+        : 0
+
+      return {
+        productOrderId: settlement.productOrderId,
+        orderId: settlement.orderId,
+        settlementAmount: settlement.settleAmount,
+        totalCommission: settlement.totalCommission,
+        commissionRate,
+        saleAmount: settlement.saleAmount,
+        settleStatus: settlement.settleStatus,
+        settleExpectDate: settlement.settleExpectDate
+      }
+    })
+
+    return {
+      settlements,
+      totalElements: response.data?.totalElements || 0,
+      totalPages: response.data?.totalPages || 0
+    }
+  }
+
+  /**
+   * 주문별 정산 금액 조회 (단건)
+   *
+   * @param productOrderId 상품주문번호
+   * @returns 정산 정보 또는 null
+   */
+  async getSettlementByProductOrderId(productOrderId: string): Promise<NaverSettlementInfo | null> {
+    const settlements = await this.getSettlementsByProductOrderIds([productOrderId])
+    return settlements.length > 0 ? settlements[0] : null
   }
 }
 

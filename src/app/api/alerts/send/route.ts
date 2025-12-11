@@ -36,27 +36,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'alertType이 필요합니다' }, { status: 400 })
     }
 
-    // 사용자 설정 조회
+    // 시스템 알리고 설정 확인
+    if (!process.env.ALIGO_API_KEY || !process.env.ALIGO_USER_ID || !process.env.ALIGO_SENDER_KEY) {
+      return NextResponse.json({ error: '알림톡 서비스가 설정되지 않았습니다' }, { status: 500 })
+    }
+
+    // 사용자 설정 조회 (전화번호만)
     const { data: settings } = await supabase
       .from('user_settings')
-      .select('aligo_api_key, aligo_user_id, aligo_sender_key, phone_number')
+      .select('phone_number')
       .eq('user_id', user.id)
       .single()
 
-    if (!settings?.aligo_api_key || !settings?.aligo_user_id || !settings?.aligo_sender_key) {
-      return NextResponse.json({ error: '알리고 연동 설정이 필요합니다' }, { status: 400 })
-    }
-
-    const receiver = phoneNumber || settings.phone_number
+    const receiver = phoneNumber || settings?.phone_number
     if (!receiver) {
       return NextResponse.json({ error: '수신자 전화번호가 필요합니다' }, { status: 400 })
     }
 
-    // 알리고 클라이언트 생성
+    // 알리고 클라이언트 생성 (시스템 환경변수 사용)
     const aligoClient = createAligoClient(
-      settings.aligo_api_key,
-      settings.aligo_user_id,
-      settings.aligo_sender_key
+      process.env.ALIGO_API_KEY,
+      process.env.ALIGO_USER_ID,
+      process.env.ALIGO_SENDER_KEY
     )
 
     // 메시지 생성

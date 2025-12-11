@@ -12,6 +12,14 @@
     {
       "path": "/api/cron/daily-report",
       "schedule": "0 21 * * *"
+    },
+    {
+      "path": "/api/naver/orders/poll",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/ai-analysis",
+      "schedule": "0 0 * * *"
     }
   ]
 }

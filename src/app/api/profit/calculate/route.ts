@@ -14,17 +14,17 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { calculatePlatformFee } from '../platforms/route'
 
-// 플랫폼별 수수료율 (%)
+// 하위 호환성을 위한 기본 수수료율 (deprecated - 새 로직은 calculatePlatformFee 사용)
 const PLATFORM_FEE_RATES: Record<string, number> = {
-  naver: 2.73,       // 네이버 스마트스토어 (마케팅링크 기준)
-  coupang: 10.8,     // 쿠팡 로켓그로스 평균
-  gmarket: 12.0,     // 지마켓
-  auction: 12.0,     // 옥션
-  '11st': 13.0,      // 11번가
-  cafe24: 0,         // 자사몰 (수수료 없음)
-  imweb: 0,          // 자사몰 (수수료 없음)
-  etc: 5.0           // 기타 (기본값)
+  naver: 4.63,       // 네이버 스마트스토어 평균
+  coupang: 10.8,     // 쿠팡 마켓플레이스 평균
+  cafe24: 3.3,       // 자사몰 PG 수수료
+  imweb: 3.3,        // 자사몰 PG 수수료
+  godomall: 3.3,     // 자사몰 PG 수수료
+  makeshop: 3.3,     // 자사몰 PG 수수료
+  etc: 3.3           // 기타 (기본 PG 수수료)
 }
 
 interface CalculateRequest {
@@ -37,8 +37,10 @@ interface CalculateRequest {
   shippingCost?: number    // 배송비 지출 (발송 비용)
   shippingIncome?: number  // 배송비 수입 (고객이 낸 배송비)
 
-  // 수수료
+  // 수수료 (고급 설정)
   platform?: string        // 플랫폼 (자동 수수료 계산)
+  channel?: string         // 채널 (네이버: smartstore/brandstore/window 등)
+  category?: string        // 카테고리 (패션/디지털 등)
   customFeeRate?: number   // 직접 입력한 수수료율 (%)
 
   // 광고비
@@ -65,20 +67,38 @@ export async function POST(request: NextRequest) {
       shippingCost = 0,
       shippingIncome = 0,
       platform = 'etc',
+      channel = null,
+      category = null,
       customFeeRate,
       adCost = 0,
       packagingCost = 0,
       otherCost = 0
     } = body
 
+    // 입력값 검증
     if (!salePrice || !quantity || productCost === undefined) {
-      return NextResponse.json({ error: '필수 항목이 누락되었습니다' }, { status: 400 })
+      return NextResponse.json({
+        success: false,
+        error: '필수 항목이 누락되었습니다. (판매가, 수량, 원가는 필수입니다)'
+      }, { status: 400 })
     }
 
-    // 수수료율 결정 (직접 입력 우선)
-    const feeRate = customFeeRate !== undefined
-      ? customFeeRate
-      : (PLATFORM_FEE_RATES[platform] || PLATFORM_FEE_RATES['etc'])
+    if (salePrice < 0 || quantity < 1 || productCost < 0) {
+      return NextResponse.json({
+        success: false,
+        error: '잘못된 입력값입니다. (판매가, 수량, 원가는 0 이상이어야 합니다)'
+      }, { status: 400 })
+    }
+
+    // 고급 수수료 계산 (채널, 카테고리 지원)
+    const feeCalculation = calculatePlatformFee(
+      platform,
+      channel,
+      category,
+      salePrice,
+      customFeeRate
+    )
+    const feeRate = feeCalculation.feeRate
 
     // 계산
     const revenue = salePrice * quantity                           // 매출
@@ -111,7 +131,10 @@ export async function POST(request: NextRequest) {
         quantity,
         productCost,
         platform,
-        feeRate
+        channel: channel || undefined,
+        category: category || undefined,
+        feeRate,
+        feeBreakdown: feeCalculation.breakdown
       },
 
       // 상세 계산
@@ -120,6 +143,7 @@ export async function POST(request: NextRequest) {
         totalCost,                  // 총 원가
         platformFee,                // 플랫폼 수수료
         platformFeeRate: feeRate,   // 적용된 수수료율
+        platformFeeDetails: feeCalculation.details, // 수수료 상세 정보
         shippingCost,               // 배송비 지출
         shippingIncome,             // 배송비 수입
         netShipping,                // 순 배송비
@@ -158,6 +182,10 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Profit calculate error:', error)
-    return NextResponse.json({ error: '서버 오류가 발생했습니다' }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : '서버 오류가 발생했습니다'
+    return NextResponse.json({
+      success: false,
+      error: errorMessage
+    }, { status: 500 })
   }
 }

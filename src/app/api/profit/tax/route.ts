@@ -87,8 +87,26 @@ export async function POST(request: NextRequest) {
       deductions = {}
     } = body
 
+    // 입력값 검증
     if (!revenue || !taxType) {
-      return NextResponse.json({ error: '필수 항목이 누락되었습니다' }, { status: 400 })
+      return NextResponse.json({
+        success: false,
+        error: '필수 항목이 누락되었습니다. (매출과 과세 유형은 필수입니다)'
+      }, { status: 400 })
+    }
+
+    if (revenue < 0 || expense < 0) {
+      return NextResponse.json({
+        success: false,
+        error: '잘못된 입력값입니다. (매출과 비용은 0 이상이어야 합니다)'
+      }, { status: 400 })
+    }
+
+    if (!['simple', 'general'].includes(taxType)) {
+      return NextResponse.json({
+        success: false,
+        error: '잘못된 과세 유형입니다. (simple 또는 general만 가능합니다)'
+      }, { status: 400 })
     }
 
     // =====================
@@ -209,6 +227,10 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Tax calculate error:', error)
-    return NextResponse.json({ error: '서버 오류가 발생했습니다' }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : '서버 오류가 발생했습니다'
+    return NextResponse.json({
+      success: false,
+      error: errorMessage
+    }, { status: 500 })
   }
 }

@@ -95,23 +95,23 @@ export async function GET(request: NextRequest) {
           let campaignId = null
 
           if (utmParams.utm_campaign) {
-            const { data: slot } = await supabase
-              .from('slots')
+            const { data: trackingLink } = await supabase
+              .from('tracking_links')
               .select('id, campaign_id')
               .eq('user_id', platform.user_id)
               .eq('utm_campaign', utmParams.utm_campaign)
               .single()
 
-            if (slot) {
-              campaignId = slot.campaign_id
+            if (trackingLink) {
+              campaignId = trackingLink.campaign_id
 
               const thirtyDaysAgo = new Date()
               thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
               const { data: click } = await supabase
-                .from('slot_clicks')
+                .from('tracking_link_clicks')
                 .select('*')
-                .eq('slot_id', slot.id)
+                .eq('tracking_link_id', trackingLink.id)
                 .eq('is_converted', false)
                 .gte('created_at', thirtyDaysAgo.toISOString())
                 .order('created_at', { ascending: false })
@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
               utm_source: utmParams.utm_source,
               utm_medium: utmParams.utm_medium,
               utm_campaign: utmParams.utm_campaign,
-              slot_id: matchedClick?.slot_id,
+              tracking_link_id: matchedClick?.tracking_link_id,
               click_id: matchedClick?.click_id,
               campaign_id: campaignId,
               inflow_path: inflowPath,
@@ -169,7 +169,7 @@ export async function GET(request: NextRequest) {
             totalMatched++
 
             await supabase
-              .from('slot_clicks')
+              .from('tracking_link_clicks')
               .update({
                 is_converted: true,
                 converted_order_id: newOrder.id,
@@ -177,7 +177,7 @@ export async function GET(request: NextRequest) {
               })
               .eq('id', matchedClick.id)
 
-            // 슬롯/캠페인 통계 업데이트
+            // 추적 링크/캠페인 통계 업데이트
             if (campaignId) {
               const { data: campaign } = await supabase
                 .from('campaigns')

@@ -1,11 +1,11 @@
 /**
- * 슬롯 추적 리다이렉트
- * GET /t/[slotId] - 클릭 추적 후 목적지 URL로 리다이렉트
+ * 추적 링크 리다이렉트
+ * GET /t/[trackingLinkId] - 클릭 추적 후 목적지 URL로 리다이렉트
  *
  * 이 엔드포인트는 광고 클릭을 추적하고 실제 상품 페이지로 리다이렉트합니다.
  * - 클릭 ID 생성 (주문 매칭용)
  * - _fbp 쿠키 저장 (Meta 어트리뷰션용)
- * - slot_clicks 테이블에 상세 기록
+ * - tracking_link_clicks 테이블에 상세 기록
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -27,22 +27,22 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slotId: string }> }
 ) {
-  const { slotId } = await params
+  const { slotId: trackingLinkId } = await params
   const clickId = generateClickId()
 
   try {
-    // 슬롯 조회
-    const { data: slot, error } = await supabase
-      .from('slots')
+    // 추적 링크 조회
+    const { data: trackingLink, error } = await supabase
+      .from('tracking_links')
       .select('id, user_id, campaign_id, target_url, utm_source, utm_medium, utm_campaign, status, clicks')
-      .eq('id', slotId)
+      .eq('id', trackingLinkId)
       .single()
 
-    if (error || !slot) {
+    if (error || !trackingLink) {
       return NextResponse.redirect(new URL('/404', request.url))
     }
 
-    if (slot.status !== 'active') {
+    if (trackingLink.status !== 'active') {
       return NextResponse.redirect(new URL('/', request.url))
     }
 
@@ -61,47 +61,47 @@ export async function GET(
     // 클릭 수 증가 + 클릭 로그 기록 (병렬 처리)
     const recordClick = async () => {
       try {
-        // 1. 슬롯 클릭 수 증가
+        // 1. 추적 링크 클릭 수 증가
         await supabase
-          .from('slots')
+          .from('tracking_links')
           .update({
-            clicks: (slot.clicks || 0) + 1,
+            clicks: (trackingLink.clicks || 0) + 1,
             last_click_at: new Date().toISOString()
           })
-          .eq('id', slotId)
+          .eq('id', trackingLinkId)
 
         // 2. 클릭 상세 로그 저장
-        await supabase.from('slot_clicks').insert({
+        await supabase.from('tracking_link_clicks').insert({
           id: clickId,
-          slot_id: slotId,
-          user_id: slot.user_id,
-          campaign_id: slot.campaign_id,
+          tracking_link_id: trackingLinkId,
+          user_id: trackingLink.user_id,
+          campaign_id: trackingLink.campaign_id,
           click_id: clickId,
           fbp: fbp,
           fbc: fbc,
           user_agent: userAgent.slice(0, 500),
           referer: referer.slice(0, 500),
           ip_address: ip,
-          utm_source: slot.utm_source,
-          utm_medium: slot.utm_medium,
-          utm_campaign: slot.utm_campaign,
+          utm_source: trackingLink.utm_source,
+          utm_medium: trackingLink.utm_medium,
+          utm_campaign: trackingLink.utm_campaign,
           is_converted: false,
           created_at: new Date().toISOString()
         })
 
         // 3. 캠페인 클릭 수 증가
-        if (slot.campaign_id) {
+        if (trackingLink.campaign_id) {
           const { data: campaign } = await supabase
             .from('campaigns')
             .select('clicks')
-            .eq('id', slot.campaign_id)
+            .eq('id', trackingLink.campaign_id)
             .single()
 
           if (campaign) {
             await supabase
               .from('campaigns')
               .update({ clicks: (campaign.clicks || 0) + 1 })
-              .eq('id', slot.campaign_id)
+              .eq('id', trackingLink.campaign_id)
           }
         }
       } catch (err) {
@@ -113,10 +113,10 @@ export async function GET(
     recordClick().catch(console.error)
 
     // 목적지 URL에 파라미터 추가
-    const targetUrl = new URL(slot.target_url)
-    targetUrl.searchParams.set('utm_source', slot.utm_source)
-    targetUrl.searchParams.set('utm_medium', slot.utm_medium)
-    targetUrl.searchParams.set('utm_campaign', slot.utm_campaign)
+    const targetUrl = new URL(trackingLink.target_url)
+    targetUrl.searchParams.set('utm_source', trackingLink.utm_source)
+    targetUrl.searchParams.set('utm_medium', trackingLink.utm_medium)
+    targetUrl.searchParams.set('utm_campaign', trackingLink.utm_campaign)
     targetUrl.searchParams.set('sp_click', clickId)  // 셀러포트 클릭 ID
 
     // 리다이렉트 응답 생성
@@ -131,8 +131,8 @@ export async function GET(
       sameSite: 'lax'
     })
 
-    // 슬롯 ID도 저장 (주문 매칭용)
-    response.cookies.set('sp_slot_id', slotId, {
+    // 추적 링크 ID도 저장 (주문 매칭용)
+    response.cookies.set('sp_tracking_link_id', trackingLinkId, {
       maxAge: 60 * 60 * 24 * 30,
       path: '/',
       httpOnly: false,

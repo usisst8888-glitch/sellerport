@@ -26,7 +26,10 @@ interface AlertSettings {
   redLightAlert: boolean
   dailySummary: boolean
   yellowLightAlert: boolean
+  kakaoEnabled: boolean
+  kakaoPhone: string
 }
+
 
 export default function SettingsPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -48,6 +51,8 @@ export default function SettingsPage() {
     redLightAlert: true,
     dailySummary: true,
     yellowLightAlert: false,
+    kakaoEnabled: false,
+    kakaoPhone: '',
   })
 
   useEffect(() => {
@@ -74,7 +79,10 @@ export default function SettingsPage() {
           phone: profileData.data.phone || '',
         })
         if (profileData.data.alertSettings) {
-          setAlertSettings(profileData.data.alertSettings)
+          setAlertSettings({
+            ...alertSettings,
+            ...profileData.data.alertSettings
+          })
         }
       }
 
@@ -185,27 +193,27 @@ export default function SettingsPage() {
 
       {/* 상단 2열: 잔액 + 계정 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 잔액 현황 */}
+        {/* 현재 플랜 */}
         <div className="bg-gradient-to-br from-blue-900/30 to-slate-800/40 border border-blue-500/20 rounded-xl p-5">
           <h2 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
             <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
             </svg>
-            잔액 현황
+            현재 플랜
           </h2>
 
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="flex items-center justify-between py-7 px-5 bg-slate-800/50 rounded-lg">
               <div>
-                <p className="text-lg text-slate-300">이용중인 슬롯</p>
-                <p className="text-sm text-slate-500 mt-1">2,000원/슬롯</p>
+                <p className="text-lg text-slate-300">구독 플랜</p>
+                <p className="text-sm text-slate-500 mt-1">추적 링크 3개</p>
               </div>
-              <p className="text-4xl font-bold text-white">{balance.slotBalance}<span className="text-xl font-normal text-slate-400 ml-1">개</span></p>
+              <p className="text-2xl font-bold text-white">무료</p>
             </div>
             <div className="flex items-center justify-between py-7 px-5 bg-slate-800/50 rounded-lg">
               <div>
-                <p className="text-lg text-slate-300">알림 잔액</p>
-                <p className="text-sm text-slate-500 mt-1">15원/건</p>
+                <p className="text-lg text-slate-300">알림톡 잔여</p>
+                <p className="text-sm text-slate-500 mt-1">추가 15원/건</p>
               </div>
               <p className="text-4xl font-bold text-white">{balance.alertBalance}<span className="text-xl font-normal text-slate-400 ml-1">건</span></p>
             </div>
@@ -213,7 +221,7 @@ export default function SettingsPage() {
 
           <Link href="/billing">
             <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm">
-              충전하기
+              플랜 업그레이드
             </Button>
           </Link>
         </div>
@@ -309,6 +317,35 @@ export default function SettingsPage() {
             <p className="text-xs text-slate-500">15원/건</p>
           </div>
 
+          {/* 알림톡 활성화 및 전화번호 */}
+          <div className="mb-4 p-3 bg-slate-700/50 rounded-lg space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-white">알림톡 발송</p>
+                <p className="text-xs text-slate-500">카카오 알림톡으로 알림 받기</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAlertSettings({ ...alertSettings, kakaoEnabled: !alertSettings.kakaoEnabled })}
+                className={`relative w-11 h-6 rounded-full transition-colors ${alertSettings.kakaoEnabled ? 'bg-blue-600' : 'bg-slate-600'}`}
+              >
+                <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${alertSettings.kakaoEnabled ? 'left-6' : 'left-1'}`} />
+              </button>
+            </div>
+            {alertSettings.kakaoEnabled && (
+              <div className="space-y-1.5">
+                <Label htmlFor="kakao_phone" className="text-xs text-slate-400">수신 전화번호</Label>
+                <Input
+                  id="kakao_phone"
+                  placeholder="01012345678"
+                  value={alertSettings.kakaoPhone}
+                  onChange={(e) => setAlertSettings({ ...alertSettings, kakaoPhone: e.target.value })}
+                  className="h-9 text-sm bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
+                />
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-2">
             <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
               <div>
@@ -371,7 +408,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-700">
-            <p className="text-xs text-slate-500">등록한 전화번호로 발송</p>
+            <p className="text-xs text-slate-500">알림 설정 저장</p>
             <Button
               onClick={handleSaveAlertSettings}
               disabled={savingAlerts}

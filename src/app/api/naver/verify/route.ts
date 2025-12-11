@@ -63,14 +63,19 @@ export async function POST(request: NextRequest) {
 
     } catch (apiError) {
       // API 호출 실패 - 키가 유효하지 않음
+      console.error('Naver API 인증 실패:', apiError)
+      console.error('사용된 Application ID:', platform.application_id)
+      console.error('사용된 Application Secret (앞 10자):', platform.application_secret?.substring(0, 10))
+
       await supabase
         .from('platforms')
         .update({ status: 'error' })
         .eq('id', platformId)
 
+      const errorMessage = apiError instanceof Error ? apiError.message : '알 수 없는 오류'
       return NextResponse.json({
         success: false,
-        error: '네이버 API 인증에 실패했습니다. API 키를 확인해주세요.'
+        error: `네이버 API 인증에 실패했습니다: ${errorMessage}`
       }, { status: 400 })
     }
 

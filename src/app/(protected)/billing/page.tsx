@@ -2,38 +2,130 @@
 
 import { useState } from 'react'
 
+// 구독 티어 정의
+const SUBSCRIPTION_TIERS = [
+  {
+    id: 'free',
+    name: '무료',
+    price: 0,
+    priceLabel: '0원',
+    description: '셀러포트를 처음 사용하는 분께 추천',
+    features: [
+      '추적 링크 3개',
+      '기본 전환 추적',
+      '마진 계산기',
+      '세금 계산기',
+      '디자이너 연결',
+    ],
+    alerts: 0,
+    alertLabel: '알림톡 미포함',
+    popular: false,
+    buttonText: '현재 플랜',
+    buttonDisabled: true,
+  },
+  {
+    id: 'basic',
+    name: '베이직',
+    price: 55000,
+    priceLabel: '55,000원',
+    description: '본격적으로 광고 효율을 관리하는 셀러',
+    features: [
+      '무제한 추적 링크',
+      '모든 채널 전환 추적',
+      '🟢🟡🔴 신호등 시스템',
+      '마진/세금 자동 계산',
+      'AI 최적화 추천',
+      '디자이너 연결',
+    ],
+    alerts: 300,
+    alertLabel: '알림톡 300건 포함',
+    popular: true,
+    buttonText: '베이직 시작하기',
+    buttonDisabled: false,
+  },
+  {
+    id: 'pro',
+    name: '프로',
+    price: 110000,
+    priceLabel: '110,000원',
+    description: '대규모 광고 운영 및 인플루언서 협업',
+    features: [
+      '베이직의 모든 기능',
+      '인플루언서 자동 매칭',
+      '채널 URL 전체 공개',
+      '우선 고객 지원',
+      '상세 리포트',
+    ],
+    alerts: 1000,
+    alertLabel: '알림톡 1,000건 포함',
+    popular: false,
+    buttonText: '프로 시작하기',
+    buttonDisabled: false,
+  },
+  {
+    id: 'enterprise',
+    name: '엔터프라이즈',
+    price: -1,
+    priceLabel: '별도 협의',
+    description: '대기업/에이전시를 위한 맞춤 솔루션',
+    features: [
+      '프로의 모든 기능',
+      'API 제공',
+      '전담 매니저',
+      '맞춤 리포트',
+      '온보딩 지원',
+      'SLA 보장',
+    ],
+    alerts: -1,
+    alertLabel: '알림톡 협의',
+    popular: false,
+    buttonText: '문의하기',
+    buttonDisabled: false,
+  },
+]
+
 const mockUsageHistory = [
-  { date: '2024-12-01', type: 'slot', description: '슬롯 충전', quantity: 5, amount: 10000 },
-  { date: '2024-12-01', type: 'alert', description: '알림 충전', quantity: 100, amount: 5000 },
-  { date: '2024-11-15', type: 'slot', description: '슬롯 충전', quantity: 3, amount: 6000 },
-  { date: '2024-11-01', type: 'alert', description: '알림 충전', quantity: 200, amount: 8000 },
+  { date: '2024-12-01', type: 'subscription', description: '베이직 구독', quantity: 1, amount: 55000 },
+  { date: '2024-12-01', type: 'alert', description: '알림 충전', quantity: 100, amount: 1500 },
+  { date: '2024-11-15', type: 'subscription', description: '베이직 구독', quantity: 1, amount: 55000 },
+  { date: '2024-11-01', type: 'alert', description: '알림 충전', quantity: 200, amount: 3000 },
 ]
 
 export default function BillingPage() {
-  const [currentSlots, setCurrentSlots] = useState(3)
+  const [currentPlan] = useState('free')
   const [currentAlerts, setCurrentAlerts] = useState(47)
-
-  // 슬롯 충전 모달
-  const [showSlotModal, setShowSlotModal] = useState(false)
-  const [slotQuantity, setSlotQuantity] = useState(5)
-  const SLOT_PRICE = 2000 // 슬롯당 가격
 
   // 알림 충전 모달
   const [showAlertModal, setShowAlertModal] = useState(false)
   const [alertQuantity, setAlertQuantity] = useState(100)
   const ALERT_PRICE = 15 // 알림 1건당 가격
 
+  // 구독 변경 모달
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false)
+  const [selectedTier, setSelectedTier] = useState<typeof SUBSCRIPTION_TIERS[0] | null>(null)
+
+  const handleSubscribe = (tier: typeof SUBSCRIPTION_TIERS[0]) => {
+    if (tier.id === 'enterprise') {
+      // 엔터프라이즈는 문의 페이지로 이동
+      window.open('mailto:contact@sellerport.app?subject=엔터프라이즈 문의', '_blank')
+      return
+    }
+    if (tier.id === currentPlan) return
+    setSelectedTier(tier)
+    setShowSubscriptionModal(true)
+  }
+
   return (
     <div className="space-y-6">
       {/* 페이지 헤더 */}
       <div>
         <h1 className="text-2xl font-bold text-white">결제 관리</h1>
-        <p className="text-slate-400 mt-1">슬롯 및 알림 충전과 결제 내역을 관리하세요</p>
+        <p className="text-slate-400 mt-1">구독 플랜과 알림을 관리하세요</p>
       </div>
 
-      {/* 현재 보유 현황 */}
+      {/* 현재 구독 현황 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* 슬롯 현황 */}
+        {/* 현재 플랜 */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-900/40 to-slate-800/40 border border-blue-500/20 p-6">
           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl" />
           <div className="relative">
@@ -41,24 +133,28 @@ export default function BillingPage() {
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
                   <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm text-blue-400 font-medium">활성 슬롯</p>
-                  <p className="text-xs text-slate-500">상품 전환 추적용</p>
+                  <p className="text-sm text-blue-400 font-medium">현재 플랜</p>
+                  <p className="text-xs text-slate-500">구독 상태</p>
                 </div>
               </div>
-              <p className="text-4xl font-bold text-white">{currentSlots}개</p>
+              <div className="text-right">
+                <p className="text-2xl font-bold text-white">
+                  {SUBSCRIPTION_TIERS.find(t => t.id === currentPlan)?.name}
+                </p>
+                <p className="text-sm text-slate-400">
+                  {SUBSCRIPTION_TIERS.find(t => t.id === currentPlan)?.priceLabel}/월
+                </p>
+              </div>
             </div>
             <div className="flex items-center justify-between pt-4 border-t border-white/10">
-              <p className="text-sm text-slate-400">슬롯당 <span className="text-white">{SLOT_PRICE.toLocaleString()}원</span>/월</p>
-              <button
-                onClick={() => setShowSlotModal(true)}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
-              >
-                슬롯 충전
-              </button>
+              <p className="text-sm text-slate-400">다음 결제일: <span className="text-white">2025-01-11</span></p>
+              <a href="#pricing" className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors">
+                플랜 변경
+              </a>
             </div>
           </div>
         </div>
@@ -82,7 +178,7 @@ export default function BillingPage() {
               <p className="text-4xl font-bold text-white">{currentAlerts}건</p>
             </div>
             <div className="flex items-center justify-between pt-4 border-t border-white/10">
-              <p className="text-sm text-slate-400">알림 1건당 <span className="text-white">{ALERT_PRICE.toLocaleString()}원</span></p>
+              <p className="text-sm text-slate-400">추가 충전: <span className="text-white">{ALERT_PRICE}원</span>/건</p>
               <button
                 onClick={() => setShowAlertModal(true)}
                 className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium transition-colors"
@@ -94,24 +190,102 @@ export default function BillingPage() {
         </div>
       </div>
 
+      {/* 구독 플랜 선택 */}
+      <div id="pricing" className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-white/5">
+        <div className="p-6 border-b border-white/5">
+          <h2 className="text-lg font-semibold text-white">구독 플랜</h2>
+          <p className="text-sm text-slate-400 mt-0.5">비즈니스에 맞는 플랜을 선택하세요</p>
+        </div>
+
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {SUBSCRIPTION_TIERS.map((tier) => (
+              <div
+                key={tier.id}
+                className={`relative rounded-2xl p-6 transition-all duration-300 ${
+                  tier.popular
+                    ? 'bg-gradient-to-b from-blue-600/20 to-slate-800/50 border-2 border-blue-500/50 shadow-lg shadow-blue-500/10'
+                    : 'bg-slate-800/50 border border-white/10 hover:border-white/20'
+                } ${currentPlan === tier.id ? 'ring-2 ring-emerald-500/50' : ''}`}
+              >
+                {tier.popular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-blue-500 text-white text-xs font-bold">
+                    인기
+                  </div>
+                )}
+                {currentPlan === tier.id && (
+                  <div className="absolute -top-3 right-4 px-3 py-1 rounded-full bg-emerald-500 text-white text-xs font-bold">
+                    현재 플랜
+                  </div>
+                )}
+
+                <div className="mb-4">
+                  <h3 className="text-lg font-bold text-white">{tier.name}</h3>
+                  <p className="text-xs text-slate-400 mt-1">{tier.description}</p>
+                </div>
+
+                <div className="mb-4">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold text-white">{tier.priceLabel}</span>
+                    {tier.price > 0 && <span className="text-slate-400 text-sm">/월</span>}
+                  </div>
+                  <p className={`text-xs mt-1 ${tier.alerts > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    {tier.alertLabel}
+                  </p>
+                </div>
+
+                <ul className="space-y-2 mb-6">
+                  {tier.features.map((feature, index) => (
+                    <li key={index} className="flex items-start gap-2 text-sm">
+                      <svg className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-slate-300">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  onClick={() => handleSubscribe(tier)}
+                  disabled={currentPlan === tier.id}
+                  className={`w-full py-3 rounded-xl font-medium transition-colors ${
+                    currentPlan === tier.id
+                      ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                      : tier.popular
+                        ? 'bg-blue-600 hover:bg-blue-500 text-white'
+                        : 'bg-slate-700 hover:bg-slate-600 text-white'
+                  }`}
+                >
+                  {currentPlan === tier.id ? '현재 플랜' : tier.buttonText}
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-center text-slate-500 text-sm mt-6">
+            * 알림톡 초과 시 15원/건으로 추가 충전 가능
+          </p>
+        </div>
+      </div>
+
       {/* 이용 안내 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="rounded-xl bg-slate-800/50 border border-white/5 p-4">
           <h3 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
-            <span className="text-blue-400">📦</span> 슬롯이란?
+            <span className="text-blue-400">📦</span> 구독이란?
           </h3>
           <p className="text-sm text-slate-400">
-            하나의 슬롯으로 하나의 상품 광고 효율을 추적합니다.
-            슬롯은 월 단위로 과금되며, 사용하지 않은 슬롯은 다음 달로 이월됩니다.
+            월 단위 구독으로 셀러포트의 모든 기능을 이용하세요.
+            언제든지 플랜 변경 및 해지가 가능합니다.
           </p>
         </div>
         <div className="rounded-xl bg-slate-800/50 border border-white/5 p-4">
           <h3 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
-            <span className="text-amber-400">🔔</span> 알림이란?
+            <span className="text-amber-400">🔔</span> 알림톡이란?
           </h3>
           <p className="text-sm text-slate-400">
-            빨간불/노란불 상품 발생 시 카카오톡, 이메일 등으로 알림을 보냅니다.
-            알림 1건당 과금되며, 잔여 건수가 0이 되면 알림이 발송되지 않습니다.
+            빨간불/노란불 캠페인 발생 시 카카오톡으로 알림을 보냅니다.
+            플랜별 기본 제공량 초과 시 15원/건으로 충전 가능합니다.
           </p>
         </div>
       </div>
@@ -120,7 +294,7 @@ export default function BillingPage() {
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-white/5">
         <div className="p-6 border-b border-white/5">
           <h2 className="text-lg font-semibold text-white">결제 내역</h2>
-          <p className="text-sm text-slate-400 mt-0.5">최근 충전 및 결제 내역</p>
+          <p className="text-sm text-slate-400 mt-0.5">최근 결제 및 충전 내역</p>
         </div>
 
         <div className="overflow-x-auto">
@@ -130,7 +304,6 @@ export default function BillingPage() {
                 <th className="text-left text-xs font-medium text-slate-500 uppercase tracking-wider px-6 py-3">날짜</th>
                 <th className="text-left text-xs font-medium text-slate-500 uppercase tracking-wider px-6 py-3">구분</th>
                 <th className="text-left text-xs font-medium text-slate-500 uppercase tracking-wider px-6 py-3">내용</th>
-                <th className="text-right text-xs font-medium text-slate-500 uppercase tracking-wider px-6 py-3">수량</th>
                 <th className="text-right text-xs font-medium text-slate-500 uppercase tracking-wider px-6 py-3">금액</th>
                 <th className="text-right text-xs font-medium text-slate-500 uppercase tracking-wider px-6 py-3">상태</th>
               </tr>
@@ -141,17 +314,14 @@ export default function BillingPage() {
                   <td className="px-6 py-4 text-sm text-slate-300">{record.date}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 text-xs rounded-lg ${
-                      record.type === 'slot'
+                      record.type === 'subscription'
                         ? 'bg-blue-500/20 text-blue-400'
                         : 'bg-amber-500/20 text-amber-400'
                     }`}>
-                      {record.type === 'slot' ? '슬롯' : '알림'}
+                      {record.type === 'subscription' ? '구독' : '알림'}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-white">{record.description}</td>
-                  <td className="px-6 py-4 text-sm text-slate-300 text-right">
-                    {record.quantity}{record.type === 'slot' ? '개' : '건'}
-                  </td>
                   <td className="px-6 py-4 text-sm text-white text-right">{record.amount.toLocaleString()}원</td>
                   <td className="px-6 py-4 text-right">
                     <span className="px-2 py-1 text-xs bg-emerald-500/20 text-emerald-400 rounded-lg">완료</span>
@@ -196,108 +366,6 @@ export default function BillingPage() {
           </div>
         </div>
       </div>
-
-      {/* 슬롯 충전 모달 */}
-      {showSlotModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-slate-800 border border-white/10 shadow-2xl">
-            <div className="p-6 border-b border-white/5">
-              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <span className="text-2xl">📦</span>
-                슬롯 충전
-              </h3>
-              <p className="text-sm text-slate-400 mt-1">충전할 슬롯 개수를 선택하세요</p>
-            </div>
-
-            <div className="p-6">
-              {/* 수량 선택 */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-slate-300 mb-3">충전 수량</label>
-                <div className="flex items-center justify-center gap-4">
-                  <button
-                    onClick={() => setSlotQuantity(Math.max(1, slotQuantity - 1))}
-                    className="w-12 h-12 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xl font-bold transition-colors"
-                  >
-                    -
-                  </button>
-                  <div className="w-32 text-center">
-                    <div className="flex items-baseline justify-center">
-                      <input
-                        type="number"
-                        value={slotQuantity}
-                        onChange={(e) => setSlotQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-20 text-center text-3xl font-bold text-white bg-transparent border-none focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
-                      />
-                      <span className="text-xl text-slate-400">개</span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setSlotQuantity(slotQuantity + 1)}
-                    className="w-12 h-12 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xl font-bold transition-colors"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              {/* 빠른 선택 */}
-              <div className="flex gap-2 mb-6">
-                {[5, 10, 20, 50].map((qty) => (
-                  <button
-                    key={qty}
-                    onClick={() => setSlotQuantity(qty)}
-                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      slotQuantity === qty
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-white'
-                    }`}
-                  >
-                    {qty}개
-                  </button>
-                ))}
-              </div>
-
-              {/* 결제 금액 */}
-              <div className="p-4 rounded-xl bg-slate-900/50 border border-white/5">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-slate-400">슬롯 {slotQuantity}개</span>
-                  <span className="text-white">× {SLOT_PRICE.toLocaleString()}원</span>
-                </div>
-                <div className="border-t border-white/10 pt-2 mt-2">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-white">총 결제 금액</span>
-                    <span className="text-2xl font-bold text-blue-400">
-                      {(slotQuantity * SLOT_PRICE).toLocaleString()}원
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 border-t border-white/5 space-y-3">
-              <button
-                onClick={() => setShowSlotModal(false)}
-                className="w-full py-3 rounded-xl bg-[#FEE500] hover:bg-[#FDD800] text-[#3C1E1E] font-medium transition-colors flex items-center justify-center gap-2"
-              >
-                <span className="text-lg">💬</span>
-                카카오페이로 결제
-              </button>
-              <button
-                onClick={() => setShowSlotModal(false)}
-                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors"
-              >
-                카드로 결제
-              </button>
-              <button
-                onClick={() => setShowSlotModal(false)}
-                className="w-full py-2 text-slate-400 hover:text-white transition-colors"
-              >
-                취소
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 알림 충전 모달 */}
       {showAlertModal && (
@@ -392,6 +460,68 @@ export default function BillingPage() {
               </button>
               <button
                 onClick={() => setShowAlertModal(false)}
+                className="w-full py-2 text-slate-400 hover:text-white transition-colors"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 구독 변경 모달 */}
+      {showSubscriptionModal && selectedTier && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-slate-800 border border-white/10 shadow-2xl">
+            <div className="p-6 border-b border-white/5">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <span className="text-2xl">📦</span>
+                플랜 변경
+              </h3>
+              <p className="text-sm text-slate-400 mt-1">{selectedTier.name} 플랜으로 변경합니다</p>
+            </div>
+
+            <div className="p-6">
+              <div className="p-4 rounded-xl bg-slate-900/50 border border-white/5 mb-4">
+                <h4 className="font-bold text-white mb-2">{selectedTier.name}</h4>
+                <p className="text-sm text-slate-400 mb-3">{selectedTier.description}</p>
+                <ul className="space-y-1">
+                  {selectedTier.features.slice(0, 4).map((feature, index) => (
+                    <li key={index} className="flex items-center gap-2 text-sm text-slate-300">
+                      <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="p-4 rounded-xl bg-blue-600/10 border border-blue-500/20">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-300">월 구독료</span>
+                  <span className="text-2xl font-bold text-blue-400">{selectedTier.priceLabel}</span>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">{selectedTier.alertLabel}</p>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-white/5 space-y-3">
+              <button
+                onClick={() => setShowSubscriptionModal(false)}
+                className="w-full py-3 rounded-xl bg-[#FEE500] hover:bg-[#FDD800] text-[#3C1E1E] font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <span className="text-lg">💬</span>
+                카카오페이로 결제
+              </button>
+              <button
+                onClick={() => setShowSubscriptionModal(false)}
+                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors"
+              >
+                카드로 결제
+              </button>
+              <button
+                onClick={() => setShowSubscriptionModal(false)}
                 className="w-full py-2 text-slate-400 hover:text-white transition-colors"
               >
                 취소

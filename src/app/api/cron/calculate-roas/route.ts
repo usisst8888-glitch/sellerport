@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createAligoClient, AlertTemplates } from '@/lib/aligo/alimtalk-api'
 
 // 서비스 롤 키로 Supabase 접근 (RLS 우회)
 function getSupabaseAdmin() {
@@ -105,7 +106,7 @@ export async function GET(request: NextRequest) {
 
         alertCount++
 
-        // 빨간불 알림톡 발송
+        // 빨간불 알림톡 발송 (시스템 알리고 설정 사용)
         if (newLight === 'red') {
           const { data: settings } = await supabase
             .from('alert_settings')
@@ -113,9 +114,35 @@ export async function GET(request: NextRequest) {
             .eq('user_id', campaign.user_id)
             .single()
 
-          if (settings?.red_light_enabled && settings?.kakao_enabled && settings?.kakao_phone) {
-            console.log(`[Alert] Red light for ${campaign.name} - would send to ${settings.kakao_phone}`)
-            // TODO: 실제 알림톡 발송
+          if (settings?.red_light_enabled && settings?.kakao_enabled && settings?.kakao_phone &&
+              process.env.ALIGO_API_KEY && process.env.ALIGO_USER_ID && process.env.ALIGO_SENDER_KEY) {
+            try {
+              const aligoClient = createAligoClient(
+                process.env.ALIGO_API_KEY,
+                process.env.ALIGO_USER_ID,
+                process.env.ALIGO_SENDER_KEY
+              )
+
+              const alimtalkMessage = AlertTemplates.redLight(campaign.name, newRoas)
+
+              const result = await aligoClient.sendAlimtalk({
+                receiver: settings.kakao_phone,
+                templateCode: 'SELLERPORT_RED_LIGHT',
+                message: alimtalkMessage,
+                failover: {
+                  type: 'LMS',
+                  message: alimtalkMessage,
+                },
+              })
+
+              if (result.success) {
+                console.log(`[Alert] Red light sent for ${campaign.name} to ${settings.kakao_phone}, messageId: ${result.messageId}`)
+              } else {
+                console.error(`[Alert] Failed to send red light for ${campaign.name}: ${result.error}`)
+              }
+            } catch (aligoError) {
+              console.error(`[Alert] Aligo error for ${campaign.name}:`, aligoError)
+            }
           }
         }
       }

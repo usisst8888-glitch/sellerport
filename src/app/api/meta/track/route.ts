@@ -2,7 +2,7 @@
  * Meta 전환 추적 API
  * POST /api/meta/track
  *
- * 슬롯의 전환 이벤트를 Meta CAPI로 전송합니다.
+ * 추적 링크의 전환 이벤트를 Meta CAPI로 전송합니다.
  * 주문이 발생했을 때 호출되어 Meta 광고 최적화에 활용됩니다.
  */
 
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const {
       eventType, // 'purchase', 'add_to_cart', 'view_content', 'lead'
-      slotId,
+      trackingLinkId,
       value,
       orderId,
       productId,
@@ -54,15 +54,15 @@ export async function POST(request: NextRequest) {
       settings.meta_test_event_code || undefined
     )
 
-    // 이벤트 소스 URL (슬롯이 있으면 슬롯 URL 사용)
+    // 이벤트 소스 URL (추적 링크가 있으면 추적 링크 URL 사용)
     let eventSourceUrl: string | undefined
-    if (slotId) {
-      const { data: slot } = await supabase
-        .from('slots')
+    if (trackingLinkId) {
+      const { data: trackingLink } = await supabase
+        .from('tracking_links')
         .select('target_url')
-        .eq('id', slotId)
+        .eq('id', trackingLinkId)
         .single()
-      eventSourceUrl = slot?.target_url
+      eventSourceUrl = trackingLink?.target_url
     }
 
     // 이벤트 전송
@@ -82,19 +82,19 @@ export async function POST(request: NextRequest) {
           eventSourceUrl,
         })
 
-        // 슬롯의 전환 수 증가
-        if (slotId) {
-          const { data: currentSlot } = await supabase
-            .from('slots')
+        // 추적 링크의 전환 수 증가
+        if (trackingLinkId) {
+          const { data: currentLink } = await supabase
+            .from('tracking_links')
             .select('conversions')
-            .eq('id', slotId)
+            .eq('id', trackingLinkId)
             .single()
 
-          if (currentSlot) {
+          if (currentLink) {
             await supabase
-              .from('slots')
-              .update({ conversions: (currentSlot.conversions || 0) + 1 })
-              .eq('id', slotId)
+              .from('tracking_links')
+              .update({ conversions: (currentLink.conversions || 0) + 1 })
+              .eq('id', trackingLinkId)
           }
         }
         break

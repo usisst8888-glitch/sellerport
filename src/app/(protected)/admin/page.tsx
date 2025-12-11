@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
 
 interface User {
   id: string
@@ -308,17 +309,17 @@ export default function AdminPage() {
                           </Button>
                         </>
                       )}
-                      <select
+                      <Select
                         value={user.userType}
                         onChange={(e) => handleChangeUserType(user.id, e.target.value)}
                         disabled={processing}
-                        className="px-2 py-1 text-xs bg-slate-700 border border-slate-600 rounded text-white"
+                        className="px-2 py-1 text-xs rounded-lg"
                       >
                         <option value="seller">일반 셀러</option>
                         <option value="agency">대행사</option>
                         <option value="manager">매니저</option>
                         <option value="admin">관리자</option>
-                      </select>
+                      </Select>
                     </div>
                   </td>
                 </tr>

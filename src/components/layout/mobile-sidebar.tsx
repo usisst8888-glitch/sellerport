@@ -90,6 +90,15 @@ const menuItems: MenuItem[] = [
     ),
   },
   {
+    title: '사용 가이드',
+    href: '/guide',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+      </svg>
+    ),
+  },
+  {
     title: '설정',
     href: '/settings',
     icon: (
@@ -196,16 +205,16 @@ export function MobileSidebar() {
             })}
           </nav>
 
-          {/* 이용 현황 */}
+          {/* 현재 플랜 */}
           <div className="flex-shrink-0 px-3 py-4 border-t border-white/5">
             <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-white/5 p-4">
               <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-slate-500">이용중인 슬롯</p>
-                <p className="text-sm font-semibold text-white">0개</p>
+                <p className="text-xs text-slate-500">현재 플랜</p>
+                <p className="text-sm font-semibold text-white">무료</p>
               </div>
               <div className="flex items-center justify-between">
-                <p className="text-xs text-slate-500">알림 잔액</p>
+                <p className="text-xs text-slate-500">알림톡 잔여</p>
                 <p className="text-sm font-semibold text-white">0건</p>
               </div>
               <Link
@@ -213,7 +222,7 @@ export function MobileSidebar() {
                 onClick={() => setOpen(false)}
                 className="mt-3 inline-flex items-center text-xs text-blue-400 hover:text-blue-300 transition-colors group"
               >
-                충전하기
+                플랜 업그레이드
                 <svg className="w-3 h-3 ml-1 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>

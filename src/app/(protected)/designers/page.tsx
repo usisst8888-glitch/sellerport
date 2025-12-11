@@ -1,61 +1,35 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { Select } from '@/components/ui/select'
 
-const mockDesigners = [
-  {
-    id: 1,
-    name: '김디자인',
-    specialty: '상세페이지 전문',
-    rating: 4.9,
-    reviewCount: 127,
-    completedProjects: 342,
-    priceRange: '15만원~',
-    responseTime: '보통 2시간 내 응답',
-    tags: ['상세페이지', '썸네일', '배너'],
-    portfolio: ['건강식품', '뷰티', '패션'],
-    isOnline: true,
-  },
-  {
-    id: 2,
-    name: '이크리에이터',
-    specialty: '썸네일 & 광고 소재',
-    rating: 4.8,
-    reviewCount: 89,
-    completedProjects: 256,
-    priceRange: '8만원~',
-    responseTime: '보통 30분 내 응답',
-    tags: ['썸네일', '광고소재', 'SNS'],
-    portfolio: ['전자기기', '리빙', '식품'],
-    isOnline: true,
-  },
-  {
-    id: 3,
-    name: '박스튜디오',
-    specialty: '브랜딩 & 상세페이지',
-    rating: 4.7,
-    reviewCount: 64,
-    completedProjects: 178,
-    priceRange: '25만원~',
-    responseTime: '보통 4시간 내 응답',
-    tags: ['브랜딩', '상세페이지', '로고'],
-    portfolio: ['프리미엄', '뷰티', '패션'],
-    isOnline: false,
-  },
-  {
-    id: 4,
-    name: '최아트',
-    specialty: '촬영 & 편집 일체',
-    rating: 4.9,
-    reviewCount: 203,
-    completedProjects: 512,
-    priceRange: '30만원~',
-    responseTime: '보통 1시간 내 응답',
-    tags: ['촬영', '편집', '상세페이지'],
-    portfolio: ['식품', '뷰티', '리빙'],
-    isOnline: true,
-  },
-]
+interface Designer {
+  id: string
+  name: string
+  specialty: string
+  bio: string | null
+  profileImageUrl: string | null
+  rating: number
+  reviewCount: number
+  completedProjects: number
+  priceRange: string
+  priceMin: number | null
+  priceMax: number | null
+  responseTime: string
+  isOnline: boolean
+  isVerified: boolean
+  serviceTypes: string[]
+  tags: string[]
+  portfolioCategories: string[]
+  portfolios: {
+    id: string
+    title: string
+    category: string
+    serviceType: string
+    imageUrls: string[]
+    isFeatured: boolean
+  }[]
+}
 
 const serviceTypes = [
   { id: 'detail', label: '상세페이지', icon: '📄' },
@@ -65,10 +39,102 @@ const serviceTypes = [
   { id: 'branding', label: '브랜딩', icon: '✨' },
 ]
 
+const budgetOptions = [
+  '10만원 미만',
+  '10만원 ~ 30만원',
+  '30만원 ~ 50만원',
+  '50만원 이상',
+  '협의',
+]
+
 export default function DesignersPage() {
+  const [designers, setDesigners] = useState<Designer[]>([])
+  const [loading, setLoading] = useState(true)
   const [selectedService, setSelectedService] = useState<string | null>(null)
   const [showRequestModal, setShowRequestModal] = useState(false)
-  const [selectedDesigner, setSelectedDesigner] = useState<typeof mockDesigners[0] | null>(null)
+  const [selectedDesigner, setSelectedDesigner] = useState<Designer | null>(null)
+  const [sending, setSending] = useState(false)
+
+  // 의뢰 폼 상태
+  const [requestForm, setRequestForm] = useState({
+    serviceType: 'detail',
+    productName: '',
+    productUrl: '',
+    requirements: '',
+    budgetRange: '협의',
+  })
+
+  const fetchDesigners = useCallback(async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams()
+      if (selectedService) {
+        params.append('service_type', selectedService)
+      }
+
+      const res = await fetch(`/api/designers?${params.toString()}`)
+      const data = await res.json()
+
+      if (data.success) {
+        setDesigners(data.data)
+      }
+    } catch (error) {
+      console.error('디자이너 목록 조회 에러:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [selectedService])
+
+  useEffect(() => {
+    fetchDesigners()
+  }, [fetchDesigners])
+
+  const handleOpenRequestModal = (designer: Designer) => {
+    setSelectedDesigner(designer)
+    setRequestForm({
+      serviceType: designer.serviceTypes[0] || 'detail',
+      productName: '',
+      productUrl: '',
+      requirements: '',
+      budgetRange: '협의',
+    })
+    setShowRequestModal(true)
+  }
+
+  const handleSendRequest = async () => {
+    if (!selectedDesigner) return
+
+    setSending(true)
+    try {
+      const res = await fetch('/api/design-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          designerId: selectedDesigner.id,
+          serviceType: requestForm.serviceType,
+          productName: requestForm.productName,
+          productUrl: requestForm.productUrl,
+          requirements: requestForm.requirements,
+          budgetRange: requestForm.budgetRange,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (data.success) {
+        alert('문의가 성공적으로 전송되었습니다!')
+        setShowRequestModal(false)
+        setSelectedDesigner(null)
+      } else {
+        alert(data.error || '문의 전송에 실패했습니다')
+      }
+    } catch (error) {
+      console.error('문의 전송 에러:', error)
+      alert('문의 전송에 실패했습니다')
+    } finally {
+      setSending(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -122,73 +188,94 @@ export default function DesignersPage() {
         </div>
       </div>
 
-      {/* 디자이너 목록 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {mockDesigners.map((designer) => (
-          <div
-            key={designer.id}
-            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-white/5 p-5 hover:border-white/10 transition-all duration-300"
-          >
-            <div className="flex items-start gap-4">
-              {/* 프로필 */}
-              <div className="relative">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
-                  {designer.name.charAt(0)}
-                </div>
-                {designer.isOnline && (
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-slate-800" />
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-base font-medium text-white">{designer.name}</h3>
+      {/* 로딩 상태 */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>
+      ) : designers.length === 0 ? (
+        <div className="text-center py-20">
+          <div className="text-5xl mb-4">🎨</div>
+          <p className="text-slate-400">등록된 디자이너가 없습니다</p>
+          <p className="text-sm text-slate-500 mt-2">곧 검증된 디자이너들이 등록될 예정입니다</p>
+        </div>
+      ) : (
+        /* 디자이너 목록 */
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {designers.map((designer) => (
+            <div
+              key={designer.id}
+              className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-white/5 p-5 hover:border-white/10 transition-all duration-300"
+            >
+              <div className="flex items-start gap-4">
+                {/* 프로필 */}
+                <div className="relative">
+                  {designer.profileImageUrl ? (
+                    <img
+                      src={designer.profileImageUrl}
+                      alt={designer.name}
+                      className="w-14 h-14 rounded-xl object-cover"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+                      {designer.name.charAt(0)}
+                    </div>
+                  )}
                   {designer.isOnline && (
-                    <span className="text-xs text-emerald-400">온라인</span>
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-slate-800" />
                   )}
                 </div>
-                <p className="text-sm text-slate-400 mb-2">{designer.specialty}</p>
 
-                {/* 평점 및 통계 */}
-                <div className="flex items-center gap-4 text-sm mb-3">
-                  <div className="flex items-center gap-1">
-                    <span className="text-amber-400">★</span>
-                    <span className="text-white font-medium">{designer.rating}</span>
-                    <span className="text-slate-500">({designer.reviewCount})</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-base font-medium text-white">{designer.name}</h3>
+                    {designer.isVerified && (
+                      <span className="px-1.5 py-0.5 text-xs bg-blue-500/20 text-blue-400 rounded">인증</span>
+                    )}
+                    {designer.isOnline && (
+                      <span className="text-xs text-emerald-400">온라인</span>
+                    )}
                   </div>
-                  <span className="text-slate-500">작업 {designer.completedProjects}건</span>
-                </div>
+                  <p className="text-sm text-slate-400 mb-2">{designer.specialty}</p>
 
-                {/* 태그 */}
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {designer.tags.map((tag) => (
-                    <span key={tag} className="px-2 py-0.5 text-xs bg-slate-700/50 text-slate-400 rounded">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-
-                {/* 가격 및 응답 시간 */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-sm text-blue-400 font-medium">{designer.priceRange}</span>
-                    <span className="text-xs text-slate-500 ml-2">{designer.responseTime}</span>
+                  {/* 평점 및 통계 */}
+                  <div className="flex items-center gap-4 text-sm mb-3">
+                    <div className="flex items-center gap-1">
+                      <span className="text-amber-400">★</span>
+                      <span className="text-white font-medium">{designer.rating.toFixed(1)}</span>
+                      <span className="text-slate-500">({designer.reviewCount})</span>
+                    </div>
+                    <span className="text-slate-500">작업 {designer.completedProjects}건</span>
                   </div>
-                  <button
-                    onClick={() => {
-                      setSelectedDesigner(designer)
-                      setShowRequestModal(true)
-                    }}
-                    className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
-                  >
-                    문의하기
-                  </button>
+
+                  {/* 태그 */}
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {designer.tags.slice(0, 4).map((tag) => (
+                      <span key={tag} className="px-2 py-0.5 text-xs bg-slate-700/50 text-slate-400 rounded">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* 가격 및 응답 시간 */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm text-blue-400 font-medium">{designer.priceRange}</span>
+                      <span className="text-xs text-slate-500 ml-2">{designer.responseTime}</span>
+                    </div>
+                    <button
+                      onClick={() => handleOpenRequestModal(designer)}
+                      className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
+                    >
+                      문의하기
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* 문의 모달 */}
       {showRequestModal && selectedDesigner && (
@@ -202,20 +289,35 @@ export default function DesignersPage() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">서비스 유형</label>
-                <select className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white focus:border-blue-500 focus:outline-none transition-colors">
-                  <option>상세페이지 제작</option>
-                  <option>썸네일 제작</option>
-                  <option>배너 제작</option>
-                  <option>촬영 의뢰</option>
-                  <option>기타</option>
-                </select>
+                <Select
+                  value={requestForm.serviceType}
+                  onChange={(e) => setRequestForm(prev => ({ ...prev, serviceType: e.target.value }))}
+                >
+                  {serviceTypes.map((s) => (
+                    <option key={s.id} value={s.id}>{s.icon} {s.label}</option>
+                  ))}
+                  <option value="other">기타</option>
+                </Select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">상품명 또는 링크</label>
                 <input
                   type="text"
+                  value={requestForm.productName}
+                  onChange={(e) => setRequestForm(prev => ({ ...prev, productName: e.target.value }))}
                   placeholder="예: 프리미엄 유기농 단백질 쉐이크"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">상품 URL (선택)</label>
+                <input
+                  type="text"
+                  value={requestForm.productUrl}
+                  onChange={(e) => setRequestForm(prev => ({ ...prev, productUrl: e.target.value }))}
+                  placeholder="https://smartstore.naver.com/..."
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
                 />
               </div>
@@ -224,6 +326,8 @@ export default function DesignersPage() {
                 <label className="block text-sm font-medium text-slate-300 mb-2">요청 사항</label>
                 <textarea
                   rows={4}
+                  value={requestForm.requirements}
+                  onChange={(e) => setRequestForm(prev => ({ ...prev, requirements: e.target.value }))}
                   placeholder="원하시는 스타일, 참고 이미지, 일정 등을 자유롭게 작성해주세요"
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors resize-none"
                 />
@@ -231,13 +335,14 @@ export default function DesignersPage() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">예산</label>
-                <select className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white focus:border-blue-500 focus:outline-none transition-colors">
-                  <option>10만원 미만</option>
-                  <option>10만원 ~ 30만원</option>
-                  <option>30만원 ~ 50만원</option>
-                  <option>50만원 이상</option>
-                  <option>협의</option>
-                </select>
+                <Select
+                  value={requestForm.budgetRange}
+                  onChange={(e) => setRequestForm(prev => ({ ...prev, budgetRange: e.target.value }))}
+                >
+                  {budgetOptions.map((b) => (
+                    <option key={b} value={b}>{b}</option>
+                  ))}
+                </Select>
               </div>
             </div>
 
@@ -249,10 +354,11 @@ export default function DesignersPage() {
                 취소
               </button>
               <button
-                onClick={() => setShowRequestModal(false)}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors"
+                onClick={handleSendRequest}
+                disabled={sending || !requestForm.productName}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                문의 보내기
+                {sending ? '전송 중...' : '문의 보내기'}
               </button>
             </div>
           </div>

@@ -47,6 +47,13 @@ const MakeshopLogo = ({ className }: { className?: string }) => (
   </svg>
 )
 
+const CustomSiteLogo = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 100 100" fill="none">
+    <rect width="100" height="100" rx="16" fill="#10B981"/>
+    <path d="M30 35h40M30 50h40M30 65h25" stroke="white" strokeWidth="6" strokeLinecap="round"/>
+  </svg>
+)
+
 // 카운터 애니메이션 훅
 function useCountUp(end: number, duration: number = 2000) {
   const [count, setCount] = useState(0)
@@ -159,7 +166,7 @@ export default function Home() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400"></span>
               </span>
-              원스탑 셀러 수익 관리 플랫폼
+              모든 온라인 비즈니스를 위한 광고 성과 분석 플랫폼
             </div>
 
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6 animate-fade-in-up">
@@ -406,10 +413,10 @@ export default function Home() {
             <div className="text-center mb-16">
               <p className="text-blue-400 font-semibold mb-3 text-sm uppercase tracking-widest">Features</p>
               <h3 className="text-3xl sm:text-4xl font-bold mb-4">
-                셀러를 위한 <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">올인원 솔루션</span>
+                모든 온라인 비즈니스를 위한 <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">올인원 솔루션</span>
               </h3>
               <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-                광고 전환 추적부터 순수익 계산까지, 셀러포트 하나로 해결하세요
+                쇼핑몰부터 서비스 사이트까지, 광고 전환 추적과 수익 계산을 셀러포트 하나로 해결하세요
               </p>
             </div>
 
@@ -510,8 +517,8 @@ export default function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="text-lg font-bold text-white">UTM 링크 생성</h4>
-                    <p className="text-slate-400 text-sm">인플루언서별 추적 링크 발급 및 성과 분석</p>
+                    <h4 className="text-lg font-bold text-white">추적 링크 생성</h4>
+                    <p className="text-slate-400 text-sm">광고 캠페인별 추적 링크 발급 및 성과 분석</p>
                   </div>
                 </div>
               </div>
@@ -546,7 +553,7 @@ export default function Home() {
 
             <div className="grid md:grid-cols-4 gap-4">
               {[
-                { step: '1', title: '스토어 연동', desc: '스마트스토어, 쿠팡 등 연결', color: 'blue' },
+                { step: '1', title: '사이트 연동', desc: '쇼핑몰, 서비스, 자체 사이트 등', color: 'blue' },
                 { step: '2', title: '광고 연동', desc: '메타, 구글, 네이버 광고 연결', color: 'violet' },
                 { step: '3', title: '신호등 확인', desc: '🟢🟡🔴 광고 효율 실시간 확인', color: 'emerald' },
                 { step: '4', title: '순수익 확인', desc: '마진, 세금까지 자동 계산', color: 'pink' },
@@ -578,7 +585,7 @@ export default function Home() {
             <div className="text-center mb-16">
               <p className="text-blue-400 font-semibold mb-3 text-sm uppercase tracking-widest">Success Stories</p>
               <h3 className="text-3xl sm:text-4xl font-bold mb-4">
-                셀러포트와 함께 <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">성장한 셀러들</span>
+                셀러포트와 함께 <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">성장한 고객들</span>
               </h3>
             </div>
 
@@ -644,8 +651,8 @@ export default function Home() {
                     박
                   </div>
                   <div>
-                    <p className="font-semibold text-white">박OO 셀러</p>
-                    <p className="text-sm text-slate-400">생활용품 · 카페24</p>
+                    <p className="font-semibold text-white">박OO 대표</p>
+                    <p className="text-sm text-slate-400">온라인 교육 · 자체 제작 사이트</p>
                   </div>
                 </div>
                 <div className="mb-4 p-4 rounded-xl bg-slate-900/50 border border-slate-700/30">
@@ -654,13 +661,13 @@ export default function Home() {
                     <span className="text-amber-400 font-bold">+45%</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-400 text-sm">썸네일 제작비 절감</span>
-                    <span className="text-cyan-400 font-bold">-60%</span>
+                    <span className="text-slate-400 text-sm">광고비 절감</span>
+                    <span className="text-cyan-400 font-bold">-35%</span>
                   </div>
                 </div>
                 <p className="text-slate-300 text-sm leading-relaxed">
-                  "디자이너 연결 기능으로 퀄리티 좋은 썸네일을 저렴하게 만들었어요.
-                  UTM 링크로 어디서 유입됐는지도 바로 파악되니까 광고비 아끼기 좋아요!"
+                  "자체 사이트에 추적 코드만 설치하면 되니까 정말 간편해요.
+                  어떤 광고가 실제 결제로 이어지는지 바로 파악되니 광고비 낭비가 확 줄었어요!"
                 </p>
               </div>
             </div>
@@ -689,8 +696,148 @@ export default function Home() {
           </div>
         </section>
 
+        {/* 요금 안내 */}
+        <section id="pricing" className="py-24 bg-slate-800 relative">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <p className="text-blue-400 font-semibold mb-3 text-sm uppercase tracking-widest">Pricing</p>
+              <h3 className="text-3xl sm:text-4xl font-bold mb-4">
+                합리적인 <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">요금제</span>
+              </h3>
+              <p className="text-slate-400 text-lg">비즈니스 규모에 맞는 플랜을 선택하세요</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* 무료 */}
+              <div className="rounded-2xl p-6 bg-slate-800/50 border border-white/10 hover:border-white/20 transition-all duration-300">
+                <div className="mb-4">
+                  <h4 className="text-lg font-bold text-white">무료</h4>
+                  <p className="text-xs text-slate-400 mt-1">셀러포트를 처음 사용하는 분께</p>
+                </div>
+                <div className="mb-4">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-white">0원</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">알림톡 미포함</p>
+                </div>
+                <ul className="space-y-2 mb-6">
+                  {['추적 링크 5개', '기본 전환 추적', '마진 계산기', '세금 계산기', '디자이너 연결'].map((feature, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm">
+                      <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-slate-300">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/signup">
+                  <Button className="w-full bg-slate-700 hover:bg-slate-600 text-white">
+                    무료로 시작하기
+                  </Button>
+                </Link>
+              </div>
+
+              {/* 베이직 - 인기 */}
+              <div className="relative rounded-2xl p-6 bg-gradient-to-b from-blue-600/20 to-slate-800/50 border-2 border-blue-500/50 shadow-lg shadow-blue-500/10">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-blue-500 text-white text-xs font-bold">
+                  인기
+                </div>
+                <div className="mb-4">
+                  <h4 className="text-lg font-bold text-white">베이직</h4>
+                  <p className="text-xs text-slate-400 mt-1">본격적으로 광고 효율을 관리하는 셀러</p>
+                </div>
+                <div className="mb-4">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-white">55,000원</span>
+                    <span className="text-slate-400 text-sm">/월</span>
+                  </div>
+                  <p className="text-xs text-emerald-400 mt-1">알림톡 300건 포함</p>
+                </div>
+                <ul className="space-y-2 mb-6">
+                  {['무제한 추적 링크', '모든 채널 전환 추적', '🟢🟡🔴 신호등 시스템', '마진/세금 자동 계산', 'AI 최적화 추천', '디자이너 연결'].map((feature, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm">
+                      <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-slate-300">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/signup">
+                  <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white">
+                    베이직 시작하기
+                  </Button>
+                </Link>
+              </div>
+
+              {/* 프로 */}
+              <div className="rounded-2xl p-6 bg-slate-800/50 border border-white/10 hover:border-white/20 transition-all duration-300">
+                <div className="mb-4">
+                  <h4 className="text-lg font-bold text-white">프로</h4>
+                  <p className="text-xs text-slate-400 mt-1">대규모 광고 운영 및 인플루언서 협업</p>
+                </div>
+                <div className="mb-4">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-white">110,000원</span>
+                    <span className="text-slate-400 text-sm">/월</span>
+                  </div>
+                  <p className="text-xs text-emerald-400 mt-1">알림톡 1,000건 포함</p>
+                </div>
+                <ul className="space-y-2 mb-6">
+                  {['베이직의 모든 기능', '인플루언서 자동 매칭', '채널 URL 전체 공개', '우선 고객 지원', '상세 리포트'].map((feature, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm">
+                      <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-slate-300">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/signup">
+                  <Button className="w-full bg-slate-700 hover:bg-slate-600 text-white">
+                    프로 시작하기
+                  </Button>
+                </Link>
+              </div>
+
+              {/* 엔터프라이즈 */}
+              <div className="rounded-2xl p-6 bg-gradient-to-b from-violet-600/10 to-slate-800/50 border border-violet-500/30 hover:border-violet-500/50 transition-all duration-300">
+                <div className="mb-4">
+                  <h4 className="text-lg font-bold text-white">엔터프라이즈</h4>
+                  <p className="text-xs text-slate-400 mt-1">대기업/에이전시를 위한 맞춤 솔루션</p>
+                </div>
+                <div className="mb-4">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-white">별도 협의</span>
+                  </div>
+                  <p className="text-xs text-violet-400 mt-1">알림톡 협의</p>
+                </div>
+                <ul className="space-y-2 mb-6">
+                  {['프로의 모든 기능', 'API 제공', '전담 매니저', '맞춤 리포트', '온보딩 지원', 'SLA 보장'].map((feature, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm">
+                      <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-slate-300">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link href="mailto:contact@sellerport.app?subject=엔터프라이즈 문의">
+                  <Button className="w-full bg-violet-600 hover:bg-violet-500 text-white">
+                    문의하기
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            <p className="text-center text-slate-500 text-sm mt-8">
+              * 알림톡 초과 시 15원/건으로 추가 충전 가능 · VAT 별도
+            </p>
+          </div>
+        </section>
+
         {/* 지원 플랫폼 */}
-        <section className="py-20 bg-slate-800 relative overflow-hidden">
+        <section className="py-20 bg-slate-900/80 relative overflow-hidden">
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <p className="text-center text-slate-400 mb-12 font-medium uppercase tracking-widest text-sm">연동 지원 플랫폼</p>
             <div className="flex flex-wrap justify-center items-center gap-6 sm:gap-10">
@@ -701,6 +848,7 @@ export default function Home() {
                 { Logo: ImwebLogo, name: '아임웹' },
                 { Logo: GodoLogo, name: '고도몰' },
                 { Logo: MakeshopLogo, name: '메이크샵' },
+                { Logo: CustomSiteLogo, name: '자체 제작 사이트' },
               ].map(({ Logo, name }) => (
                 <div key={name} className="flex flex-col items-center gap-3 group">
                   <div className="w-16 h-16 rounded-2xl bg-slate-700/80 border border-slate-600 flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:border-blue-500/50 overflow-hidden backdrop-blur-sm">
@@ -710,6 +858,9 @@ export default function Home() {
                 </div>
               ))}
             </div>
+            <p className="text-center text-slate-500 text-sm mt-8">
+              워드프레스, Wix, Shopify 등 모든 웹사이트에 추적 코드 설치 지원
+            </p>
           </div>
         </section>
 
@@ -720,7 +871,7 @@ export default function Home() {
               지금 바로 시작하세요
             </h3>
             <p className="text-lg text-slate-400 mb-4">
-              첫 번째 광고 채널은 <span className="text-blue-400 font-semibold">무료</span>로 이용하세요
+              쇼핑몰, 서비스 사이트, 자체 제작 사이트 모두 <span className="text-blue-400 font-semibold">무료</span>로 시작하세요
             </p>
             <p className="text-slate-500 mb-10">
               광고 전환 추적 · 마진 계산 · 세금 계산 · 카톡 알림 · 신호등 시스템 모두 무료!
@@ -745,7 +896,7 @@ export default function Home() {
                   <h5 className="text-xl font-bold">셀러포트</h5>
                 </div>
                 <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
-                  원스탑 셀러 수익 관리 플랫폼.
+                  모든 온라인 비즈니스를 위한 광고 성과 분석 플랫폼.
                   광고 전환 추적부터 마진·세금 계산, 디자이너 연결까지.
                 </p>
               </div>
@@ -753,7 +904,7 @@ export default function Home() {
                 <h6 className="font-semibold mb-4 text-slate-200">서비스</h6>
                 <ul className="space-y-3 text-sm text-slate-400">
                   <li><Link href="#features" className="hover:text-white transition-colors duration-300">기능 소개</Link></li>
-                  <li><Link href="#" className="hover:text-white transition-colors duration-300">요금 안내</Link></li>
+                  <li><Link href="#pricing" className="hover:text-white transition-colors duration-300">요금 안내</Link></li>
                   <li><Link href="#" className="hover:text-white transition-colors duration-300">고객 사례</Link></li>
                 </ul>
               </div>
@@ -771,7 +922,7 @@ export default function Home() {
                 어시스트 솔루션 (602-27-04681)
               </p>
               <p className="text-sm text-slate-500">
-                © 2024 SellerPort. All rights reserved.
+                © 2025 SellerPort. All rights reserved.
               </p>
             </div>
           </div>
