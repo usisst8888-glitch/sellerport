@@ -33,7 +33,7 @@ interface Product {
   margin?: number | null
 }
 
-// 캠페인별 ROAS로 효율 상태 계산
+// 추적 링크별 ROAS로 효율 상태 계산
 function getCampaignStatus(roas: number): TrafficLight {
   if (roas >= 300) return 'green'
   if (roas >= 150) return 'yellow'
@@ -96,7 +96,7 @@ export default function ProductsPage() {
   const [costForm, setCostForm] = useState({ cost: 0 })
   const [savingCost, setSavingCost] = useState(false)
 
-  // 캠페인 폼 상태
+  // 추적 링크 폼 상태
   const [campaignForm, setCampaignForm] = useState({
     name: '',
     platform: '네이버',
@@ -113,7 +113,7 @@ export default function ProductsPage() {
       const res = await fetch('/api/products')
       const data = await res.json()
       if (data.success) {
-        // 각 상품의 캠페인 조회
+        // 각 상품의 추적 링크 조회
         const productsWithCampaigns = await Promise.all(
           data.data.map(async (product: Product) => {
             const campaignsRes = await fetch(`/api/campaigns?productId=${product.id}`)
@@ -144,7 +144,7 @@ export default function ProductsPage() {
         fetchProducts() // 새로고침
       }
     } catch (error) {
-      console.error('캠페인 상태 변경 에러:', error)
+      console.error('추적 링크 상태 변경 에러:', error)
     }
   }
 
@@ -169,7 +169,7 @@ export default function ProductsPage() {
         fetchProducts()
       }
     } catch (error) {
-      console.error('캠페인 생성 에러:', error)
+      console.error('추적 링크 생성 에러:', error)
     }
   }
 
@@ -312,7 +312,7 @@ export default function ProductsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="text-sm font-medium text-white truncate">{product.name}</h3>
-                      {/* 캠페인별 신호등 요약 */}
+                      {/* 추적 링크별 신호등 요약 */}
                       <div className="flex items-center gap-1">
                         {greenAds > 0 && (
                           <span className="flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded bg-emerald-500/20 text-emerald-400">
@@ -351,7 +351,7 @@ export default function ProductsPage() {
                       )}
                     </p>
 
-                    {/* 광고 캠페인 목록 */}
+                    {/* 추적 링크 목록 */}
                     <div className="space-y-2">
                       {campaigns.map((campaign) => {
                         const adStyle = getAdStatusStyle(campaign.status)
@@ -359,7 +359,7 @@ export default function ProductsPage() {
                         const campaignBadge = getStatusBadge(campaignStatus)
                         return (
                           <div key={campaign.id} className="flex items-center gap-3 p-2 rounded-lg bg-slate-900/50">
-                            {/* 캠페인별 신호등 */}
+                            {/* 추적 링크별 신호등 */}
                             <div className={`w-3 h-3 rounded-full flex-shrink-0 ${getStatusColor(campaignStatus)}`} />
                             <span className="text-lg">{getPlatformIcon(campaign.platform)}</span>
                             <div className="flex-1 min-w-0">
@@ -434,7 +434,7 @@ export default function ProductsPage() {
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
-                        새 광고 캠페인 추가
+                        새 추적 링크 추가
                       </button>
                     </div>
                   </div>
@@ -443,7 +443,7 @@ export default function ProductsPage() {
                   <div className="hidden md:flex items-center gap-6 text-right">
                     <div>
                       <p className="text-sm text-white">{runningAds}/{campaigns.length}</p>
-                      <p className="text-xs text-slate-500">캠페인 운영</p>
+                      <p className="text-xs text-slate-500">추적 링크</p>
                     </div>
                     <div>
                       <p className="text-sm text-white">{product.price?.toLocaleString()}원</p>
@@ -492,7 +492,7 @@ export default function ProductsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-lg rounded-2xl bg-slate-800 border border-white/10 shadow-2xl">
             <div className="p-6 border-b border-white/5">
-              <h3 className="text-lg font-semibold text-white">새 광고 캠페인 생성</h3>
+              <h3 className="text-lg font-semibold text-white">새 추적 링크 생성</h3>
               <p className="text-sm text-slate-400 mt-1">{selectedProduct.name}</p>
             </div>
 
@@ -518,7 +518,7 @@ export default function ProductsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">캠페인명</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">추적 링크명</label>
                 <input
                   type="text"
                   value={campaignForm.name}

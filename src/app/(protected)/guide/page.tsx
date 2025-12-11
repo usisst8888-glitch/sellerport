@@ -79,7 +79,7 @@ export default function GuidePage() {
             📖 셀러포트 사용 가이드
           </h1>
           <p className="text-slate-400">
-            광고 캠페인 추적부터 수익 계산까지, 셀러포트 사용법을 알아보세요.
+            광고 전환 추적부터 수익 계산까지, 셀러포트 사용법을 알아보세요.
           </p>
         </div>
 
@@ -121,7 +121,7 @@ function OverviewContent() {
       <section>
         <h2 className="text-xl font-bold text-white mb-4">셀러포트란?</h2>
         <p className="text-slate-300 leading-relaxed">
-          셀러포트는 <span className="text-blue-400 font-semibold">이커머스 셀러</span>를 위한 올인원 광고 성과 관리 플랫폼입니다.
+          셀러포트는 <span className="text-blue-400 font-semibold">온라인 광고주</span>를 위한 올인원 광고 성과 관리 플랫폼입니다.
           인스타그램, 유튜브, 블로그 등 다양한 채널의 광고 효과를 실시간으로 추적하고,
           수익을 자동으로 계산해 드립니다.
         </p>
@@ -133,7 +133,7 @@ function OverviewContent() {
           <FeatureCard
             icon="🔗"
             title="추적 링크 생성"
-            description="광고 캠페인별로 고유한 추적 링크를 발급받아 클릭과 전환을 추적하세요."
+            description="광고 채널별로 고유한 추적 링크를 발급받아 클릭과 전환을 추적하세요."
           />
           <FeatureCard
             icon="🚦"
@@ -163,8 +163,8 @@ function OverviewContent() {
           />
           <StepCard
             step={2}
-            title="캠페인 생성"
-            description="전환 추적 메뉴에서 새 캠페인을 만들고 광고 채널과 상품을 연결하세요."
+            title="추적 링크 생성"
+            description="전환 추적 메뉴에서 새 추적 링크를 만들고 광고 채널과 상품을 연결하세요."
           />
           <StepCard
             step={3}
@@ -188,7 +188,7 @@ function TrackingContent() {
       <section>
         <h2 className="text-xl font-bold text-white mb-4">추적 링크란?</h2>
         <p className="text-slate-300 leading-relaxed mb-4">
-          추적 링크는 광고 캠페인별로 발급되는 <span className="text-blue-400 font-semibold">고유한 URL</span>입니다.
+          추적 링크는 광고 채널별로 발급되는 <span className="text-blue-400 font-semibold">고유한 URL</span>입니다.
           이 링크를 통해 방문자가 들어오면 어떤 광고에서 왔는지 자동으로 기록됩니다.
         </p>
 
@@ -210,13 +210,13 @@ function TrackingContent() {
           />
           <StepCard
             step={2}
-            title="새 캠페인 만들기"
-            description="'새 캠페인' 버튼을 클릭하고 캠페인 이름, 광고 채널(인스타그램/유튜브/블로그 등), 연결할 상품을 선택하세요."
+            title="새 추적 링크 만들기"
+            description="'새 추적 링크' 버튼을 클릭하고 이름, 광고 채널(인스타그램/유튜브/블로그 등), 연결할 상품을 선택하세요."
           />
           <StepCard
             step={3}
             title="링크 복사"
-            description="캠페인이 생성되면 자동으로 추적 링크가 발급됩니다. 복사 버튼을 눌러 링크를 가져가세요."
+            description="추적 링크가 생성되면 복사 버튼을 눌러 링크를 가져가세요."
           />
         </div>
       </section>
@@ -292,7 +292,7 @@ function TrackingContent() {
               <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm shrink-0">✓</span>
               <div>
                 <span className="text-white font-medium">매출액</span>
-                <span className="text-slate-400 ml-2">해당 캠페인을 통한 총 매출</span>
+                <span className="text-slate-400 ml-2">해당 추적 링크를 통한 총 매출</span>
               </div>
             </li>
             <li className="flex items-start gap-3">
@@ -315,7 +315,7 @@ function DashboardContent() {
       <section>
         <h2 className="text-xl font-bold text-white mb-4">대시보드 이해하기</h2>
         <p className="text-slate-300 leading-relaxed">
-          대시보드는 모든 캠페인의 성과를 한눈에 보여주는 <span className="text-blue-400 font-semibold">핵심 화면</span>입니다.
+          대시보드는 모든 추적 링크의 성과를 한눈에 보여주는 <span className="text-blue-400 font-semibold">핵심 화면</span>입니다.
           실시간으로 업데이트되며, 광고 효율을 직관적으로 파악할 수 있습니다.
         </p>
       </section>
@@ -323,14 +323,14 @@ function DashboardContent() {
       <section>
         <h2 className="text-xl font-bold text-white mb-4">🚦 신호등 시스템</h2>
         <p className="text-slate-300 mb-4">
-          ROAS(광고비 대비 매출)를 기준으로 캠페인 상태를 색상으로 표시합니다.
+          ROAS(광고비 대비 매출)를 기준으로 추적 링크 상태를 색상으로 표시합니다.
         </p>
         <div className="space-y-3">
           <div className="flex items-center gap-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
             <span className="text-3xl">🟢</span>
             <div>
               <p className="text-emerald-400 font-semibold">초록불 (ROAS 300% 이상)</p>
-              <p className="text-slate-400 text-sm">광고 효율 우수! 이 캠페인은 잘 되고 있어요.</p>
+              <p className="text-slate-400 text-sm">광고 효율 우수! 이 추적 링크는 잘 되고 있어요.</p>
             </div>
           </div>
           <div className="flex items-center gap-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
@@ -479,12 +479,12 @@ function AlertsContent() {
           <AlertTypeCard
             emoji="🔴"
             title="빨간불 전환 알림"
-            description="캠페인이 초록불/노란불에서 빨간불로 바뀌면 알림"
+            description="추적 링크가 초록불/노란불에서 빨간불로 바뀌면 알림"
           />
           <AlertTypeCard
             emoji="🟢"
             title="초록불 전환 알림"
-            description="캠페인이 빨간불/노란불에서 초록불로 개선되면 알림"
+            description="추적 링크가 빨간불/노란불에서 초록불로 개선되면 알림"
           />
           <AlertTypeCard
             emoji="📉"
@@ -549,8 +549,8 @@ function FAQContent() {
       answer: 'ROAS는 (추적 링크를 통한 매출 ÷ 입력한 광고비) × 100으로 계산됩니다. 광고비를 정확히 입력하면 정확한 ROAS를 확인할 수 있습니다.',
     },
     {
-      question: '여러 상품을 하나의 캠페인으로 추적할 수 있나요?',
-      answer: '현재는 1캠페인 = 1상품 구조입니다. 여러 상품을 묶어서 추적하려면 각각 캠페인을 생성해 주세요.',
+      question: '여러 상품을 하나의 추적 링크로 추적할 수 있나요?',
+      answer: '현재는 1추적 링크 = 1상품 구조입니다. 여러 상품을 묶어서 추적하려면 각각 추적 링크를 생성해 주세요.',
     },
     {
       question: '알림톡이 오지 않아요',

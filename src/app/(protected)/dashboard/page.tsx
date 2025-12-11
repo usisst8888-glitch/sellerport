@@ -252,13 +252,13 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 캠페인별 신호등 현황 */}
+      {/* 추적 링크별 신호등 현황 */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-white/5">
         <div className="p-6 border-b border-white/5">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-white">캠페인별 광고 효율</h2>
-              <p className="text-sm text-slate-400 mt-0.5">빨간불 캠페인은 즉시 점검이 필요합니다</p>
+              <h2 className="text-lg font-semibold text-white">추적 링크별 광고 효율</h2>
+              <p className="text-sm text-slate-400 mt-0.5">빨간불 추적 링크는 즉시 점검이 필요합니다</p>
             </div>
             <Link href="/conversions" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
               전체 보기
@@ -308,10 +308,10 @@ export default function DashboardPage() {
               <div className="w-16 h-16 rounded-2xl bg-slate-700/30 flex items-center justify-center mb-4">
                 <span className="text-3xl">🚦</span>
               </div>
-              <p className="text-slate-400 mb-2">아직 등록된 캠페인이 없습니다</p>
+              <p className="text-slate-400 mb-2">아직 등록된 추적 링크가 없습니다</p>
               <p className="text-sm text-slate-500 mb-4">추적 링크를 생성하여 광고 효율을 측정하세요</p>
               <Link href="/conversions" className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors">
-                캠페인 만들기
+                추적 링크 만들기
               </Link>
             </div>
           )}

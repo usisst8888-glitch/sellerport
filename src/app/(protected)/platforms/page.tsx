@@ -271,7 +271,7 @@ export default function PlatformsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white">플랫폼 연동</h1>
-          <p className="text-slate-400 mt-1">이커머스 플랫폼을 연동하여 상품과 주문을 관리하세요</p>
+          <p className="text-slate-400 mt-1">판매 플랫폼을 연동하여 상품과 주문을 관리하세요</p>
         </div>
       </div>
 
@@ -508,7 +508,7 @@ export default function PlatformsPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs shrink-0 mt-0.5">4</span>
-                    <span>전환 추적 페이지에서 캠페인을 만들고 추적 링크를 발급받으세요.</span>
+                    <span>전환 추적 페이지에서 추적 링크를 만들고 발급받으세요.</span>
                   </li>
                 </ol>
               </div>
@@ -565,10 +565,10 @@ window.sellerport?.track('conversion', {
           </svg>
           <div>
             <p className="text-sm text-blue-300">
-              <strong>무료 플랜:</strong> 추적 링크 5개까지 무료
+              <strong>무료 플랜:</strong> 추적 링크 3개까지 무료
             </p>
             <p className="text-xs text-blue-400/80 mt-1">
-              더 많은 캠페인이 필요하시면 플랜을 업그레이드하세요
+              더 많은 추적 링크가 필요하시면 플랜을 업그레이드하세요
             </p>
           </div>
         </div>

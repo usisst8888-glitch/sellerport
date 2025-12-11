@@ -465,7 +465,7 @@ export default function ProfitPage() {
       const platformFeeRate = PLATFORM_FEES[product.platform_type] || PLATFORM_FEES.etc
       const platformFee = Math.round(product.price * (platformFeeRate / 100))
       const shippingCost = 3000 // 기본 배송비 가정
-      const adSpend = 0 // 광고비는 캠페인에서 계산
+      const adSpend = 0 // 광고비는 추적 링크에서 계산
 
       const totalCost = product.cost + platformFee + shippingCost + adSpend
       const margin = product.price - totalCost
@@ -681,7 +681,7 @@ export default function ProfitPage() {
             <div className="bg-slate-800/50 rounded-xl p-4 text-center">
               <p className="text-2xl mb-1">📢</p>
               <p className="text-xs text-slate-500">광고비</p>
-              <p className="text-sm text-slate-300">캠페인 광고비</p>
+              <p className="text-sm text-slate-300">추적 링크 광고비</p>
             </div>
             <div className="bg-slate-800/50 rounded-xl p-4 text-center">
               <p className="text-2xl mb-1">📊</p>

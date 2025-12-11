@@ -265,7 +265,7 @@ export default function ConversionsPage() {
 
   const handleCreateTrackingLink = async () => {
     if (!formData.utmCampaign || !formData.targetUrl) {
-      setMessage({ type: 'error', text: '캠페인 이름과 목적지 URL을 입력해주세요' })
+      setMessage({ type: 'error', text: '추적 링크 이름과 목적지 URL을 입력해주세요' })
       return
     }
 
@@ -416,7 +416,7 @@ export default function ConversionsPage() {
               <p className="text-sm text-slate-300">어떤 광고? (검색광고, 디스플레이, SNS)</p>
             </div>
             <div className="bg-slate-800/50 rounded-xl p-4">
-              <p className="text-xs text-blue-400 font-medium mb-1">캠페인 이름</p>
+              <p className="text-xs text-blue-400 font-medium mb-1">추적 링크 이름</p>
               <p className="text-sm text-slate-300">무슨 목적? (여름세일, 신제품출시)</p>
             </div>
           </div>
@@ -587,7 +587,7 @@ export default function ConversionsPage() {
                         매체: {link.utm_medium}
                       </span>
                       <span className="px-2 py-0.5 text-xs bg-slate-700/50 text-slate-400 rounded">
-                        캠페인: {link.utm_campaign}
+                        UTM: {link.utm_campaign}
                       </span>
                     </div>
                   </div>
@@ -757,7 +757,7 @@ export default function ConversionsPage() {
                 <label className="block text-sm font-medium text-slate-300 mb-2">추적 링크 이름 (선택)</label>
                 <input
                   type="text"
-                  placeholder="예: 네이버 겨울 세일 캠페인"
+                  placeholder="예: 네이버 겨울 세일"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
@@ -856,7 +856,7 @@ export default function ConversionsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">캠페인 이름 *</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">추적 링크 이름 *</label>
                 <input
                   type="text"
                   placeholder="예: winter_sale_2024"
@@ -1009,7 +1009,7 @@ export default function ConversionsPage() {
                   <p className="text-slate-400">ID: <span className="text-white font-mono">{editingLinkFull.id}</span></p>
                   <p className="text-slate-400">출처: <span className="text-white">{editingLinkFull.utm_source}</span></p>
                   <p className="text-slate-400">매체: <span className="text-white">{editingLinkFull.utm_medium}</span></p>
-                  <p className="text-slate-400">캠페인: <span className="text-white">{editingLinkFull.utm_campaign}</span></p>
+                  <p className="text-slate-400">UTM: <span className="text-white">{editingLinkFull.utm_campaign}</span></p>
                 </div>
               </div>
             </div>

@@ -182,7 +182,7 @@ export default function SignupPage() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-white">셀러포트 회원가입</CardTitle>
           <CardDescription className="text-slate-400">
-            이커머스 광고 성과 측정을 시작하세요
+            온라인 광고 성과 측정을 시작하세요
           </CardDescription>
         </CardHeader>
         <CardContent>

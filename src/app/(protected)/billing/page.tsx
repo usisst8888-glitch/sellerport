@@ -284,7 +284,7 @@ export default function BillingPage() {
             <span className="text-amber-400">🔔</span> 알림톡이란?
           </h3>
           <p className="text-sm text-slate-400">
-            빨간불/노란불 캠페인 발생 시 카카오톡으로 알림을 보냅니다.
+            빨간불/노란불 추적 링크 발생 시 카카오톡으로 알림을 보냅니다.
             플랜별 기본 제공량 초과 시 15원/건으로 충전 가능합니다.
           </p>
         </div>
