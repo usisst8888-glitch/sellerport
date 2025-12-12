@@ -1,15 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 
 /**
- * 픽셀샵 페이지 (광고용 중간 페이지)
+ * 브릿지샵 페이지 (광고용 중간 페이지)
  *
- * URL: /pixel/{store}/{product}?slot=xxx
+ * URL: /bridge/{store}/{product}?slot=xxx
  *
- * 킵그로우 방식 참고:
  * - 스마트스토어 디자인 완전 복제
  * - 메타/구글 픽셀 설치
  * - 사용자 클릭 시 스마트스토어로 이동
@@ -29,7 +28,7 @@ interface ProductData {
   storeUrl: string
 }
 
-export default function PixelShopPage() {
+function BridgeShopPageContent() {
   const params = useParams()
   const searchParams = useSearchParams()
 
@@ -74,7 +73,7 @@ export default function PixelShopPage() {
       setLoading(true)
 
       // API에서 상품 정보 가져오기
-      const response = await fetch(`/api/pixel/product?store=${store}&product=${product}&slot=${slotId || ''}`)
+      const response = await fetch(`/api/bridge/product?store=${store}&product=${product}&slot=${slotId || ''}`)
       const data = await response.json()
 
       if (data.success) {
@@ -119,7 +118,7 @@ export default function PixelShopPage() {
 
     // 클릭 기록 API 호출 (비동기)
     if (slotId) {
-      fetch('/api/pixel/click', {
+      fetch('/api/bridge/click', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -312,5 +311,21 @@ export default function PixelShopPage() {
         </div>
       </div>
     </>
+  )
+}
+
+// Suspense로 감싸는 기본 내보내기
+export default function BridgeShopPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">상품 정보를 불러오는 중...</p>
+        </div>
+      </div>
+    }>
+      <BridgeShopPageContent />
+    </Suspense>
   )
 }

@@ -73,41 +73,15 @@ const CustomSiteLogo = ({ className }: { className?: string }) => (
   </svg>
 )
 
-const platformConfigs = [
+// 외부 플랫폼 (스크립트 설치 불가 → 브릿지샵 필요)
+const externalPlatforms = [
   {
     id: 'naver',
     name: '네이버 스마트스토어',
     description: '커머스 API 인증',
     logo: NaverLogo,
     status: 'available',
-  },
-  {
-    id: 'cafe24',
-    name: '카페24',
-    description: 'OAuth 2.0 인증',
-    logo: Cafe24Logo,
-    status: 'coming_soon',
-  },
-  {
-    id: 'imweb',
-    name: '아임웹',
-    description: 'API Key 인증',
-    logo: ImwebLogo,
-    status: 'coming_soon',
-  },
-  {
-    id: 'godo',
-    name: '고도몰',
-    description: 'API Key 인증',
-    logo: GodoLogo,
-    status: 'coming_soon',
-  },
-  {
-    id: 'makeshop',
-    name: '메이크샵',
-    description: 'API Key 인증',
-    logo: MakeshopLogo,
-    status: 'coming_soon',
+    scriptInstallable: false,
   },
   {
     id: 'coupang',
@@ -115,8 +89,48 @@ const platformConfigs = [
     description: 'HMAC 인증',
     logo: CoupangLogo,
     status: 'coming_soon',
+    scriptInstallable: false,
   },
 ]
+
+// 자체몰 플랫폼 (스크립트 설치 가능 → 직접 추적)
+const customPlatforms = [
+  {
+    id: 'cafe24',
+    name: '카페24',
+    description: 'OAuth 2.0 인증 + 추적 스크립트',
+    logo: Cafe24Logo,
+    status: 'coming_soon',
+    scriptInstallable: true,
+  },
+  {
+    id: 'imweb',
+    name: '아임웹',
+    description: 'API Key 인증 + 추적 스크립트',
+    logo: ImwebLogo,
+    status: 'coming_soon',
+    scriptInstallable: true,
+  },
+  {
+    id: 'godo',
+    name: '고도몰',
+    description: 'API Key 인증 + 추적 스크립트',
+    logo: GodoLogo,
+    status: 'coming_soon',
+    scriptInstallable: true,
+  },
+  {
+    id: 'makeshop',
+    name: '메이크샵',
+    description: 'API Key 인증 + 추적 스크립트',
+    logo: MakeshopLogo,
+    status: 'coming_soon',
+    scriptInstallable: true,
+  },
+]
+
+// 모든 플랫폼 (기존 호환용)
+const platformConfigs = [...externalPlatforms, ...customPlatforms]
 
 export default function PlatformsPage() {
   const [connectedPlatforms, setConnectedPlatforms] = useState<Platform[]>([])
@@ -398,40 +412,86 @@ export default function PlatformsPage() {
         )}
       </div>
 
-      {/* 연동 가능한 플랫폼 */}
-      <h2 className="text-lg font-semibold text-white mb-4">연동 가능한 플랫폼</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {platformConfigs.map((platform) => (
-          <div
-            key={platform.id}
-            className={`bg-slate-800 border border-slate-700 rounded-xl p-6 ${platform.status === 'coming_soon' ? 'opacity-60' : ''}`}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                {<platform.logo className="w-10 h-10" />}
-                <div>
-                  <h3 className="font-semibold text-white">{platform.name}</h3>
-                  <p className="text-sm text-slate-400">{platform.description}</p>
+      {/* 외부 플랫폼 (브릿지샵 필요) */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-lg font-semibold text-white">외부 마켓플레이스</h2>
+          <span className="px-2 py-0.5 text-xs bg-purple-500/20 text-purple-400 rounded-full">브릿지샵 사용</span>
+        </div>
+        <p className="text-sm text-slate-400 mb-4">
+          스크립트 설치가 불가능하여 메타/구글/틱톡 광고 시 브릿지샵(중간 페이지)을 통해 추적합니다.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {externalPlatforms.map((platform) => (
+            <div
+              key={platform.id}
+              className={`bg-slate-800 border border-slate-700 rounded-xl p-6 ${platform.status === 'coming_soon' ? 'opacity-60' : ''}`}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  {<platform.logo className="w-10 h-10" />}
+                  <div>
+                    <h3 className="font-semibold text-white">{platform.name}</h3>
+                    <p className="text-sm text-slate-400">{platform.description}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="mt-4">
-              {platform.status === 'available' ? (
-                platform.id === 'naver' ? (
-                  <NaverConnectDialog onSuccess={fetchPlatforms}>
+              <div className="mt-4">
+                {platform.status === 'available' ? (
+                  platform.id === 'naver' ? (
+                    <NaverConnectDialog onSuccess={fetchPlatforms}>
+                      <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white">연동하기</Button>
+                    </NaverConnectDialog>
+                  ) : (
                     <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white">연동하기</Button>
-                  </NaverConnectDialog>
+                  )
                 ) : (
-                  <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white">연동하기</Button>
-                )
-              ) : (
-                <Button className="w-full border-slate-600 text-slate-400" variant="outline" disabled>
-                  준비 중
-                </Button>
-              )}
+                  <Button className="w-full border-slate-600 text-slate-400" variant="outline" disabled>
+                    준비 중
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+      </div>
+
+      {/* 자체몰 플랫폼 (직접 추적 가능) */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-lg font-semibold text-white">자체몰 플랫폼</h2>
+          <span className="px-2 py-0.5 text-xs bg-emerald-500/20 text-emerald-400 rounded-full">직접 추적</span>
+        </div>
+        <p className="text-sm text-slate-400 mb-4">
+          추적 스크립트 설치가 가능하여 광고 URL에 직접 파라미터를 추가하여 추적합니다. 브릿지샵이 필요 없습니다.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {customPlatforms.map((platform) => (
+            <div
+              key={platform.id}
+              className={`bg-slate-800 border border-slate-700 rounded-xl p-6 ${platform.status === 'coming_soon' ? 'opacity-60' : ''}`}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  {<platform.logo className="w-10 h-10" />}
+                  <div>
+                    <h3 className="font-semibold text-white">{platform.name}</h3>
+                    <p className="text-sm text-slate-400">{platform.description}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4">
+                {platform.status === 'available' ? (
+                  <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white">연동하기</Button>
+                ) : (
+                  <Button className="w-full border-slate-600 text-slate-400" variant="outline" disabled>
+                    준비 중
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* 자체 제작 사이트 */}

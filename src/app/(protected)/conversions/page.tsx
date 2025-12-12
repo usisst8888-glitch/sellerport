@@ -12,7 +12,7 @@ interface TrackingLink {
   utm_campaign: string
   target_url: string
   tracking_url: string
-  pixel_shop_url: string | null
+  bridge_shop_url: string | null
   go_url: string | null
   clicks: number
   conversions: number
@@ -256,6 +256,18 @@ export default function ConversionsPage() {
     fetchProducts()
     fetchPlatforms()
   }, [])
+
+  // 모달 열릴 때 배경 스크롤 방지
+  useEffect(() => {
+    if (showCreateModal || editingLink || editingLinkFull || deletingLink) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [showCreateModal, editingLink, editingLinkFull, deletingLink])
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text)
@@ -522,33 +534,53 @@ export default function ConversionsPage() {
 
                   {/* UTM 정보 및 URL */}
                   <div className="mt-4 p-3 bg-slate-900/50 rounded-xl space-y-3">
-                    {/* 픽셀샵 URL (광고용) */}
-                    {link.pixel_shop_url && (
+                    {/* 자체몰 직접 URL (sp_click 파라미터 포함) */}
+                    {link.tracking_url.includes('sp_click=') && !link.tracking_url.includes('/bridge/') && !link.tracking_url.includes('/go/') && (
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-xs text-slate-500 flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                            광고용 URL (자체몰 직접 연결)
+                          </p>
+                          <button
+                            onClick={() => copyToClipboard(link.tracking_url, `${link.id}-direct`)}
+                            className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+                          >
+                            {copiedId === `${link.id}-direct` ? '복사됨 ✓' : '복사'}
+                          </button>
+                        </div>
+                        <p className="text-xs font-mono text-blue-300/70 break-all">{link.tracking_url}</p>
+                        <p className="text-xs text-slate-600 mt-1">메타/구글/네이버 광고에 직접 사용 (자체몰 추적 스크립트 필요)</p>
+                      </div>
+                    )}
+
+                    {/* 브릿지샵 URL (외부 플랫폼 광고용) */}
+                    {link.bridge_shop_url && (
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <p className="text-xs text-slate-500 flex items-center gap-1">
                             <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                            광고용 URL (픽셀샵)
+                            광고용 URL (브릿지샵)
                           </p>
                           <button
-                            onClick={() => copyToClipboard(link.pixel_shop_url!, `${link.id}-pixel`)}
+                            onClick={() => copyToClipboard(link.bridge_shop_url!, `${link.id}-bridge`)}
                             className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
                           >
-                            {copiedId === `${link.id}-pixel` ? '복사됨 ✓' : '복사'}
+                            {copiedId === `${link.id}-bridge` ? '복사됨 ✓' : '복사'}
                           </button>
                         </div>
-                        <p className="text-xs font-mono text-purple-300/70 break-all">{link.pixel_shop_url}</p>
-                        <p className="text-xs text-slate-600 mt-1">메타/구글 광고에 사용 (사용자 클릭 후 이동)</p>
+                        <p className="text-xs font-mono text-purple-300/70 break-all">{link.bridge_shop_url}</p>
+                        <p className="text-xs text-slate-600 mt-1">메타/구글/틱톡 광고에 사용 (외부 플랫폼용)</p>
                       </div>
                     )}
 
                     {/* Go URL (유기적 채널용) */}
-                    {link.go_url && (
+                    {link.go_url && !link.tracking_url.includes('sp_click=') && (
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <p className="text-xs text-slate-500 flex items-center gap-1">
                             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                            {link.pixel_shop_url ? '블로그/SNS용 URL' : '추적 URL'}
+                            {link.bridge_shop_url ? '블로그/SNS용 URL' : '추적 URL'}
                           </p>
                           <button
                             onClick={() => copyToClipboard(link.go_url!, `${link.id}-go`)}
@@ -562,8 +594,8 @@ export default function ConversionsPage() {
                       </div>
                     )}
 
-                    {/* 기존 tracking_url (pixel/go가 없는 경우) */}
-                    {!link.pixel_shop_url && !link.go_url && (
+                    {/* 기존 tracking_url (pixel/go/direct가 없는 경우) */}
+                    {!link.bridge_shop_url && !link.go_url && !link.tracking_url.includes('sp_click=') && (
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <p className="text-xs text-slate-500">추적 URL</p>
@@ -617,13 +649,13 @@ export default function ConversionsPage() {
       {/* 추적 링크 생성 모달 */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-2xl bg-slate-800 border border-white/10 shadow-2xl">
-            <div className="p-6 border-b border-white/5">
+          <div className="w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl bg-slate-800 border border-white/10 shadow-2xl">
+            <div className="p-6 border-b border-white/5 flex-shrink-0">
               <h3 className="text-lg font-semibold text-white">새 추적 링크 발급</h3>
               <p className="text-sm text-slate-400 mt-1">광고 전환을 추적할 새 추적 링크를 만드세요</p>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
               {/* 플랫폼 선택 - 맨 위 */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -885,7 +917,7 @@ export default function ConversionsPage() {
               )}
             </div>
 
-            <div className="p-6 border-t border-white/5 flex gap-3 justify-end">
+            <div className="p-6 border-t border-white/5 flex gap-3 justify-end flex-shrink-0">
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="px-4 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors"

@@ -1,6 +1,6 @@
 /**
- * 픽셀샵 상품 정보 API
- * GET /api/pixel/product?store=xxx&product=xxx&slot=xxx
+ * 브릿지샵 상품 정보 API
+ * GET /api/bridge/product?store=xxx&product=xxx&slot=xxx
  *
  * 추적 링크 ID로 상품 정보를 가져오거나,
  * Commerce API에서 직접 상품 정보를 가져옵니다.
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Pixel product API error:', error)
+    console.error('Bridge product API error:', error)
     return NextResponse.json({
       success: false,
       error: '상품 정보를 가져오는데 실패했습니다'

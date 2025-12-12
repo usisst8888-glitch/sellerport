@@ -1,8 +1,8 @@
 /**
- * 픽셀샵 클릭 기록 API
- * POST /api/pixel/click
+ * 브릿지샵 클릭 기록 API
+ * POST /api/bridge/click
  *
- * 픽셀샵에서 스마트스토어로 이동할 때 클릭 기록
+ * 브릿지샵에서 스마트스토어로 이동할 때 클릭 기록
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
         store,
         product,
         action,
-        source: 'pixel_shop'
+        source: 'bridge_shop'
       }
     })
 
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Pixel click API error:', error)
+    console.error('Bridge click API error:', error)
     return NextResponse.json({
       success: false,
       error: '클릭 기록에 실패했습니다'

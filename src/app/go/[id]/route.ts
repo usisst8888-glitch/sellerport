@@ -1,40 +1,32 @@
 /**
- * 추적 링크 리다이렉트
- * GET /t/[trackingLinkId] - 클릭 추적 후 목적지 URL로 리다이렉트
+ * 빠른 리다이렉트 (유기적 채널용)
+ * GET /go/[trackingLinkId]
  *
- * 이 엔드포인트는 광고 클릭을 추적하고 실제 상품 페이지로 리다이렉트합니다.
- * - 클릭 ID 생성 (주문 매칭용)
- * - _fbp 쿠키 저장 (Meta 어트리뷰션용)
- * - tracking_link_clicks 테이블에 상세 기록
+ * URL: go.sellerport.app/{trackingLinkId}
+ *
+ * 블로그/SNS/인플루언서용 - 쿠키만 심고 0.5초 후 자동 이동
+ * (광고용 브릿지샵과 달리 자동 redirect 가능)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { v4 as uuidv4 } from 'uuid'
 
-// 서버 측 Supabase 클라이언트 (서비스 롤 키 사용)
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-// 클릭 ID 생성 (30일간 유효, 주문 매칭에 사용)
-function generateClickId(): string {
-  return `sp_${Date.now()}_${uuidv4().slice(0, 8)}`
-}
-
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ slotId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { slotId: trackingLinkId } = await params
-  const clickId = generateClickId()
+  const { id: trackingLinkId } = await params
 
   try {
     // 추적 링크 조회
     const { data: trackingLink, error } = await supabase
       .from('tracking_links')
-      .select('id, user_id, campaign_id, target_url, utm_source, utm_medium, utm_campaign, status, clicks')
+      .select('id, user_id, target_url, utm_source, utm_medium, utm_campaign, status, clicks')
       .eq('id', trackingLinkId)
       .single()
 
@@ -46,22 +38,25 @@ export async function GET(
       return NextResponse.redirect(new URL('/', request.url))
     }
 
-    // 요청 정보 추출
+    // 클릭 ID 생성
+    const clickId = `sp_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+
+    // 요청 정보
     const userAgent = request.headers.get('user-agent') || ''
     const referer = request.headers.get('referer') || ''
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
                request.headers.get('x-real-ip') ||
                'unknown'
 
-    // 기존 쿠키에서 _fbp, _fbc 읽기
+    // 기존 쿠키
     const cookies = request.cookies
     const fbp = cookies.get('_fbp')?.value || null
     const fbc = cookies.get('_fbc')?.value || null
 
-    // 클릭 수 증가 + 클릭 로그 기록 (병렬 처리)
+    // 클릭 기록 (비동기)
     const recordClick = async () => {
       try {
-        // 1. 추적 링크 클릭 수 증가
+        // 추적 링크 클릭 수 증가
         await supabase
           .from('tracking_links')
           .update({
@@ -70,12 +65,10 @@ export async function GET(
           })
           .eq('id', trackingLinkId)
 
-        // 2. 클릭 상세 로그 저장
+        // 클릭 로그 저장
         await supabase.from('tracking_link_clicks').insert({
-          id: clickId,
           tracking_link_id: trackingLinkId,
           user_id: trackingLink.user_id,
-          campaign_id: trackingLink.campaign_id,
           click_id: clickId,
           fbp: fbp,
           fbc: fbc,
@@ -85,54 +78,47 @@ export async function GET(
           utm_source: trackingLink.utm_source,
           utm_medium: trackingLink.utm_medium,
           utm_campaign: trackingLink.utm_campaign,
-          is_converted: false,
-          created_at: new Date().toISOString()
-        })
-
-        // 3. 캠페인 클릭 수 증가
-        if (trackingLink.campaign_id) {
-          const { data: campaign } = await supabase
-            .from('campaigns')
-            .select('clicks')
-            .eq('id', trackingLink.campaign_id)
-            .single()
-
-          if (campaign) {
-            await supabase
-              .from('campaigns')
-              .update({ clicks: (campaign.clicks || 0) + 1 })
-              .eq('id', trackingLink.campaign_id)
+          metadata: {
+            source: 'go_redirect',
+            type: 'organic'
           }
-        }
+        })
       } catch (err) {
         console.error('Click record error:', err)
       }
     }
 
-    // 비동기로 클릭 기록 (리다이렉트 블로킹 안함)
+    // 비동기로 클릭 기록
     recordClick().catch(console.error)
 
     // 목적지 URL에 파라미터 추가
     const targetUrl = new URL(trackingLink.target_url)
-    targetUrl.searchParams.set('utm_source', trackingLink.utm_source)
-    targetUrl.searchParams.set('utm_medium', trackingLink.utm_medium)
-    targetUrl.searchParams.set('utm_campaign', trackingLink.utm_campaign)
-    targetUrl.searchParams.set('sp_click', clickId)  // 셀러포트 클릭 ID
+    if (trackingLink.utm_source) targetUrl.searchParams.set('utm_source', trackingLink.utm_source)
+    if (trackingLink.utm_medium) targetUrl.searchParams.set('utm_medium', trackingLink.utm_medium)
+    if (trackingLink.utm_campaign) targetUrl.searchParams.set('utm_campaign', trackingLink.utm_campaign)
+    targetUrl.searchParams.set('sp_click', clickId)
 
     // 리다이렉트 응답 생성
     const response = NextResponse.redirect(targetUrl.toString())
 
-    // 클릭 ID 쿠키 설정 (30일 유효 - 어트리뷰션 윈도우)
-    response.cookies.set('sp_click_id', clickId, {
-      maxAge: 60 * 60 * 24 * 30, // 30일
+    // 쿠키 설정 (30일)
+    response.cookies.set('sp_tracking_link', trackingLinkId, {
+      maxAge: 60 * 60 * 24 * 30,
       path: '/',
-      httpOnly: false, // 클라이언트에서 읽을 수 있어야 함
+      httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax'
     })
 
-    // 추적 링크 ID도 저장 (주문 매칭용)
-    response.cookies.set('sp_tracking_link_id', trackingLinkId, {
+    response.cookies.set('sp_click_id', clickId, {
+      maxAge: 60 * 60 * 24 * 30,
+      path: '/',
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
+    })
+
+    response.cookies.set('sp_click_time', Date.now().toString(), {
       maxAge: 60 * 60 * 24 * 30,
       path: '/',
       httpOnly: false,
@@ -143,7 +129,7 @@ export async function GET(
     return response
 
   } catch (error) {
-    console.error('Tracking redirect error:', error)
+    console.error('Go redirect error:', error)
     return NextResponse.redirect(new URL('/', request.url))
   }
 }
