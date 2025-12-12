@@ -247,6 +247,353 @@ export default function Home() {
           </div>
         </section>
 
+        {/* 문제 공감 섹션 */}
+        <section className="py-20 bg-slate-900/80 relative">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <p className="text-blue-400 font-semibold mb-3 text-sm uppercase tracking-widest">Pain Points</p>
+              <h3 className="text-3xl sm:text-4xl font-bold mb-4">
+                이런 경험 <span className="bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent">있으시죠?</span>
+              </h3>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[
+                { icon: '📱', text: '인스타 열심히 올리는데 뭐가 효과 있는지 모름' },
+                { icon: '💸', text: '광고비는 나가는데 매출이랑 연결이 안 됨' },
+                { icon: '🤝', text: '인플루언서한테 협찬 줬는데 효과가 있었는지 모름' },
+                { icon: '📊', text: '엑셀로 정리하다가 포기' },
+                { icon: '📋', text: '대행사 보고서 믿는 수밖에 없음' },
+                { icon: '🧮', text: '매출 100만원인데 실제로 얼마 남았지?' },
+              ].map((item, index) => (
+                <div
+                  key={index}
+                  className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-red-500/30 transition-all duration-300 flex items-start gap-3"
+                >
+                  <span className="text-2xl">{item.icon}</span>
+                  <p className="text-slate-300 text-sm leading-relaxed">{item.text}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-12 text-center">
+              <p className="text-xl text-slate-400">
+                이제 <span className="text-blue-400 font-semibold">셀러포트</span>로 해결하세요
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* 타겟별 케이스 섹션 */}
+        <section className="py-20 bg-slate-800 relative">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <p className="text-blue-400 font-semibold mb-3 text-sm uppercase tracking-widest">Use Cases</p>
+              <h3 className="text-3xl sm:text-4xl font-bold mb-4">
+                이렇게 <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">해결했어요</span>
+              </h3>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* 케이스 A */}
+              <div className="p-6 rounded-2xl bg-gradient-to-b from-blue-600/10 to-slate-800/50 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-300">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                    <span className="text-xl">📱</span>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white">인스타 운영 초보 셀러</h4>
+                    <p className="text-xs text-slate-400">SNS 마케팅</p>
+                  </div>
+                </div>
+
+                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <p className="text-sm text-red-300">
+                    <span className="font-semibold">문제:</span> "주문 들어왔는데 어떤 게시물 보고 온 건지 모름"
+                  </p>
+                </div>
+
+                <div className="mb-4 p-3 rounded-lg bg-slate-900/50 space-y-2">
+                  <p className="text-xs text-slate-500 mb-2">셀러포트 분석 결과</p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-300">릴스 A</span>
+                    <span className="text-sm text-emerald-400 font-bold">주문 12건</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-300">착샷 게시물</span>
+                    <span className="text-sm text-yellow-400 font-bold">주문 2건</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-300">스토리</span>
+                    <span className="text-sm text-red-400 font-bold">주문 0건</span>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                  <p className="text-sm text-emerald-300">
+                    <span className="font-semibold">결론:</span> "아, 릴스가 진짜 효과 있네. 릴스 더 만들어야겠다"
+                  </p>
+                </div>
+              </div>
+
+              {/* 케이스 B */}
+              <div className="p-6 rounded-2xl bg-gradient-to-b from-violet-600/10 to-slate-800/50 border border-violet-500/30 hover:border-violet-400/50 transition-all duration-300">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-violet-500/20 flex items-center justify-center">
+                    <span className="text-xl">💰</span>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white">광고비 쓰는 셀러</h4>
+                    <p className="text-xs text-slate-400">유료 광고</p>
+                  </div>
+                </div>
+
+                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <p className="text-sm text-red-300">
+                    <span className="font-semibold">문제:</span> "여기저기 광고하는데 뭐가 효과인지 모름"
+                  </p>
+                </div>
+
+                <div className="mb-4 p-3 rounded-lg bg-slate-900/50 space-y-2">
+                  <p className="text-xs text-slate-500 mb-2">셀러포트 분석 결과</p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-300">네이버 광고</span>
+                    <span className="text-sm text-emerald-400 font-bold">ROAS 320% 🟢</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-300">카카오 광고</span>
+                    <span className="text-sm text-red-400 font-bold">ROAS 85% 🔴</span>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                  <p className="text-sm text-emerald-300">
+                    <span className="font-semibold">결론:</span> "네이버에 예산 집중하자!"
+                  </p>
+                </div>
+              </div>
+
+              {/* 케이스 C */}
+              <div className="p-6 rounded-2xl bg-gradient-to-b from-pink-600/10 to-slate-800/50 border border-pink-500/30 hover:border-pink-400/50 transition-all duration-300">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center">
+                    <span className="text-xl">🤝</span>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white">인플루언서 협찬 셀러</h4>
+                    <p className="text-xs text-slate-400">협찬 마케팅</p>
+                  </div>
+                </div>
+
+                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <p className="text-sm text-red-300">
+                    <span className="font-semibold">문제:</span> "협찬비 50만원 줬는데 효과 있었나?"
+                  </p>
+                </div>
+
+                <div className="mb-4 p-3 rounded-lg bg-slate-900/50 space-y-2">
+                  <p className="text-xs text-slate-500 mb-2">셀러포트 분석 결과</p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-300">인플루언서 A</span>
+                    <span className="text-sm text-red-400 font-bold">50만원 → 매출 12만원</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-300">인플루언서 B</span>
+                    <span className="text-sm text-emerald-400 font-bold">30만원 → 매출 89만원</span>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                  <p className="text-sm text-emerald-300">
+                    <span className="font-semibold">결론:</span> "B한테 더 줘야겠네"
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 마진/세금 자동 계산 섹션 */}
+        <section className="py-20 bg-slate-900/80 relative">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <p className="text-blue-400 font-semibold mb-3 text-sm uppercase tracking-widest">Profit Calculator</p>
+              <h3 className="text-3xl sm:text-4xl font-bold mb-4">
+                진짜 남는 돈, <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">자동으로 계산</span>해드려요
+              </h3>
+              <p className="text-slate-400 text-lg">
+                "매출 100만원인데 실제로 얼마 남았지?" → 바로 확인 가능
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              {/* 기능 설명 */}
+              <div className="space-y-6">
+                <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-emerald-500/30 transition-all">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
+                    <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white mb-1">플랫폼 수수료 자동 반영</h4>
+                    <p className="text-slate-400 text-sm">네이버 정산 API 연동으로 실제 수수료 자동 계산</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-violet-500/30 transition-all">
+                  <div className="w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center shrink-0">
+                    <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white mb-1">순이익 자동 계산</h4>
+                    <p className="text-slate-400 text-sm">원가, 배송비, 광고비 → 순이익까지 자동 계산</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-pink-500/30 transition-all">
+                  <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center shrink-0">
+                    <svg className="w-5 h-5 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white mb-1">세금 예상 금액까지</h4>
+                    <p className="text-slate-400 text-sm">부가세, 종소세 예상 금액 미리 확인</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 시각적 데모 */}
+              <div className="p-6 rounded-2xl bg-slate-800/80 border border-slate-700/50">
+                <div className="text-center mb-6">
+                  <p className="text-slate-500 text-xs mb-2">이번 달 매출</p>
+                  <p className="text-4xl font-bold text-white">₩3,500,000</p>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center py-2 border-b border-slate-700/30">
+                    <span className="text-slate-400 text-sm">원가</span>
+                    <span className="text-red-400 text-sm">-₩1,400,000</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-slate-700/30">
+                    <span className="text-slate-400 text-sm">플랫폼 수수료</span>
+                    <span className="text-red-400 text-sm">-₩385,000</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-slate-700/30">
+                    <span className="text-slate-400 text-sm">배송비</span>
+                    <span className="text-red-400 text-sm">-₩180,000</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-slate-700/30">
+                    <span className="text-slate-400 text-sm">광고비</span>
+                    <span className="text-red-400 text-sm">-₩450,000</span>
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t-2 border-emerald-500/30">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white font-semibold">실제 순수익</span>
+                    <span className="text-2xl font-bold text-emerald-400">₩1,085,000</span>
+                  </div>
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-slate-500 text-xs">순이익률</span>
+                    <span className="text-emerald-400 text-sm font-semibold">31%</span>
+                  </div>
+                </div>
+
+                <div className="mt-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <p className="text-xs text-blue-300">
+                    💡 예상 부가세: ₩108,500 / 예상 종소세: ₩65,100
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 카톡 알림 섹션 */}
+        <section className="py-20 bg-slate-800 relative">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <p className="text-blue-400 font-semibold mb-3 text-sm uppercase tracking-widest">KakaoTalk Alerts</p>
+              <h3 className="text-3xl sm:text-4xl font-bold mb-4">
+                중요한 건 <span className="bg-gradient-to-r from-yellow-400 to-amber-400 bg-clip-text text-transparent">카톡으로 바로</span> 알려드려요
+              </h3>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* 주문 알림 */}
+              <div className="p-5 rounded-2xl bg-gradient-to-b from-amber-600/10 to-slate-800/50 border border-amber-500/30 hover:border-amber-400/50 transition-all">
+                <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center mb-4">
+                  <span className="text-2xl">🔔</span>
+                </div>
+                <h4 className="font-bold text-amber-400 mb-2">주문 알림</h4>
+                <p className="text-slate-400 text-sm leading-relaxed">
+                  유입경로 + 상품 + 마진까지 포함된 주문 알림
+                </p>
+              </div>
+
+              {/* 빨간불 경고 */}
+              <div className="p-5 rounded-2xl bg-gradient-to-b from-red-600/10 to-slate-800/50 border border-red-500/30 hover:border-red-400/50 transition-all">
+                <div className="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center mb-4">
+                  <span className="text-2xl">🚨</span>
+                </div>
+                <h4 className="font-bold text-red-400 mb-2">빨간불 경고</h4>
+                <p className="text-slate-400 text-sm leading-relaxed">
+                  효율 낮은 광고 즉시 알림으로 광고비 낭비 방지
+                </p>
+              </div>
+
+              {/* 일일 요약 */}
+              <div className="p-5 rounded-2xl bg-gradient-to-b from-blue-600/10 to-slate-800/50 border border-blue-500/30 hover:border-blue-400/50 transition-all">
+                <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-4">
+                  <span className="text-2xl">📊</span>
+                </div>
+                <h4 className="font-bold text-blue-400 mb-2">일일 요약</h4>
+                <p className="text-slate-400 text-sm leading-relaxed">
+                  매일 밤 당일 매출, 광고 성과 리포트 자동 발송
+                </p>
+              </div>
+
+              {/* 주간 리포트 */}
+              <div className="p-5 rounded-2xl bg-gradient-to-b from-violet-600/10 to-slate-800/50 border border-violet-500/30 hover:border-violet-400/50 transition-all">
+                <div className="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center mb-4">
+                  <span className="text-2xl">📈</span>
+                </div>
+                <h4 className="font-bold text-violet-400 mb-2">주간 리포트</h4>
+                <p className="text-slate-400 text-sm leading-relaxed">
+                  주간 성과 요약 및 채널별 비교 분석 리포트
+                </p>
+              </div>
+            </div>
+
+            {/* 카톡 알림 예시 */}
+            <div className="mt-12 flex justify-center">
+              <div className="max-w-sm w-full p-4 rounded-2xl bg-[#FFE812] shadow-xl">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
+                    <span className="text-lg font-bold text-slate-800">S</span>
+                  </div>
+                  <span className="font-bold text-slate-800">셀러포트</span>
+                </div>
+                <div className="bg-white rounded-xl p-4 space-y-2">
+                  <p className="text-slate-800 text-sm font-semibold">🔴 빨간불 알림</p>
+                  <p className="text-slate-600 text-xs leading-relaxed">
+                    [메타 광고 - 겨울 신상] 캠페인의 ROAS가 85%로 하락했습니다.
+                    <br/><br/>
+                    💡 광고비 대비 매출이 낮아요. 소재나 타겟을 점검해보세요!
+                  </p>
+                  <div className="pt-2 border-t border-slate-200">
+                    <p className="text-blue-500 text-xs font-semibold">대시보드에서 확인하기 →</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* 광고 효율 신호등 섹션 */}
         <section className="py-20 bg-slate-900/80 relative">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -488,7 +835,7 @@ export default function Home() {
                 <h4 className="text-lg font-bold mb-2 text-amber-400">카카오 알림톡</h4>
                 <p className="text-slate-400 text-sm leading-relaxed">
                   주문 알림, 일일 요약<br/>
-                  🔴 빨간불 알림 + AI 최적화 제안
+                  🔴 빨간불 알림 + 주간 리포트
                 </p>
               </div>
 
@@ -754,7 +1101,7 @@ export default function Home() {
                   <p className="text-xs text-emerald-400 mt-1">알림톡 300건 포함</p>
                 </div>
                 <ul className="space-y-2 mb-6">
-                  {['무제한 추적 링크', '모든 채널 전환 추적', '🟢🟡🔴 신호등 시스템', '마진/세금 자동 계산', 'AI 최적화 추천', '디자이너 연결'].map((feature, i) => (
+                  {['무제한 추적 링크', '모든 채널 전환 추적', '🟢🟡🔴 신호등 시스템', '마진/세금 자동 계산', '카톡 알림', '디자이너 연결'].map((feature, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm">
                       <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
