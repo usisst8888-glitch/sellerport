@@ -15,6 +15,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [displayName, setDisplayName] = useState('')
   const [userType, setUserType] = useState<UserType>('seller')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -137,8 +138,8 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/callback`,
         data: {
+          display_name: displayName,
           user_type: userType,
           phone: phone.replace(/[^0-9]/g, ''),
           phone_verified: true
@@ -148,24 +149,37 @@ export default function SignupPage() {
 
     if (error) {
       setMessage({ type: 'error', text: error.message })
-    } else {
-      // 프로필에 user_type, phone 저장
-      if (data.user) {
-        await supabase
-          .from('profiles')
-          .update({
-            user_type: userType,
-            phone: phone.replace(/[^0-9]/g, ''),
-            phone_verified: true
-          })
-          .eq('id', data.user.id)
-      }
-      setMessage({
-        type: 'success',
-        text: '인증 이메일을 발송했습니다. 이메일을 확인해주세요.'
-      })
+      setLoading(false)
+      return
     }
-    setLoading(false)
+
+    // 프로필에 저장 (upsert로 확실하게)
+    if (data.user) {
+      // 잠시 대기 후 upsert (트리거가 프로필 생성할 시간 확보)
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      await supabase
+        .from('profiles')
+        .upsert({
+          id: data.user.id,
+          email: email,
+          display_name: displayName,
+          user_type: userType,
+          phone: phone.replace(/[^0-9]/g, ''),
+          phone_verified: true
+        }, { onConflict: 'id' })
+    }
+
+    // 회원가입 성공 시 바로 대시보드로 이동
+    setMessage({
+      type: 'success',
+      text: '회원가입이 완료되었습니다. 잠시 후 대시보드로 이동합니다.'
+    })
+
+    // 잠시 후 대시보드로 리다이렉트
+    setTimeout(() => {
+      router.push('/dashboard')
+    }, 1500)
   }
 
   // 전화번호 포맷팅
@@ -300,6 +314,19 @@ export default function SignupPage() {
                 )}
               </div>
             )}
+
+            <div className="space-y-2">
+              <Label htmlFor="displayName" className="text-slate-300">이름 (닉네임)</Label>
+              <Input
+                id="displayName"
+                type="text"
+                placeholder="표시될 이름을 입력하세요"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                required
+                className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
+              />
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="email" className="text-slate-300">이메일</Label>

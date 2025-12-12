@@ -229,7 +229,7 @@ export default function Home() {
                 <p className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent transition-transform duration-300 group-hover:scale-110">
                   {stat2.count}+
                 </p>
-                <p className="text-sm text-slate-400 mt-2">셀러 이용중</p>
+                <p className="text-sm text-slate-400 mt-2">사전예약</p>
               </div>
               <div className="group" ref={stat3.ref}>
                 <p className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent transition-transform duration-300 group-hover:scale-110">
