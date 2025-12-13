@@ -163,6 +163,16 @@ export default function PlatformsPage() {
     fetchPlatforms()
   }, [])
 
+  // 메시지 3초 후 자동 제거
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => {
+        setMessage(null)
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [message])
+
   // 추적 코드 생성
   const getTrackingCode = () => {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://sellerport.co.kr'

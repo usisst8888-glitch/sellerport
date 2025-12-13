@@ -59,6 +59,16 @@ export default function SettingsPage() {
     fetchData()
   }, [])
 
+  // 메시지 3초 후 자동 제거
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => {
+        setMessage(null)
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [message])
+
   const fetchData = async () => {
     try {
       setLoading(true)

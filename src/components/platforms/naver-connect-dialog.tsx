@@ -25,11 +25,12 @@ export function NaverConnectDialog({ children, onSuccess }: NaverConnectDialogPr
   const [error, setError] = useState('')
 
   const [storeName, setStoreName] = useState('')
+  const [storeId, setStoreId] = useState('') // 스마트스토어 URL에 사용되는 ID
   const [clientId, setClientId] = useState('')
   const [clientSecret, setClientSecret] = useState('')
 
   const handleConnect = async () => {
-    if (!storeName.trim() || !clientId.trim() || !clientSecret.trim()) {
+    if (!storeName.trim() || !storeId.trim() || !clientId.trim() || !clientSecret.trim()) {
       setError('모든 필드를 입력해주세요')
       return
     }
@@ -55,6 +56,7 @@ export function NaverConnectDialog({ children, onSuccess }: NaverConnectDialogPr
           user_id: user.id,
           platform_type: 'naver',
           platform_name: storeName.trim(),
+          store_id: storeId.trim().toLowerCase(), // 스마트스토어 ID (URL용)
           application_id: clientId.trim(),
           application_secret: clientSecret.trim(),
           status: 'pending_verification',
@@ -73,6 +75,7 @@ export function NaverConnectDialog({ children, onSuccess }: NaverConnectDialogPr
       // 성공
       setOpen(false)
       setStoreName('')
+      setStoreId('')
       setClientId('')
       setClientSecret('')
       onSuccess?.()
@@ -139,6 +142,19 @@ export function NaverConnectDialog({ children, onSuccess }: NaverConnectDialogPr
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="storeId">스마트스토어 ID *</Label>
+            <Input
+              id="storeId"
+              placeholder="예: tripsim"
+              value={storeId}
+              onChange={(e) => setStoreId(e.target.value)}
+            />
+            <p className="text-xs text-gray-500">
+              스마트스토어 URL에서 확인: smartstore.naver.com/<strong className="text-gray-700">스토어ID</strong>/products/...
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="clientId">Application ID (Client ID) *</Label>
             <Input
               id="clientId"
@@ -189,7 +205,7 @@ export function NaverConnectDialog({ children, onSuccess }: NaverConnectDialogPr
             </Button>
             <Button
               className="flex-1 bg-[#03C75A] hover:bg-[#02b351]"
-              disabled={loading || !storeName.trim() || !clientId.trim() || !clientSecret.trim()}
+              disabled={loading || !storeName.trim() || !storeId.trim() || !clientId.trim() || !clientSecret.trim()}
               onClick={handleConnect}
             >
               {loading ? (

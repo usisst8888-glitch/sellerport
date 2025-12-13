@@ -42,6 +42,7 @@ interface Product {
     id: string
     platform_type: string
     platform_name: string
+    store_id?: string | null
   } | null
 }
 
@@ -49,6 +50,7 @@ interface Platform {
   id: string
   platform_type: string
   platform_name: string
+  store_id?: string | null
   status: string
 }
 
@@ -78,8 +80,17 @@ export default function ConversionsPage() {
     utmCampaign: '',
     targetUrl: '',
     name: '',
-    adSpend: 0 // 광고비
+    adSpend: 0, // 광고비
+    adChannelId: '' // 연동된 광고 채널 ID
   })
+
+  // 연동된 광고 채널 목록
+  const [adChannels, setAdChannels] = useState<{
+    id: string
+    channel_type: string
+    channel_name: string
+    status: string
+  }[]>([])
 
   // 광고비 수정 모달
   const [editingLink, setEditingLink] = useState<TrackingLink | null>(null)
@@ -97,10 +108,15 @@ export default function ConversionsPage() {
   // 상품 선택 시 목적지 URL 자동 생성
   const generateProductUrl = (product: Product): string => {
     const platformType = product.platform_type || product.platforms?.platform_type
+    const storeId = product.platforms?.store_id
 
     if (platformType === 'naver') {
       // 네이버 스마트스토어 상품 URL
-      // external_product_id가 originProductNo인 경우
+      // store_id가 있으면 정상 URL, 없으면 단축 URL
+      if (storeId) {
+        return `https://smartstore.naver.com/${storeId}/products/${product.external_product_id}`
+      }
+      // store_id가 없는 경우 (기존 데이터 호환) - 이 URL도 작동함
       return `https://smartstore.naver.com/products/${product.external_product_id}`
     } else if (platformType === 'coupang') {
       return `https://www.coupang.com/vp/products/${product.external_product_id}`
@@ -169,6 +185,25 @@ export default function ConversionsPage() {
       setPlatforms(data || [])
     } catch (error) {
       console.error('Failed to fetch platforms:', error)
+    }
+  }
+
+  const fetchAdChannels = async () => {
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('ad_channels')
+        .select('id, channel_type, channel_name, status')
+        .eq('status', 'connected')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Failed to fetch ad channels:', error)
+        return
+      }
+      setAdChannels(data || [])
+    } catch (error) {
+      console.error('Failed to fetch ad channels:', error)
     }
   }
 
@@ -255,7 +290,18 @@ export default function ConversionsPage() {
     fetchTrackingLinks()
     fetchProducts()
     fetchPlatforms()
+    fetchAdChannels()
   }, [])
+
+  // 메시지 3초 후 자동 제거
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => {
+        setMessage(null)
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [message])
 
   // 모달 열릴 때 배경 스크롤 방지
   useEffect(() => {
@@ -312,7 +358,8 @@ export default function ConversionsPage() {
           utmCampaign: '',
           targetUrl: '',
           name: '',
-          adSpend: 0
+          adSpend: 0,
+          adChannelId: ''
         })
         fetchTrackingLinks()
       } else {
@@ -838,7 +885,7 @@ export default function ConversionsPage() {
                   {/* 유료 광고 버튼 */}
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, utmMedium: 'paid', adSpend: 0 })}
+                    onClick={() => setFormData({ ...formData, utmMedium: 'paid', adSpend: 0, adChannelId: '' })}
                     className={`p-4 rounded-xl border-2 text-left transition-all ${
                       formData.utmMedium === 'paid'
                         ? 'border-blue-500 bg-blue-500/10'
@@ -863,7 +910,7 @@ export default function ConversionsPage() {
                   {/* 직접 광고 버튼 */}
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, utmMedium: 'direct', adSpend: 0 })}
+                    onClick={() => setFormData({ ...formData, utmMedium: 'direct', adSpend: 0, adChannelId: '' })}
                     className={`p-4 rounded-xl border-2 text-left transition-all ${
                       formData.utmMedium === 'direct'
                         ? 'border-emerald-500 bg-emerald-500/10'
@@ -886,6 +933,59 @@ export default function ConversionsPage() {
                   </button>
                 </div>
               </div>
+
+              {/* 유료 광고 선택 시 - 광고 채널 선택 */}
+              {formData.utmMedium === 'paid' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">광고 채널 선택</label>
+                  {adChannels.length > 0 ? (
+                    <Select
+                      value={formData.adChannelId}
+                      onChange={(e) => {
+                        const selectedChannel = adChannels.find(ch => ch.id === e.target.value)
+                        setFormData({
+                          ...formData,
+                          adChannelId: e.target.value,
+                          utmSource: selectedChannel ? selectedChannel.channel_type : formData.utmSource
+                        })
+                      }}
+                    >
+                      <option value="">광고 채널을 선택하세요 (선택)</option>
+                      {adChannels.map(channel => (
+                        <option key={channel.id} value={channel.id}>
+                          {channel.channel_name} ({
+                            channel.channel_type === 'meta' ? 'Meta' :
+                            channel.channel_type === 'google' ? 'Google Ads' :
+                            channel.channel_type === 'naver_search' ? '네이버 검색광고' :
+                            channel.channel_type === 'naver_gfa' ? '네이버 GFA' :
+                            channel.channel_type === 'kakao' ? '카카오모먼트' :
+                            channel.channel_type === 'karrot' ? '당근 비즈니스' :
+                            channel.channel_type === 'toss' ? '토스' :
+                            channel.channel_type === 'tiktok' ? 'TikTok' :
+                            channel.channel_type === 'dable' ? '데이블' :
+                            channel.channel_type
+                          })
+                        </option>
+                      ))}
+                    </Select>
+                  ) : (
+                    <div className="p-4 rounded-xl bg-slate-900/50 border border-white/10">
+                      <p className="text-sm text-slate-400 mb-2">연동된 광고 채널이 없습니다</p>
+                      <p className="text-xs text-slate-500">
+                        <a href="/ad-channels" className="text-blue-400 hover:underline">광고 채널 연동</a>에서 광고 계정을 연동하면 광고비가 자동으로 연결됩니다.
+                      </p>
+                      <p className="text-xs text-slate-500 mt-2">
+                        연동 전에도 추적 링크를 발급할 수 있으며, 나중에 광고비를 수동으로 입력할 수 있습니다.
+                      </p>
+                    </div>
+                  )}
+                  {formData.adChannelId && (
+                    <p className="text-xs text-blue-400 mt-2">
+                      선택한 채널에서 자동으로 광고비가 연동됩니다
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">추적 링크 이름 *</label>

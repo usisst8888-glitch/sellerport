@@ -158,7 +158,7 @@ export default function Home() {
                   </Link>
                   <Link href="/signup">
                     <Button className="bg-blue-600 text-white hover:bg-blue-500 transition-all duration-200">
-                      무료로 시작하기
+                      사전예약 하기
                     </Button>
                   </Link>
                 </>
@@ -205,7 +205,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up animation-delay-400">
               <Link href="/signup">
                 <Button size="lg" className="bg-blue-600 text-white hover:bg-blue-500 text-lg px-8 h-14 w-full sm:w-auto transition-all duration-200">
-                  무료로 시작하기
+                  사전예약 하기
                 </Button>
               </Link>
               <Link href="#features">
@@ -1094,7 +1094,7 @@ export default function Home() {
                 </ul>
                 <Link href="/signup">
                   <Button className="w-full bg-slate-700 hover:bg-slate-600 text-white">
-                    무료로 시작하기
+                    사전예약 하기
                   </Button>
                 </Link>
               </div>
@@ -1240,7 +1240,7 @@ export default function Home() {
             </p>
             <Link href="/signup">
               <Button size="lg" className="bg-blue-600 text-white hover:bg-blue-500 text-lg px-12 h-14 transition-all duration-200">
-                무료로 시작하기
+                사전예약 하기
               </Button>
             </Link>
           </div>

@@ -1,6 +1,6 @@
 # 셀러포트 (SellerPort) 개발 로드맵
 
-> **마지막 업데이트:** 2025-12-13
+> **마지막 업데이트:** 2025-12-14
 
 ## 프로젝트 개요
 
@@ -314,6 +314,7 @@ influencer_stats (인플루언서 효율 DB)
 | 수익 계산 (`/profit`) | ✅ 완료 | 마진 계산기 UI |
 | 알림 관리 (`/alerts`) | ✅ 완료 | 빨간불/노란불 알림 내역, 알림 설정 |
 | 플랫폼 연동 (`/platforms`) | ✅ 완료 | 네이버 API 키 입력 방식 + 자체 사이트 추적 코드 |
+| 광고 채널 연동 (`/ad-channels`) | ✅ 완료 | Meta, 네이버 검색광고 연동 완료 (Google, 카카오 등 추가 예정) |
 | 디자이너 연결 (`/designers`) | ✅ 완료 | 디자이너 목록, 문의 모달 |
 | 결제 관리 (`/billing`) | ✅ 완료 | 구독 관리, 알림 충전 (15원/건) |
 | 설정 (`/settings`) | ✅ 완료 | 프로필 설정 (알리고 API 설정 제거됨) |
@@ -361,10 +362,69 @@ influencer_stats (인플루언서 효율 DB)
 | ROAS 계산 크론잡 | ✅ 완료 | `/api/cron/calculate-roas` |
 | AI 최적화 분석 | ✅ 완료 | `/api/cron/ai-analysis`, `/api/campaigns/[id]/analyze`, `lib/ai/optimization-tips.ts` |
 | 디자이너 마켓플레이스 API | ✅ 완료 | `/api/designers`, `/api/designers/[id]`, `/api/design-requests` |
+| Meta 광고 OAuth 연동 | ✅ 완료 | `/api/auth/meta`, `/api/auth/meta/callback`, `/api/ad-channels/meta/sync` (보안 검토 대기) |
+| 네이버 검색광고 API 연동 | ✅ 완료 | `/lib/naver/search-ads-api.ts`, `/api/auth/naver-search-ads`, `/api/ad-channels/naver-search/sync` |
 
 ---
 
-## 최근 변경 사항 (2025-12-13)
+## 최근 변경 사항 (2025-12-14)
+
+### 네이버 검색광고 API 연동 구현
+
+#### 구현된 기능
+
+| 기능 | 파일 | 설명 |
+|------|------|------|
+| NaverSearchAdsAPI 클라이언트 | `/lib/naver/search-ads-api.ts` | HMAC-SHA256 서명 기반 인증, 캠페인/통계 조회 |
+| API 키 검증 엔드포인트 | `/api/auth/naver-search-ads/route.ts` | 고객 ID, API Key, Secret Key 검증 후 저장 |
+| 광고비 동기화 엔드포인트 | `/api/ad-channels/naver-search/sync/route.ts` | 캠페인별 일별 광고비/클릭/노출 동기화 |
+| UI 연동 모달 | `/app/(protected)/ad-channels/page.tsx` | API 키 입력 폼, 연동 성공/실패 처리 |
+
+#### NaverSearchAdsAPI 클라이언트 주요 메서드
+
+```typescript
+// 캠페인 목록 조회
+getCampaigns(): Promise<NaverCampaign[]>
+
+// 캠페인별 일별 통계 조회
+getCampaignStats(campaignIds, dateStart, dateEnd): Promise<NaverStatRecord[]>
+
+// API 키 검증
+validateCredentials(): Promise<{ valid: boolean; message?: string }>
+
+// 계정 잔액 조회
+getBizMoney(): Promise<NaverBizMoney>
+```
+
+#### 데이터 저장 구조
+
+```json
+// ad_channels 테이블
+{
+  "channel_type": "naver_search",
+  "access_token": "apiKey",
+  "metadata": { "secretKey": "...", "customerId": "..." }
+}
+
+// ad_spend_daily 테이블
+{
+  "campaign_id": "cmp-xxx",
+  "date": "2024-12-14",
+  "spend": 50000,
+  "impressions": 10000,
+  "clicks": 500
+}
+```
+
+#### ⚠️ 제한사항
+
+- **스마트스토어 랜딩 시 키워드별 전환 추적 불가** (네이버 정책)
+- 광고비, 클릭수, 노출수만 수집 가능
+- 키워드별 전환 추적은 자체 사이트(브랜드스토어) 랜딩 시에만 가능
+
+---
+
+## 변경 사항 (2025-12-13)
 
 ### 회원가입 개선 및 사전예약 시스템
 
@@ -567,6 +627,53 @@ influencer_stats (인플루언서 효율 DB)
 
 ### Phase 3: 광고 채널 확장 + 인플루언서 DB
 
+#### 3-0. 광고 채널 연동 페이지 (`/ad-channels`)
+
+판매 플랫폼 연동(`/platforms`)과 별도로, 광고 채널 연동을 위한 전용 페이지가 필요합니다.
+
+**연동할 광고 채널:**
+
+| 채널 | 연동 방식 | 가져오는 데이터 | 상태 |
+|------|----------|----------------|------|
+| **Meta (Facebook/Instagram)** | Marketing API (OAuth) | 광고비, 캠페인 성과, 광고 on/off | ✅ 완료 (보안 검토 대기) |
+| **Google Ads** | Google Ads API (OAuth) | 광고비, 전환 데이터, 광고 on/off | ⬜ |
+| **네이버 검색광고** | 네이버 광고 API (HMAC 서명) | 광고비, 클릭수, 노출수 | ✅ 완료 |
+| **네이버 GFA** | 네이버 GFA API | 광고비, 노출/클릭수, 타겟팅 성과 | ⬜ |
+| **카카오모먼트** | 카카오 광고 API | 광고비, 성과 데이터 | ⬜ |
+| **당근 비즈니스** | 당근 광고 API | 광고비, 노출/클릭수, 지역 타겟팅 성과 | ⬜ |
+| **토스** | 토스 광고 API | 광고비, 성과 데이터, 전환 추적 | ⬜ |
+| **TikTok Ads** | TikTok Marketing API | 광고비, 쇼트폼 광고 성과, MZ 타겟팅 | ⬜ |
+| **데이블** | 데이블 API | 광고비, 네이티브 광고 성과, 콘텐츠 추천 | ⬜ |
+
+**핵심 기능:**
+
+1. **광고비 자동 수집** - 각 채널에서 일별/캠페인별 광고비 자동 동기화
+2. **ROAS 자동 계산** - (매출 / 광고비) × 100 실시간 계산
+3. **광고 자동 on/off** - ROAS 기준 미달 시 광고 일시중지 (사용자 설정 가능)
+4. **통합 대시보드** - 모든 광고 채널 성과를 한 화면에서 확인
+
+**DB 테이블 추가:**
+
+```
+ad_channels (광고 채널 연동 정보)
+├── id, user_id
+├── channel_type (meta, google, naver_search, naver_gfa, kakao, karrot, toss, tiktok, dable)
+├── channel_name (사용자 지정 이름)
+├── access_token, refresh_token (OAuth 토큰)
+├── account_id (광고 계정 ID)
+├── status (connected, disconnected, error)
+├── last_sync_at
+└── metadata (추가 설정 정보)
+
+ad_spend_daily (일별 광고비)
+├── id, ad_channel_id
+├── campaign_id, campaign_name
+├── date
+├── spend (광고비)
+├── impressions, clicks, conversions
+└── synced_at
+```
+
 #### 3-1. 구글 광고 전환 추적
 
 | 작업 | 상세 | 상태 |
@@ -575,12 +682,15 @@ influencer_stats (인플루언서 효율 DB)
 | GCLID 추적 | Google 클릭 ID 저장 | ⬜ |
 | Google Ads API 연동 | 광고비 자동 수집 | ⬜ |
 
-#### 3-2. 네이버 검색광고 연동
+#### 3-2. 네이버 검색광고 연동 ✅ 완료
 
 | 작업 | 상세 | 상태 |
 |------|------|------|
-| 네이버 검색광고 API | 광고비, 클릭수 수집 | ⬜ |
-| 키워드별 성과 추적 | 키워드 → 전환 매칭 | ⬜ |
+| 네이버 검색광고 API 클라이언트 | HMAC-SHA256 서명 기반 인증 | ✅ 완료 |
+| API 키 검증 엔드포인트 | 고객 ID, API Key, Secret Key 검증 | ✅ 완료 |
+| 광고비/클릭/노출 동기화 | 캠페인별 일별 통계 수집 | ✅ 완료 |
+| UI 연동 모달 | API 키 입력 폼 | ✅ 완료 |
+| ⚠️ 제한사항 | 스마트스토어 랜딩 시 키워드별 전환 추적 불가 (네이버 정책) | -
 
 #### 3-3. 네이버 GFA (성과형 디스플레이 광고) 연동
 
@@ -752,8 +862,9 @@ influencer_stats (인플루언서 효율 DB)
 ### 외부 서비스 설정
 - [x] 네이버 Commerce API Center 등록 (솔루션 애플리케이션)
 - [x] Meta CAPI 연동 (사용자별 Pixel ID/Token 입력)
+- [x] Meta Marketing API 연동 (OAuth, 보안 검토 대기)
 - [ ] Google Ads API 등록
-- [ ] 네이버 검색광고 API 발급
+- [x] 네이버 검색광고 API 연동 (HMAC-SHA256 서명 방식)
 - [ ] 네이버 GFA API 발급 (성과형 디스플레이 광고)
 - [ ] 카카오 광고 API 등록
 - [x] 알리고 API 키 발급 (사용자별 설정)

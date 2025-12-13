@@ -305,6 +305,104 @@ function TrackingContent() {
           </ul>
         </div>
       </section>
+
+      <section>
+        <h2 className="text-xl font-bold text-white mb-4">전환 추적 정확도 안내</h2>
+        <p className="text-slate-300 leading-relaxed mb-4">
+          셀러포트는 업계 최고 수준의 추적 정확도를 제공하지만, 다음과 같은 경우는
+          <span className="text-amber-400 font-semibold"> 기술적 한계</span>로 추적이 어려울 수 있습니다.
+        </p>
+
+        <div className="space-y-4">
+          {/* 추적이 안 되는 경우 */}
+          <div className="bg-red-500/10 rounded-xl p-5 border border-red-500/30">
+            <h3 className="text-red-400 font-semibold mb-3 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              추적이 안 되는 경우
+            </h3>
+            <ul className="space-y-2 text-slate-300 text-sm">
+              <li className="flex items-start gap-2">
+                <span className="text-red-400 mt-0.5">•</span>
+                광고 클릭 후 즐겨찾기/북마크 저장 → 나중에 직접 방문하여 구매
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-red-400 mt-0.5">•</span>
+                모바일에서 광고 클릭 → PC에서 구매 (또는 반대)
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-red-400 mt-0.5">•</span>
+                브라우저 쿠키 삭제 후 구매
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-red-400 mt-0.5">•</span>
+                광고 링크를 다른 사람에게 공유 후 그 사람이 구매
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-red-400 mt-0.5">•</span>
+                쿠키 유효기간(30일) 초과 후 구매
+              </li>
+            </ul>
+          </div>
+
+          {/* 정확하게 추적되는 경우 */}
+          <div className="bg-emerald-500/10 rounded-xl p-5 border border-emerald-500/30">
+            <h3 className="text-emerald-400 font-semibold mb-3 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              정확하게 추적되는 경우
+            </h3>
+            <ul className="space-y-2 text-slate-300 text-sm">
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5">•</span>
+                광고 클릭 → 바로 구매 (가장 정확)
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5">•</span>
+                광고 클릭 → 장바구니 담기 → 같은 기기/브라우저에서 구매
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5">•</span>
+                자체몰에서 직접 추적 스크립트 설치한 경우
+              </li>
+            </ul>
+          </div>
+
+          {/* 셀러포트의 해결책 */}
+          <div className="bg-blue-500/10 rounded-xl p-5 border border-blue-500/30">
+            <h3 className="text-blue-400 font-semibold mb-3 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              셀러포트의 해결책
+            </h3>
+            <ul className="space-y-2 text-slate-300 text-sm">
+              <li className="flex items-start gap-2">
+                <span className="text-blue-400 mt-0.5">•</span>
+                <strong className="text-white">브릿지샵 제공</strong> - 스마트스토어/쿠팡 판매자도 추적 가능한 랜딩페이지 자동 생성
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-400 mt-0.5">•</span>
+                <strong className="text-white">자체몰 추적 스크립트</strong> - 카페24, 고도몰 등 자체몰은 스크립트 설치로 100% 정확 추적
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-400 mt-0.5">•</span>
+                <strong className="text-white">30일 쿠키 유지</strong> - 광고 클릭 후 30일 내 구매까지 추적
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="mt-4 p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
+          <p className="text-slate-400 text-sm">
+            <span className="text-amber-400 font-medium">참고:</span> 이러한 한계는 셀러포트뿐 아니라
+            Meta Pixel, Google Analytics 등 모든 추적 솔루션이 가지고 있는 업계 공통 한계입니다.
+            쿠키 기반 추적의 특성상 100% 완벽한 추적은 기술적으로 불가능합니다.
+          </p>
+        </div>
+      </section>
     </div>
   )
 }

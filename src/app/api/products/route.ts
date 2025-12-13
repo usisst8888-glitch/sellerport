@@ -31,7 +31,8 @@ export async function GET(request: NextRequest) {
         platforms (
           id,
           platform_type,
-          platform_name
+          platform_name,
+          store_id
         )
       `)
       .eq('user_id', user.id)

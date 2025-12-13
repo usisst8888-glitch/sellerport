@@ -100,6 +100,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [showPreLaunchModal, setShowPreLaunchModal] = useState(false)
   const [userType, setUserType] = useState<string | null>(null)
+  const [notifyLoading, setNotifyLoading] = useState(false)
   const router = useRouter()
 
   // 사용자 타입 확인 및 사전예약 팝업 표시
@@ -148,8 +149,27 @@ export default function DashboardPage() {
     return () => clearInterval(interval)
   }, [])
 
-  // 확인 버튼 클릭 시 홈으로 이동
-  const handleConfirmPreLaunch = () => {
+  // 알림 받기 클릭 시 저장 후 홈으로 이동
+  const handleNotifyYes = async () => {
+    setNotifyLoading(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await supabase
+          .from('profiles')
+          .update({ pre_launch_notify: true })
+          .eq('id', user.id)
+      }
+    } catch (error) {
+      console.error('Failed to save notify preference:', error)
+    }
+    setNotifyLoading(false)
+    router.push('/')
+  }
+
+  // 알림 안받기 클릭 시 그냥 홈으로 이동
+  const handleNotifyNo = () => {
     router.push('/')
   }
 
@@ -212,12 +232,22 @@ export default function DashboardPage() {
               </div>
 
               {/* 버튼 */}
-              <button
-                onClick={handleConfirmPreLaunch}
-                className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
-              >
-                확인
-              </button>
+              <div className="space-y-3">
+                <button
+                  onClick={handleNotifyYes}
+                  disabled={notifyLoading}
+                  className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 disabled:opacity-50"
+                >
+                  {notifyLoading ? '저장 중...' : '네, 알림 받을게요'}
+                </button>
+                <button
+                  onClick={handleNotifyNo}
+                  disabled={notifyLoading}
+                  className="w-full px-6 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 font-medium transition-all duration-200"
+                >
+                  괜찮아요
+                </button>
+              </div>
 
               <p className="mt-4 text-xs text-slate-500">
                 사전예약해 주셔서 감사합니다
