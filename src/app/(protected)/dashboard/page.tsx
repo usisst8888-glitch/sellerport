@@ -2,6 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+
+// 정식 오픈일 (2026년 1월 1일)
+const LAUNCH_DATE = new Date('2026-01-01T00:00:00')
 
 interface TrackingLink {
   id: string
@@ -93,6 +98,35 @@ function formatCurrency(value: number) {
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showPreLaunchModal, setShowPreLaunchModal] = useState(false)
+  const [userType, setUserType] = useState<string | null>(null)
+  const router = useRouter()
+
+  // 사용자 타입 확인 및 사전예약 팝업 표시
+  useEffect(() => {
+    const checkUserType = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('user_type')
+          .eq('id', user.id)
+          .single()
+
+        const type = profile?.user_type || 'seller'
+        setUserType(type)
+
+        // admin이 아니고 정식 오픈 전이면 팝업 표시
+        if (type !== 'admin' && new Date() < LAUNCH_DATE) {
+          setShowPreLaunchModal(true)
+        }
+      }
+    }
+
+    checkUserType()
+  }, [])
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -113,6 +147,11 @@ export default function DashboardPage() {
     const interval = setInterval(fetchStats, 30000)
     return () => clearInterval(interval)
   }, [])
+
+  // 확인 버튼 클릭 시 홈으로 이동
+  const handleConfirmPreLaunch = () => {
+    router.push('/')
+  }
 
   if (loading) {
     return (
@@ -139,6 +178,55 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* 사전예약 안내 모달 */}
+      {showPreLaunchModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="relative w-full max-w-md mx-4 overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 shadow-2xl">
+            {/* 배경 장식 */}
+            <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl" />
+
+            <div className="relative p-8 text-center">
+              {/* 아이콘 */}
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30 flex items-center justify-center">
+                <span className="text-4xl">🚀</span>
+              </div>
+
+              {/* 제목 */}
+              <h2 className="text-2xl font-bold text-white mb-3">
+                사전예약 중입니다
+              </h2>
+
+              {/* 내용 */}
+              <div className="space-y-4 mb-8">
+                <p className="text-slate-300">
+                  셀러포트는 현재 <span className="text-blue-400 font-semibold">사전예약</span> 기간입니다.
+                </p>
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/30">
+                  <span className="text-blue-400 font-medium">정식 오픈</span>
+                  <span className="text-white font-bold">2026년 1월 1일</span>
+                </div>
+                <p className="text-slate-400 text-sm">
+                  정식 오픈 시 알림을 받으시겠습니까?
+                </p>
+              </div>
+
+              {/* 버튼 */}
+              <button
+                onClick={handleConfirmPreLaunch}
+                className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
+              >
+                확인
+              </button>
+
+              <p className="mt-4 text-xs text-slate-500">
+                사전예약해 주셔서 감사합니다
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 페이지 헤더 */}
       <div className="flex items-center justify-between">
         <div>

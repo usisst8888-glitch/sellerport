@@ -4,12 +4,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 // 회원 목록 조회 (관리자 전용)
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
+    const supabaseAdmin = createAdminClient()
 
     // 인증 확인
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -17,12 +18,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 })
     }
 
-    // 현재 사용자가 관리자/매니저인지 확인
-    const { data: currentProfile } = await supabase
+    // 현재 사용자가 관리자/매니저인지 확인 (Admin 클라이언트로 RLS 우회)
+    const { data: currentProfile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('user_type')
       .eq('id', user.id)
       .single()
+
+    if (profileError) {
+      console.error('Profile fetch error:', profileError)
+      return NextResponse.json({ error: '프로필 조회에 실패했습니다' }, { status: 500 })
+    }
 
     if (!currentProfile || !['admin', 'manager'].includes(currentProfile.user_type)) {
       return NextResponse.json({ error: '권한이 없습니다' }, { status: 403 })
@@ -33,8 +39,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') // pending, approved, rejected
     const userType = searchParams.get('userType') // seller, agency
 
-    // 회원 목록 조회
-    let query = supabase
+    // 회원 목록 조회 (Admin 클라이언트로 RLS 우회)
+    let query = supabaseAdmin
       .from('profiles')
       .select('*')
       .order('created_at', { ascending: false })

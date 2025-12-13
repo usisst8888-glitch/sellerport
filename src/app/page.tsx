@@ -115,6 +115,12 @@ export default function Home() {
     checkAuth()
   }, [])
 
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    setIsLoggedIn(false)
+  }
+
   return (
     <div className="min-h-screen bg-slate-800 text-white overflow-hidden">
       {/* 헤더 */}
@@ -129,11 +135,20 @@ export default function Home() {
             </h1>
             <div className="flex items-center gap-3">
               {isLoggedIn ? (
-                <Link href="/dashboard">
-                  <Button className="bg-blue-600 text-white hover:bg-blue-500 transition-all duration-200">
-                    대시보드
+                <>
+                  <Link href="/dashboard">
+                    <Button className="bg-blue-600 text-white hover:bg-blue-500 transition-all duration-200">
+                      대시보드
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    className="text-slate-300 hover:text-white hover:bg-slate-700"
+                    onClick={handleLogout}
+                  >
+                    로그아웃
                   </Button>
-                </Link>
+                </>
               ) : (
                 <>
                   <Link href="/login">
