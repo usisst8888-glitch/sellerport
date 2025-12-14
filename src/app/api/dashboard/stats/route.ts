@@ -33,6 +33,8 @@ export async function GET() {
         ad_spend,
         status,
         created_at,
+        target_roas_green,
+        target_roas_yellow,
         products (
           id,
           name,
@@ -52,18 +54,24 @@ export async function GET() {
 
     const linkList = trackingLinks || []
 
-    // ROAS 기반 신호등 판정
+    // ROAS 기반 신호등 판정 (추적 링크별 개별 기준 적용)
     const linksWithLight = linkList.map(link => {
       const roas = link.ad_spend > 0 ? Math.round((link.revenue / link.ad_spend) * 100) : 0
+      // 개별 기준이 없으면 기본값 사용 (초록: 300%, 노란: 150%)
+      const greenThreshold = link.target_roas_green ?? 300
+      const yellowThreshold = link.target_roas_yellow ?? 150
+
       let trafficLight: 'green' | 'yellow' | 'red' | 'gray' = 'gray'
-      if (roas >= 300) trafficLight = 'green'
-      else if (roas >= 150) trafficLight = 'yellow'
+      if (roas >= greenThreshold) trafficLight = 'green'
+      else if (roas >= yellowThreshold) trafficLight = 'yellow'
       else if (roas > 0) trafficLight = 'red'
 
       return {
         ...link,
         roas,
-        trafficLight
+        trafficLight,
+        targetRoasGreen: greenThreshold,
+        targetRoasYellow: yellowThreshold
       }
     })
 
@@ -100,32 +108,32 @@ export async function GET() {
     const todayConversionCount = todayConversions?.length || 0
 
     // 설정 상태 확인
-    // 1. 플랫폼 연동 확인
-    const { data: platforms } = await supabase
-      .from('platforms')
+    // 1. 사이트 연동 확인
+    const { data: mySites } = await supabase
+      .from('my_sites')
       .select('id, status')
       .eq('user_id', user.id)
       .eq('status', 'connected')
       .limit(1)
-    const hasPlatformConnected = (platforms?.length || 0) > 0
+    const hasSiteConnected = (mySites?.length || 0) > 0
 
     // 2. 추적 링크 생성 확인
     const hasTrackingLinkCreated = linkList.length > 0
 
-    // 3. 상품 원가 설정 확인 (원가가 0보다 큰 상품이 있는지)
-    const { data: productsWithCost } = await supabase
-      .from('products')
+    // 3. 광고채널 연동 확인
+    const { data: adChannels } = await supabase
+      .from('ad_channels')
       .select('id')
       .eq('user_id', user.id)
-      .gt('cost', 0)
+      .eq('status', 'connected')
       .limit(1)
-    const hasCostConfigured = (productsWithCost?.length || 0) > 0
+    const hasAdChannelConnected = (adChannels?.length || 0) > 0
 
     const setupProgress = {
-      platformConnected: hasPlatformConnected,
+      siteConnected: hasSiteConnected,
+      adChannelConnected: hasAdChannelConnected,
       trackingLinkCreated: hasTrackingLinkCreated,
-      costConfigured: hasCostConfigured,
-      allCompleted: hasPlatformConnected && hasTrackingLinkCreated && hasCostConfigured
+      allCompleted: hasSiteConnected && hasAdChannelConnected && hasTrackingLinkCreated
     }
 
     return NextResponse.json({

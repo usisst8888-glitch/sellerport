@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { productId, utmSource, utmMedium, utmCampaign, targetUrl, name, adSpend } = body
+    const { productId, utmSource, utmMedium, utmCampaign, targetUrl, name, adSpend, targetRoasGreen, targetRoasYellow } = body
 
     if (!utmSource || !utmMedium || !utmCampaign || !targetUrl) {
       return NextResponse.json({ error: '필수 항목이 누락되었습니다' }, { status: 400 })
@@ -104,20 +104,20 @@ export async function POST(request: NextRequest) {
     // 추적 링크 ID 생성
     const trackingLinkId = `TL-${nanoid(8).toUpperCase()}`
 
-    // 상품의 판매 플랫폼 타입 확인 (자체몰 여부)
-    let platformType: string | null = null
+    // 상품의 판매 사이트 타입 확인 (자체몰 여부)
+    let siteType: string | null = null
     if (productId) {
       const { data: product } = await supabase
         .from('products')
-        .select('platform_type')
+        .select('site_type')
         .eq('id', productId)
         .single()
-      platformType = product?.platform_type || null
+      siteType = product?.site_type || null
     }
 
     // 자체몰(custom)은 추적 스크립트 설치 가능 → 브릿지샵 불필요
-    // 네이버/쿠팡 등 외부 플랫폼은 스크립트 설치 불가 → 브릿지샵 필요
-    const isCustomShop = platformType === 'custom' || platformType === 'cafe24'
+    // 네이버/쿠팡 등 외부 사이트는 스크립트 설치 불가 → 브릿지샵 필요
+    const isCustomShop = siteType === 'custom' || siteType === 'cafe24'
     const needsBridgeShop = ['google', 'meta', 'tiktok'].includes(utmSource) && !isCustomShop
 
     // 베이스 URL 설정 (환경에 따라)
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       directUrl = targetWithParams.toString()
       trackingUrl = directUrl
     } else if (needsBridgeShop) {
-      // 구글/메타/틱톡 + 외부 플랫폼(네이버/쿠팡): 브릿지샵 필요
+      // 구글/메타/틱톡 + 외부 사이트(네이버/쿠팡): 브릿지샵 필요
       const smartstoreMatch = targetUrl.match(/smartstore\.naver\.com\/([^/]+)\/products\/(\d+)/)
 
       if (smartstoreMatch) {
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
       }
       trackingUrl = bridgeShopUrl
     } else {
-      // 네이버/카카오/블로그 등 + 외부 플랫폼: 빠른 리다이렉트
+      // 네이버/카카오/블로그 등 + 외부 사이트: 빠른 리다이렉트
       trackingUrl = goUrl
     }
 
@@ -175,7 +175,9 @@ export async function POST(request: NextRequest) {
         clicks: 0,
         conversions: 0,
         revenue: 0,
-        ad_spend: adSpend || 0
+        ad_spend: adSpend || 0,
+        target_roas_green: targetRoasGreen ?? 300,
+        target_roas_yellow: targetRoasYellow ?? 150
       })
       .select()
       .single()

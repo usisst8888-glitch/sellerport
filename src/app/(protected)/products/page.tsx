@@ -22,7 +22,7 @@ interface Campaign {
 interface Product {
   id: string
   name: string
-  platform_type: string
+  site_type: string
   category: string | null
   price: number
   cost: number
@@ -335,7 +335,7 @@ export default function ProductsPage() {
                       </div>
                     </div>
                     <p className="text-xs text-slate-500 mb-3 flex items-center flex-wrap gap-2">
-                      <span>{product.platform_type || '플랫폼 미연결'} · {product.category || '카테고리 없음'}</span>
+                      <span>{product.site_type || '사이트 미연결'} · {product.category || '카테고리 없음'}</span>
                       {product.cost > 0 ? (
                         <>
                           <span className="text-slate-400">원가 {product.cost.toLocaleString()}원</span>
@@ -481,7 +481,7 @@ export default function ProductsPage() {
               {products.length === 0 ? '등록된 상품이 없습니다' : '검색 결과가 없습니다'}
             </p>
             <p className="text-sm text-slate-500">
-              {products.length === 0 ? '플랫폼을 연동하거나 상품을 직접 추가하세요' : '다른 검색어나 필터를 시도해보세요'}
+              {products.length === 0 ? '사이트를 연동하거나 상품을 직접 추가하세요' : '다른 검색어나 필터를 시도해보세요'}
             </p>
           </div>
         )}
@@ -498,7 +498,7 @@ export default function ProductsPage() {
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">광고 플랫폼</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">광고 채널</label>
                 <div className="grid grid-cols-3 gap-2">
                   {['네이버', '메타', '구글', '쿠팡', '카카오', '틱톡'].map((platform) => (
                     <button
@@ -570,8 +570,8 @@ export default function ProductsPage() {
           <div className="w-full max-w-md rounded-2xl bg-slate-800 border border-white/10 shadow-2xl p-6">
             <h3 className="text-lg font-semibold text-white mb-4">상품 추가</h3>
             <p className="text-slate-400 mb-6">
-              상품은 플랫폼 연동 시 자동으로 동기화됩니다.<br />
-              플랫폼을 먼저 연동해주세요.
+              상품은 사이트 연동 시 자동으로 동기화됩니다.<br />
+              내 사이트를 먼저 연동해주세요.
             </p>
             <div className="flex gap-3 justify-end">
               <button
@@ -581,10 +581,10 @@ export default function ProductsPage() {
                 취소
               </button>
               <a
-                href="/platforms"
+                href="/my-sites"
                 className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors"
               >
-                플랫폼 연동하기
+                사이트 연동하기
               </a>
             </div>
           </div>

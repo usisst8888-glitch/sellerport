@@ -521,9 +521,9 @@ function ProfitContent() {
       </section>
 
       <section>
-        <h2 className="text-xl font-bold text-white mb-4">플랫폼별 수수료</h2>
+        <h2 className="text-xl font-bold text-white mb-4">사이트별 수수료</h2>
         <p className="text-slate-300 mb-4">
-          연동된 플랫폼의 실제 수수료율이 자동으로 적용됩니다.
+          연동된 사이트의 실제 수수료율이 자동으로 적용됩니다.
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="bg-slate-900/50 rounded-xl p-4 text-center border border-slate-700/50">
@@ -640,7 +640,7 @@ function FAQContent() {
     },
     {
       question: '클릭은 되는데 전환이 안 잡혀요',
-      answer: '전환 추적은 네이버 스마트스토어 연동이 필요합니다. 플랫폼 연동 메뉴에서 스토어를 연결하면 주문 데이터가 자동으로 연동됩니다.',
+      answer: '전환 추적은 네이버 스마트스토어 연동이 필요합니다. 내 사이트 연동 메뉴에서 스토어를 연결하면 주문 데이터가 자동으로 연동됩니다.',
     },
     {
       question: 'ROAS가 정확한가요?',

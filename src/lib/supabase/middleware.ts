@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // 보호된 경로
-const protectedRoutes = ['/dashboard', '/settings', '/subscribers', '/platforms', '/alimtalk']
+const protectedRoutes = ['/dashboard', '/settings', '/subscribers', '/my-sites', '/alimtalk']
 // 인증된 사용자가 접근하면 안 되는 경로
 const authRoutes = ['/login', '/signup']
 

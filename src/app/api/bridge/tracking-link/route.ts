@@ -35,11 +35,11 @@ export async function GET(request: NextRequest) {
           name,
           image_url,
           price,
-          platform_type,
-          platforms (
+          site_type,
+          my_sites (
             id,
-            platform_type,
-            platform_name
+            site_type,
+            site_name
           )
         )
       `)

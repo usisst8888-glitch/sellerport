@@ -19,32 +19,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 })
     }
 
-    const { platformId, syncType = 'all' } = await request.json()
+    const { siteId, syncType = 'all' } = await request.json()
 
-    if (!platformId) {
-      return NextResponse.json({ error: 'platformId가 필요합니다' }, { status: 400 })
+    if (!siteId) {
+      return NextResponse.json({ error: 'siteId가 필요합니다' }, { status: 400 })
     }
 
-    // 플랫폼 정보 조회
-    const { data: platform, error: platformError } = await supabase
-      .from('platforms')
+    // 사이트 정보 조회
+    const { data: site, error: siteError } = await supabase
+      .from('my_sites')
       .select('*')
-      .eq('id', platformId)
+      .eq('id', siteId)
       .eq('user_id', user.id)
       .single()
 
-    if (platformError || !platform) {
-      return NextResponse.json({ error: '플랫폼을 찾을 수 없습니다' }, { status: 404 })
+    if (siteError || !site) {
+      return NextResponse.json({ error: '사이트를 찾을 수 없습니다' }, { status: 404 })
     }
 
-    if (platform.status !== 'connected') {
-      return NextResponse.json({ error: '플랫폼이 연동되지 않았습니다. 먼저 검증을 완료해주세요.' }, { status: 400 })
+    if (site.status !== 'connected') {
+      return NextResponse.json({ error: '사이트가 연동되지 않았습니다. 먼저 검증을 완료해주세요.' }, { status: 400 })
     }
 
     // 네이버 API 클라이언트 생성
     const naverClient = createNaverClient(
-      platform.application_id,
-      platform.application_secret
+      site.application_id,
+      site.application_secret
     )
 
     const results = {
@@ -57,8 +57,8 @@ export async function POST(request: NextRequest) {
     if (syncType === 'all' || syncType === 'products') {
       try {
         console.log('========== 상품 동기화 시작 ==========')
-        console.log('Platform ID:', platformId)
-        console.log('Application ID:', platform.application_id)
+        console.log('Site ID:', siteId)
+        console.log('Application ID:', site.application_id)
 
         // 페이지 1부터 시작 (API 스펙에 따름)
         const productsResponse = await naverClient.getProducts(1, 100)
@@ -85,8 +85,8 @@ export async function POST(request: NextRequest) {
               .from('products')
               .upsert({
                 user_id: user.id,
-                platform_id: platformId,
-                platform_type: 'naver',
+                my_site_id: siteId,
+                site_type: 'naver',
                 external_product_id: content.originProductNo.toString(),
                 name: channelProduct.name,
                 price: actualPrice,
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
                 image_url: channelProduct.representativeImage?.url || null,
                 synced_at: new Date().toISOString()
               }, {
-                onConflict: 'platform_id,external_product_id'
+                onConflict: 'my_site_id,external_product_id'
               })
 
             results.products.synced++
@@ -126,8 +126,8 @@ export async function POST(request: NextRequest) {
               .from('orders')
               .upsert({
                 user_id: user.id,
-                platform_id: platformId,
-                platform_type: 'naver',
+                my_site_id: siteId,
+                site_type: 'naver',
                 external_order_id: order.orderId,
                 product_order_id: order.productOrderId,
                 product_name: order.productName,
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
                 inflow_path: order.inflowPathType || null,
                 synced_at: new Date().toISOString()
               }, {
-                onConflict: 'platform_id,external_order_id,product_order_id'
+                onConflict: 'my_site_id,external_order_id,product_order_id'
               })
 
             // 정산 조회 대상 추가 (구매확정된 주문만)
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
                     // 실제 수수료를 platform_fee에도 저장
                     platform_fee: settlement.totalCommission
                   })
-                  .eq('platform_id', platformId)
+                  .eq('my_site_id', siteId)
                   .eq('product_order_id', settlement.productOrderId)
 
                 results.settlements.synced++
@@ -200,8 +200,8 @@ export async function POST(request: NextRequest) {
         const { data: ordersWithoutSettlement } = await supabase
           .from('orders')
           .select('product_order_id')
-          .eq('platform_id', platformId)
-          .eq('platform_type', 'naver')
+          .eq('my_site_id', siteId)
+          .eq('site_type', 'naver')
           .is('settlement_amount', null)
           .not('product_order_id', 'is', null)
           .limit(100)
@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
                     settlement_synced_at: new Date().toISOString(),
                     platform_fee: settlement.totalCommission
                   })
-                  .eq('platform_id', platformId)
+                  .eq('my_site_id', siteId)
                   .eq('product_order_id', settlement.productOrderId)
 
                 results.settlements.synced++
@@ -243,9 +243,9 @@ export async function POST(request: NextRequest) {
 
     // 마지막 동기화 시간 업데이트
     await supabase
-      .from('platforms')
+      .from('my_sites')
       .update({ last_sync_at: new Date().toISOString() })
-      .eq('id', platformId)
+      .eq('id', siteId)
 
     return NextResponse.json({
       success: true,

@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { NaverConnectDialog } from '@/components/platforms/naver-connect-dialog'
+import { NaverConnectDialog } from '@/components/my-sites/naver-connect-dialog'
+import { CustomSiteConnectDialog } from '@/components/my-sites/custom-site-connect-dialog'
+import { CoupangConnectDialog } from '@/components/my-sites/coupang-connect-dialog'
 import { createClient } from '@/lib/supabase/client'
-import { Input } from '@/components/ui/input'
 
-interface Platform {
+interface MySite {
   id: string
-  platform_type: string
-  platform_name: string
+  site_type: string
+  site_name: string
   status: string
   last_sync_at: string | null
   created_at: string
@@ -23,7 +24,7 @@ interface LoadingState {
   }
 }
 
-// 플랫폼 로고 컴포넌트
+// 사이트 로고 컴포넌트
 const NaverLogo = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
     <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z" fill="#03C75A"/>
@@ -73,8 +74,8 @@ const CustomSiteLogo = ({ className }: { className?: string }) => (
   </svg>
 )
 
-// 외부 플랫폼 (스크립트 설치 불가 → 브릿지샵 필요)
-const externalPlatforms = [
+// 외부 사이트 (스크립트 설치 불가 → 브릿지샵 필요)
+const externalSites = [
   {
     id: 'naver',
     name: '네이버 스마트스토어',
@@ -88,52 +89,52 @@ const externalPlatforms = [
     name: '쿠팡',
     description: 'HMAC 인증',
     logo: CoupangLogo,
-    status: 'coming_soon',
+    status: 'available',
     scriptInstallable: false,
   },
 ]
 
-// 자체몰 플랫폼 (스크립트 설치 가능 → 직접 추적)
-const customPlatforms = [
+// 자체몰 사이트 (스크립트 설치 가능 → 직접 추적)
+const customSites = [
   {
     id: 'cafe24',
     name: '카페24',
-    description: 'OAuth 2.0 인증 + 추적 스크립트',
+    description: '추적 스크립트 설치',
     logo: Cafe24Logo,
-    status: 'coming_soon',
+    status: 'available',
     scriptInstallable: true,
   },
   {
     id: 'imweb',
     name: '아임웹',
-    description: 'API Key 인증 + 추적 스크립트',
+    description: '추적 스크립트 설치',
     logo: ImwebLogo,
-    status: 'coming_soon',
+    status: 'available',
     scriptInstallable: true,
   },
   {
     id: 'godo',
     name: '고도몰',
-    description: 'API Key 인증 + 추적 스크립트',
+    description: '추적 스크립트 설치',
     logo: GodoLogo,
-    status: 'coming_soon',
+    status: 'available',
     scriptInstallable: true,
   },
   {
     id: 'makeshop',
     name: '메이크샵',
-    description: 'API Key 인증 + 추적 스크립트',
+    description: '추적 스크립트 설치',
     logo: MakeshopLogo,
-    status: 'coming_soon',
+    status: 'available',
     scriptInstallable: true,
   },
 ]
 
-// 모든 플랫폼 (기존 호환용)
-const platformConfigs = [...externalPlatforms, ...customPlatforms]
+// 모든 사이트 설정
+const siteConfigs = [...externalSites, ...customSites]
 
-export default function PlatformsPage() {
-  const [connectedPlatforms, setConnectedPlatforms] = useState<Platform[]>([])
+export default function MySitesPage() {
+  const [connectedSites, setConnectedSites] = useState<MySite[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingStates, setLoadingStates] = useState<LoadingState>({})
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -141,7 +142,7 @@ export default function PlatformsPage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [copiedCode, setCopiedCode] = useState(false)
 
-  const fetchPlatforms = async () => {
+  const fetchMySites = async () => {
     const supabase = createClient()
 
     // 사용자 ID 가져오기
@@ -151,16 +152,16 @@ export default function PlatformsPage() {
     }
 
     const { data } = await supabase
-      .from('platforms')
+      .from('my_sites')
       .select('*')
       .order('created_at', { ascending: false })
 
-    setConnectedPlatforms(data || [])
+    setConnectedSites(data || [])
     setLoading(false)
   }
 
   useEffect(() => {
-    fetchPlatforms()
+    fetchMySites()
   }, [])
 
   // 메시지 3초 후 자동 제거
@@ -198,42 +199,42 @@ export default function PlatformsPage() {
   }
 
   // 연동 검증
-  const handleVerify = async (platformId: string) => {
-    setLoadingStates(prev => ({ ...prev, [platformId]: { ...prev[platformId], verifying: true } }))
+  const handleVerify = async (siteId: string) => {
+    setLoadingStates(prev => ({ ...prev, [siteId]: { ...prev[siteId], verifying: true } }))
     setMessage(null)
 
     try {
       const response = await fetch('/api/naver/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platformId })
+        body: JSON.stringify({ siteId })
       })
 
       const result = await response.json()
 
       if (result.success) {
         setMessage({ type: 'success', text: result.message })
-        fetchPlatforms()
+        fetchMySites()
       } else {
         setMessage({ type: 'error', text: result.error })
       }
     } catch {
       setMessage({ type: 'error', text: '검증 중 오류가 발생했습니다' })
     } finally {
-      setLoadingStates(prev => ({ ...prev, [platformId]: { ...prev[platformId], verifying: false } }))
+      setLoadingStates(prev => ({ ...prev, [siteId]: { ...prev[siteId], verifying: false } }))
     }
   }
 
   // 데이터 동기화
-  const handleSync = async (platformId: string) => {
-    setLoadingStates(prev => ({ ...prev, [platformId]: { ...prev[platformId], syncing: true } }))
+  const handleSync = async (siteId: string) => {
+    setLoadingStates(prev => ({ ...prev, [siteId]: { ...prev[siteId], syncing: true } }))
     setMessage(null)
 
     try {
       const response = await fetch('/api/naver/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platformId, syncType: 'all' })
+        body: JSON.stringify({ siteId, syncType: 'all' })
       })
 
       const result = await response.json()
@@ -243,27 +244,27 @@ export default function PlatformsPage() {
           type: 'success',
           text: `동기화 완료: 상품 ${result.results.products.synced}개, 주문 ${result.results.orders.synced}개`
         })
-        fetchPlatforms()
+        fetchMySites()
       } else {
         setMessage({ type: 'error', text: result.error })
       }
     } catch {
       setMessage({ type: 'error', text: '동기화 중 오류가 발생했습니다' })
     } finally {
-      setLoadingStates(prev => ({ ...prev, [platformId]: { ...prev[platformId], syncing: false } }))
+      setLoadingStates(prev => ({ ...prev, [siteId]: { ...prev[siteId], syncing: false } }))
     }
   }
 
-  const handleDisconnect = async (platformId: string) => {
+  const handleDisconnect = async (siteId: string) => {
     if (!confirm('정말 연동을 해제하시겠습니까?')) return
 
     const supabase = createClient()
     await supabase
-      .from('platforms')
+      .from('my_sites')
       .delete()
-      .eq('id', platformId)
+      .eq('id', siteId)
 
-    fetchPlatforms()
+    fetchMySites()
   }
 
   const getStatusBadge = (status: string) => {
@@ -281,8 +282,8 @@ export default function PlatformsPage() {
     }
   }
 
-  const getPlatformLogo = (type: string) => {
-    const config = platformConfigs.find(p => p.id === type)
+  const getSiteLogo = (type: string) => {
+    const config = siteConfigs.find(p => p.id === type)
     if (config?.logo) {
       const Logo = config.logo
       return <Logo className="w-8 h-8" />
@@ -294,8 +295,8 @@ export default function PlatformsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">플랫폼 연동</h1>
-          <p className="text-slate-400 mt-1">판매 플랫폼을 연동하여 상품과 주문을 관리하세요</p>
+          <h1 className="text-2xl font-bold text-white">내 사이트 연동</h1>
+          <p className="text-slate-400 mt-1">판매 사이트를 연동하여 상품과 주문을 관리하세요</p>
         </div>
       </div>
 
@@ -321,50 +322,50 @@ export default function PlatformsPage() {
         </div>
       )}
 
-      {/* 연동된 플랫폼 */}
+      {/* 연동된 사이트 */}
       <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 mb-6">
-        <h2 className="text-lg font-semibold text-white mb-1">연동된 플랫폼</h2>
+        <h2 className="text-lg font-semibold text-white mb-1">연동된 사이트</h2>
         <p className="text-sm text-slate-400 mb-5">
-          {connectedPlatforms.length > 0
-            ? `${connectedPlatforms.length}개의 플랫폼이 연동되어 있습니다`
-            : '현재 연동된 플랫폼이 없습니다'}
+          {connectedSites.length > 0
+            ? `${connectedSites.length}개의 사이트가 연동되어 있습니다`
+            : '현재 연동된 사이트가 없습니다'}
         </p>
 
         {loading ? (
           <div className="flex justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
           </div>
-        ) : connectedPlatforms.length > 0 ? (
+        ) : connectedSites.length > 0 ? (
           <div className="space-y-3">
-            {connectedPlatforms.map((platform) => (
+            {connectedSites.map((site) => (
               <div
-                key={platform.id}
+                key={site.id}
                 className="p-4 bg-slate-700/50 border border-slate-600 rounded-lg"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    {getPlatformLogo(platform.platform_type)}
+                    {getSiteLogo(site.site_type)}
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-white">{platform.platform_name}</h3>
-                        {getStatusBadge(platform.status)}
+                        <h3 className="font-medium text-white">{site.site_name}</h3>
+                        {getStatusBadge(site.status)}
                       </div>
                       <p className="text-sm text-slate-400">
-                        {platform.last_sync_at
-                          ? `마지막 동기화: ${new Date(platform.last_sync_at).toLocaleString('ko-KR')}`
+                        {site.last_sync_at
+                          ? `마지막 동기화: ${new Date(site.last_sync_at).toLocaleString('ko-KR')}`
                           : '아직 동기화되지 않음'}
                       </p>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    {platform.status === 'pending_verification' ? (
+                    {site.status === 'pending_verification' ? (
                       <Button
                         size="sm"
                         className="bg-amber-500 hover:bg-amber-400 text-black font-medium"
-                        onClick={() => handleVerify(platform.id)}
-                        disabled={loadingStates[platform.id]?.verifying}
+                        onClick={() => handleVerify(site.id)}
+                        disabled={loadingStates[site.id]?.verifying}
                       >
-                        {loadingStates[platform.id]?.verifying ? (
+                        {loadingStates[site.id]?.verifying ? (
                           <>
                             <svg className="animate-spin -ml-1 mr-2 h-3 w-3" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -378,10 +379,10 @@ export default function PlatformsPage() {
                       <Button
                         size="sm"
                         className="bg-blue-600 hover:bg-blue-500 text-white font-medium"
-                        onClick={() => handleSync(platform.id)}
-                        disabled={loadingStates[platform.id]?.syncing || platform.status !== 'connected'}
+                        onClick={() => handleSync(site.id)}
+                        disabled={loadingStates[site.id]?.syncing || site.status !== 'connected'}
                       >
-                        {loadingStates[platform.id]?.syncing ? (
+                        {loadingStates[site.id]?.syncing ? (
                           <>
                             <svg className="animate-spin -ml-1 mr-2 h-3 w-3" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -396,7 +397,7 @@ export default function PlatformsPage() {
                       variant="outline"
                       size="sm"
                       className="border-red-500/50 text-red-400 hover:bg-red-500/20 hover:text-red-300"
-                      onClick={() => handleDisconnect(platform.id)}
+                      onClick={() => handleDisconnect(site.id)}
                     >
                       해제
                     </Button>
@@ -417,12 +418,12 @@ export default function PlatformsPage() {
             <svg className="w-12 h-12 text-slate-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
-            <p className="text-slate-400">아래에서 플랫폼을 선택하여 연동하세요</p>
+            <p className="text-slate-400">아래에서 사이트를 선택하여 연동하세요</p>
           </div>
         )}
       </div>
 
-      {/* 외부 플랫폼 (브릿지샵 필요) */}
+      {/* 외부 마켓플레이스 (브릿지샵 필요) */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
           <h2 className="text-lg font-semibold text-white">외부 마켓플레이스</h2>
@@ -432,26 +433,30 @@ export default function PlatformsPage() {
           스크립트 설치가 불가능하여 메타/구글/틱톡 광고 시 브릿지샵(중간 페이지)을 통해 추적합니다.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {externalPlatforms.map((platform) => (
+          {externalSites.map((site) => (
             <div
-              key={platform.id}
-              className={`bg-slate-800 border border-slate-700 rounded-xl p-6 ${platform.status === 'coming_soon' ? 'opacity-60' : ''}`}
+              key={site.id}
+              className={`bg-slate-800 border border-slate-700 rounded-xl p-6 ${site.status === 'coming_soon' ? 'opacity-60' : ''}`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  {<platform.logo className="w-10 h-10" />}
+                  {<site.logo className="w-10 h-10" />}
                   <div>
-                    <h3 className="font-semibold text-white">{platform.name}</h3>
-                    <p className="text-sm text-slate-400">{platform.description}</p>
+                    <h3 className="font-semibold text-white">{site.name}</h3>
+                    <p className="text-sm text-slate-400">{site.description}</p>
                   </div>
                 </div>
               </div>
               <div className="mt-4">
-                {platform.status === 'available' ? (
-                  platform.id === 'naver' ? (
-                    <NaverConnectDialog onSuccess={fetchPlatforms}>
+                {site.status === 'available' ? (
+                  site.id === 'naver' ? (
+                    <NaverConnectDialog onSuccess={fetchMySites}>
                       <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white">연동하기</Button>
                     </NaverConnectDialog>
+                  ) : site.id === 'coupang' ? (
+                    <CoupangConnectDialog onSuccess={fetchMySites}>
+                      <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white">연동하기</Button>
+                    </CoupangConnectDialog>
                   ) : (
                     <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white">연동하기</Button>
                   )
@@ -466,33 +471,40 @@ export default function PlatformsPage() {
         </div>
       </div>
 
-      {/* 자체몰 플랫폼 (직접 추적 가능) */}
+      {/* 자체몰 사이트 (직접 추적 가능) */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-lg font-semibold text-white">자체몰 플랫폼</h2>
+          <h2 className="text-lg font-semibold text-white">자체몰 사이트</h2>
           <span className="px-2 py-0.5 text-xs bg-emerald-500/20 text-emerald-400 rounded-full">직접 추적</span>
         </div>
         <p className="text-sm text-slate-400 mb-4">
           추적 스크립트 설치가 가능하여 광고 URL에 직접 파라미터를 추가하여 추적합니다. 브릿지샵이 필요 없습니다.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {customPlatforms.map((platform) => (
+          {customSites.map((site) => (
             <div
-              key={platform.id}
-              className={`bg-slate-800 border border-slate-700 rounded-xl p-6 ${platform.status === 'coming_soon' ? 'opacity-60' : ''}`}
+              key={site.id}
+              className={`bg-slate-800 border border-slate-700 rounded-xl p-6 ${site.status === 'coming_soon' ? 'opacity-60' : ''}`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  {<platform.logo className="w-10 h-10" />}
+                  {<site.logo className="w-10 h-10" />}
                   <div>
-                    <h3 className="font-semibold text-white">{platform.name}</h3>
-                    <p className="text-sm text-slate-400">{platform.description}</p>
+                    <h3 className="font-semibold text-white">{site.name}</h3>
+                    <p className="text-sm text-slate-400">{site.description}</p>
                   </div>
                 </div>
               </div>
               <div className="mt-4">
-                {platform.status === 'available' ? (
-                  <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white">연동하기</Button>
+                {site.status === 'available' ? (
+                  <CustomSiteConnectDialog
+                    siteType={site.id as 'cafe24' | 'imweb' | 'godo' | 'makeshop' | 'custom'}
+                    siteName={site.name}
+                    siteDescription={`${site.name} 쇼핑몰을 연동하고 광고 전환을 추적하세요`}
+                    onSuccess={fetchMySites}
+                  >
+                    <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white">연동하기</Button>
+                  </CustomSiteConnectDialog>
                 ) : (
                   <Button className="w-full border-slate-600 text-slate-400" variant="outline" disabled>
                     준비 중
@@ -599,7 +611,7 @@ window.sellerport?.track('conversion', {
                 </div>
               </div>
 
-              {/* 플랫폼별 가이드 */}
+              {/* 사이트별 가이드 */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50 text-center">
                   <span className="text-2xl mb-1 block">📝</span>

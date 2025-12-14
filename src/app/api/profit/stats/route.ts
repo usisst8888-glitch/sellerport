@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     // 1. 상품 데이터 가져오기
     const { data: products, error: productsError } = await supabase
       .from('products')
-      .select('id, name, platform_type, price, cost, platforms(platform_name)')
+      .select('id, name, site_type, price, cost, my_sites(site_name)')
       .eq('user_id', user.id)
 
     if (productsError) {
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
         product_name,
         total_amount,
         quantity,
-        platform_type,
+        site_type,
         settlement_amount,
         settlement_commission,
         settlement_commission_rate,
@@ -147,7 +147,7 @@ export async function GET(request: NextRequest) {
 
         // 예상 수수료 기반 계산
         const feeCalc = calculatePlatformFee(
-          order.platform_type || 'etc',
+          order.site_type || 'etc',
           null,
           null,
           order.total_amount || 0
@@ -174,7 +174,7 @@ export async function GET(request: NextRequest) {
     const productStats: ProductStats[] = (products || []).map(product => {
       // 플랫폼 수수료 계산 (기본 설정 사용)
       const feeCalc = calculatePlatformFee(
-        product.platform_type,
+        product.site_type,
         null,
         null,
         product.price
@@ -196,8 +196,8 @@ export async function GET(request: NextRequest) {
       return {
         productId: product.id,
         productName: product.name,
-        platform: (product.platforms as { platform_name?: string } | null)?.platform_name || product.platform_type,
-        platformType: product.platform_type,
+        platform: (product.my_sites as { site_name?: string } | null)?.site_name || product.site_type,
+        platformType: product.site_type,
         sellingPrice: product.price,
         cost: product.cost,
         platformFee: estimatedPlatformFee,

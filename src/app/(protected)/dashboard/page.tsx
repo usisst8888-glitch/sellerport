@@ -29,9 +29,9 @@ interface TrackingLink {
 }
 
 interface SetupProgress {
-  platformConnected: boolean
+  siteConnected: boolean
+  adChannelConnected: boolean
   trackingLinkCreated: boolean
-  costConfigured: boolean
   allCompleted: boolean
 }
 
@@ -101,6 +101,7 @@ export default function DashboardPage() {
   const [showPreLaunchModal, setShowPreLaunchModal] = useState(false)
   const [userType, setUserType] = useState<string | null>(null)
   const [notifyLoading, setNotifyLoading] = useState(false)
+  const [signalFilter, setSignalFilter] = useState<'all' | 'green' | 'yellow' | 'red'>('all')
   const router = useRouter()
 
   // 사용자 타입 확인 및 사전예약 팝업 표시
@@ -187,13 +188,13 @@ export default function DashboardPage() {
     today: { conversions: 0, revenue: 0 },
     trackingLinks: [],
     redLightLinks: [],
-    setupProgress: { platformConnected: false, trackingLinkCreated: false, costConfigured: false, allCompleted: false }
+    setupProgress: { siteConnected: false, adChannelConnected: false, trackingLinkCreated: false, allCompleted: false }
   }
 
   // 현재 진행해야 할 단계 찾기
-  const currentStep = !setupProgress.platformConnected ? 1
-    : !setupProgress.trackingLinkCreated ? 2
-    : !setupProgress.costConfigured ? 3
+  const currentStep = !setupProgress.siteConnected ? 1
+    : !setupProgress.adChannelConnected ? 2
+    : !setupProgress.trackingLinkCreated ? 3
     : 0
 
   return (
@@ -298,51 +299,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 신호등 요약 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-emerald-500/20 p-5 hover:border-emerald-500/40 transition-all duration-300">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-colors" />
-          <div className="relative flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/50 flex items-center justify-center">
-              <span className="text-xl">🟢</span>
-            </div>
-            <div className="flex-1">
-              <p className="text-sm text-emerald-400 font-medium">ROAS 300%+</p>
-              <p className="text-3xl font-bold text-white">{signalCounts.green}<span className="text-lg font-normal text-slate-400 ml-1">개</span></p>
-              <p className="text-sm text-slate-500">효율 좋음</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-amber-500/20 p-5 hover:border-amber-500/40 transition-all duration-300">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-colors" />
-          <div className="relative flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-amber-500 shadow-lg shadow-amber-500/50 flex items-center justify-center">
-              <span className="text-xl">🟡</span>
-            </div>
-            <div className="flex-1">
-              <p className="text-sm text-amber-400 font-medium">ROAS 150-300%</p>
-              <p className="text-3xl font-bold text-white">{signalCounts.yellow}<span className="text-lg font-normal text-slate-400 ml-1">개</span></p>
-              <p className="text-sm text-slate-500">주의 필요</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-red-500/20 p-5 hover:border-red-500/40 transition-all duration-300">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 rounded-full blur-2xl group-hover:bg-red-500/20 transition-colors" />
-          <div className="relative flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-red-500 shadow-lg shadow-red-500/50 animate-pulse flex items-center justify-center">
-              <span className="text-xl">🔴</span>
-            </div>
-            <div className="flex-1">
-              <p className="text-sm text-red-400 font-medium">ROAS 150% 미만</p>
-              <p className="text-3xl font-bold text-white">{signalCounts.red}<span className="text-lg font-normal text-slate-400 ml-1">개</span></p>
-              <p className="text-sm text-slate-500">개선 필요</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* 전체 통계 */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="rounded-xl bg-slate-800/50 border border-white/5 p-4">
@@ -370,13 +326,110 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* 신호등 필터 카드 */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* 전체 */}
+        <button
+          onClick={() => setSignalFilter('all')}
+          className={`group relative overflow-hidden rounded-2xl p-5 transition-all duration-300 ${
+            signalFilter === 'all'
+              ? 'bg-gradient-to-br from-slate-700 to-slate-800 border-2 border-blue-500/50 shadow-lg shadow-blue-500/10'
+              : 'bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-white/5 hover:border-white/20'
+          }`}
+        >
+          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-colors" />
+          <div className="relative flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/50 flex items-center justify-center ${signalFilter === 'all' ? 'scale-110' : ''} transition-transform`}>
+              <span className="text-xl">🚦</span>
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm text-blue-400 font-medium">전체</p>
+              <p className="text-3xl font-bold text-white">{signalCounts.green + signalCounts.yellow + signalCounts.red}<span className="text-lg font-normal text-slate-400 ml-1">개</span></p>
+            </div>
+          </div>
+        </button>
+
+        {/* 초록불 */}
+        <button
+          onClick={() => setSignalFilter('green')}
+          className={`group relative overflow-hidden rounded-2xl p-5 transition-all duration-300 ${
+            signalFilter === 'green'
+              ? 'bg-gradient-to-br from-slate-700 to-slate-800 border-2 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
+              : 'bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-emerald-500/20 hover:border-emerald-500/40'
+          }`}
+        >
+          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-colors" />
+          <div className="relative flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/50 flex items-center justify-center ${signalFilter === 'green' ? 'scale-110' : ''} transition-transform`}>
+              <span className="text-xl">🟢</span>
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm text-emerald-400 font-medium">효율 좋음</p>
+              <p className="text-3xl font-bold text-white">{signalCounts.green}<span className="text-lg font-normal text-slate-400 ml-1">개</span></p>
+            </div>
+          </div>
+        </button>
+
+        {/* 노란불 */}
+        <button
+          onClick={() => setSignalFilter('yellow')}
+          className={`group relative overflow-hidden rounded-2xl p-5 transition-all duration-300 ${
+            signalFilter === 'yellow'
+              ? 'bg-gradient-to-br from-slate-700 to-slate-800 border-2 border-amber-500/50 shadow-lg shadow-amber-500/10'
+              : 'bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-amber-500/20 hover:border-amber-500/40'
+          }`}
+        >
+          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-colors" />
+          <div className="relative flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-full bg-amber-500 shadow-lg shadow-amber-500/50 flex items-center justify-center ${signalFilter === 'yellow' ? 'scale-110' : ''} transition-transform`}>
+              <span className="text-xl">🟡</span>
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm text-amber-400 font-medium">주의 필요</p>
+              <p className="text-3xl font-bold text-white">{signalCounts.yellow}<span className="text-lg font-normal text-slate-400 ml-1">개</span></p>
+            </div>
+          </div>
+        </button>
+
+        {/* 빨간불 */}
+        <button
+          onClick={() => setSignalFilter('red')}
+          className={`group relative overflow-hidden rounded-2xl p-5 transition-all duration-300 ${
+            signalFilter === 'red'
+              ? 'bg-gradient-to-br from-slate-700 to-slate-800 border-2 border-red-500/50 shadow-lg shadow-red-500/10'
+              : 'bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-red-500/20 hover:border-red-500/40'
+          }`}
+        >
+          <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 rounded-full blur-2xl group-hover:bg-red-500/20 transition-colors" />
+          <div className="relative flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-full bg-red-500 shadow-lg shadow-red-500/50 animate-pulse flex items-center justify-center ${signalFilter === 'red' ? 'scale-110' : ''} transition-transform`}>
+              <span className="text-xl">🔴</span>
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm text-red-400 font-medium">개선 필요</p>
+              <p className="text-3xl font-bold text-white">{signalCounts.red}<span className="text-lg font-normal text-slate-400 ml-1">개</span></p>
+            </div>
+          </div>
+        </button>
+      </div>
+
       {/* 추적 링크별 신호등 현황 */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-white/5">
         <div className="p-6 border-b border-white/5">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-white">추적 링크별 광고 효율</h2>
-              <p className="text-sm text-slate-400 mt-0.5">빨간불 추적 링크는 즉시 점검이 필요합니다</p>
+              <h2 className="text-lg font-semibold text-white">
+                {signalFilter === 'all' && '전체 추적 링크'}
+                {signalFilter === 'green' && '🟢 효율 좋은 추적 링크'}
+                {signalFilter === 'yellow' && '🟡 주의 필요한 추적 링크'}
+                {signalFilter === 'red' && '🔴 개선 필요한 추적 링크'}
+              </h2>
+              <p className="text-sm text-slate-400 mt-0.5">
+                {signalFilter === 'all' && '신호등으로 광고 효율을 한눈에 확인하세요'}
+                {signalFilter === 'green' && 'ROAS 300% 이상의 우수한 광고들'}
+                {signalFilter === 'yellow' && 'ROAS 150~300%, 개선하면 더 좋아질 수 있어요'}
+                {signalFilter === 'red' && 'ROAS 150% 미만, 즉시 점검이 필요합니다'}
+              </p>
             </div>
             <Link href="/conversions" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
               전체 보기
@@ -386,7 +439,10 @@ export default function DashboardPage() {
 
         <div className="divide-y divide-white/5">
           {trackingLinks.length > 0 ? (
-            trackingLinks.slice(0, 10).map((link) => (
+            trackingLinks
+              .filter(link => signalFilter === 'all' || link.trafficLight === signalFilter)
+              .slice(0, 10)
+              .map((link) => (
               <div key={link.id} className="flex items-center gap-4 p-4 hover:bg-white/5 transition-colors">
                 <div className={`w-4 h-4 rounded-full ${getTrafficLightColor(link.trafficLight)} shadow-lg`} />
                 <div className="flex-1 min-w-0">
@@ -433,6 +489,12 @@ export default function DashboardPage() {
               </Link>
             </div>
           )}
+          {trackingLinks.length > 0 &&
+            trackingLinks.filter(link => signalFilter === 'all' || link.trafficLight === signalFilter).length === 0 && (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-slate-400">해당 조건의 추적 링크가 없습니다</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -445,52 +507,87 @@ export default function DashboardPage() {
             <h2 className="text-lg font-semibold text-white mb-1">시작하기</h2>
             <p className="text-sm text-slate-400 mb-5">셀러포트를 시작하려면 아래 단계를 따라주세요</p>
             <div className="space-y-2">
-              {/* Step 1: 플랫폼 연동 */}
+              {/* Step 1: 사이트 연동 */}
               <Link
-                href="/platforms"
+                href="/my-sites"
                 className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-200 group ${
                   currentStep === 1 ? 'bg-white/5 hover:bg-white/10' : 'hover:bg-white/5'
                 }`}
               >
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${
-                  setupProgress.platformConnected
+                  setupProgress.siteConnected
                     ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
                     : currentStep === 1
                       ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/20'
                       : 'bg-slate-700/50 text-slate-400 border border-slate-600'
                 }`}>
-                  {setupProgress.platformConnected ? (
+                  {setupProgress.siteConnected ? (
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   ) : '1'}
                 </div>
                 <div className="flex-1">
-                  <p className={`font-medium ${setupProgress.platformConnected ? 'text-emerald-400' : currentStep === 1 ? 'text-white' : 'text-slate-300'}`}>
-                    플랫폼 연동
+                  <p className={`font-medium ${setupProgress.siteConnected ? 'text-emerald-400' : currentStep === 1 ? 'text-white' : 'text-slate-300'}`}>
+                    사이트 연동
                   </p>
                   <p className="text-sm text-slate-500">
-                    {setupProgress.platformConnected ? '연동 완료!' : '판매 플랫폼 연결'}
+                    {setupProgress.siteConnected ? '연동 완료!' : '판매 사이트 연결'}
                   </p>
                 </div>
-                {!setupProgress.platformConnected && (
+                {!setupProgress.siteConnected && (
                   <svg className="w-5 h-5 text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 )}
               </Link>
 
-              {/* Step 2: 추적 링크 생성 */}
+              {/* Step 2: 광고채널 연동 */}
               <Link
-                href="/conversions"
+                href="/ad-channels"
                 className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-200 group ${
                   currentStep === 2 ? 'bg-white/5 hover:bg-white/10' : 'hover:bg-white/5'
                 }`}
               >
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${
-                  setupProgress.trackingLinkCreated
+                  setupProgress.adChannelConnected
                     ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
                     : currentStep === 2
+                      ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/20'
+                      : 'bg-slate-700/50 text-slate-400 border border-slate-600'
+                }`}>
+                  {setupProgress.adChannelConnected ? (
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  ) : '2'}
+                </div>
+                <div className="flex-1">
+                  <p className={`font-medium ${setupProgress.adChannelConnected ? 'text-emerald-400' : currentStep === 2 ? 'text-white' : 'text-slate-300'}`}>
+                    광고채널 연동
+                  </p>
+                  <p className="text-sm text-slate-500">
+                    {setupProgress.adChannelConnected ? '채널 연동 완료!' : '광고 플랫폼 연결'}
+                  </p>
+                </div>
+                {!setupProgress.adChannelConnected && (
+                  <svg className="w-5 h-5 text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                )}
+              </Link>
+
+              {/* Step 3: 추적 링크 생성 */}
+              <Link
+                href="/conversions"
+                className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-200 group ${
+                  currentStep === 3 ? 'bg-white/5 hover:bg-white/10' : 'hover:bg-white/5'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${
+                  setupProgress.trackingLinkCreated
+                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                    : currentStep === 3
                       ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/20'
                       : 'bg-slate-700/50 text-slate-400 border border-slate-600'
                 }`}>
@@ -498,10 +595,10 @@ export default function DashboardPage() {
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
-                  ) : '2'}
+                  ) : '3'}
                 </div>
                 <div className="flex-1">
-                  <p className={`font-medium ${setupProgress.trackingLinkCreated ? 'text-emerald-400' : currentStep === 2 ? 'text-white' : 'text-slate-300'}`}>
+                  <p className={`font-medium ${setupProgress.trackingLinkCreated ? 'text-emerald-400' : currentStep === 3 ? 'text-white' : 'text-slate-300'}`}>
                     추적 링크 생성
                   </p>
                   <p className="text-sm text-slate-500">
@@ -509,41 +606,6 @@ export default function DashboardPage() {
                   </p>
                 </div>
                 {!setupProgress.trackingLinkCreated && (
-                  <svg className="w-5 h-5 text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                )}
-              </Link>
-
-              {/* Step 3: 상품 원가 설정 */}
-              <Link
-                href="/products"
-                className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-200 group ${
-                  currentStep === 3 ? 'bg-white/5 hover:bg-white/10' : 'hover:bg-white/5'
-                }`}
-              >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${
-                  setupProgress.costConfigured
-                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                    : currentStep === 3
-                      ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/20'
-                      : 'bg-slate-700/50 text-slate-400 border border-slate-600'
-                }`}>
-                  {setupProgress.costConfigured ? (
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  ) : '3'}
-                </div>
-                <div className="flex-1">
-                  <p className={`font-medium ${setupProgress.costConfigured ? 'text-emerald-400' : currentStep === 3 ? 'text-white' : 'text-slate-300'}`}>
-                    상품 원가 설정
-                  </p>
-                  <p className="text-sm text-slate-500">
-                    {setupProgress.costConfigured ? '원가 설정됨!' : '상품별 원가 입력'}
-                  </p>
-                </div>
-                {!setupProgress.costConfigured && (
                   <svg className="w-5 h-5 text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>

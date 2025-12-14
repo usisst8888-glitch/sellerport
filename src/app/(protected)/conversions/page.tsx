@@ -20,6 +20,8 @@ interface TrackingLink {
   ad_spend: number
   status: string
   created_at: string
+  target_roas_green: number | null
+  target_roas_yellow: number | null
   products?: {
     id: string
     name: string
@@ -36,35 +38,39 @@ interface Product {
   price: number
   cost: number
   image_url: string | null
-  platform_type: string
-  platform_id: string
-  platforms?: {
+  site_type: string
+  my_site_id: string
+  my_sites?: {
     id: string
-    platform_type: string
-    platform_name: string
+    site_type: string
+    site_name: string
     store_id?: string | null
   } | null
 }
 
-interface Platform {
+interface MySite {
   id: string
-  platform_type: string
-  platform_name: string
+  site_type: string
+  site_name: string
   store_id?: string | null
   status: string
 }
 
-// ROAS 기준 신호등 색상 반환
-function getSignalLight(roas: number): { color: string; bg: string; text: string; label: string } {
-  if (roas >= 300) return { color: 'emerald', bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: '🟢 좋음' }
-  if (roas >= 150) return { color: 'amber', bg: 'bg-amber-500/20', text: 'text-amber-400', label: '🟡 보통' }
+// ROAS 기준 신호등 색상 반환 (개별 기준 지원)
+function getSignalLight(
+  roas: number,
+  greenThreshold: number = 300,
+  yellowThreshold: number = 150
+): { color: string; bg: string; text: string; label: string } {
+  if (roas >= greenThreshold) return { color: 'emerald', bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: '🟢 좋음' }
+  if (roas >= yellowThreshold) return { color: 'amber', bg: 'bg-amber-500/20', text: 'text-amber-400', label: '🟡 보통' }
   return { color: 'red', bg: 'bg-red-500/20', text: 'text-red-400', label: '🔴 주의' }
 }
 
 export default function ConversionsPage() {
   const [trackingLinks, setTrackingLinks] = useState<TrackingLink[]>([])
   const [products, setProducts] = useState<Product[]>([])
-  const [platforms, setPlatforms] = useState<Platform[]>([])
+  const [mySites, setMySites] = useState<MySite[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
@@ -73,7 +79,7 @@ export default function ConversionsPage() {
 
   // 폼 상태
   const [formData, setFormData] = useState({
-    platformId: '',
+    siteId: '',
     productId: '',
     utmSource: 'naver',
     utmMedium: 'paid', // 'paid' 또는 'direct'
@@ -81,11 +87,21 @@ export default function ConversionsPage() {
     targetUrl: '',
     name: '',
     adSpend: 0, // 광고비
-    adChannelId: '' // 연동된 광고 채널 ID
+    adChannelId: '', // 연동된 광고 채널 ID
+    targetRoasGreen: 300, // 초록불 기준 ROAS (%)
+    targetRoasYellow: 150 // 노란불 기준 ROAS (%)
   })
 
-  // 연동된 광고 채널 목록
-  const [adChannels, setAdChannels] = useState<{
+  // API 연동 광고 채널 목록
+  const [apiChannels, setApiChannels] = useState<{
+    id: string
+    channel_type: string
+    channel_name: string
+    status: string
+  }[]>([])
+
+  // 수동 광고 채널 목록
+  const [manualChannels, setManualChannels] = useState<{
     id: string
     channel_type: string
     channel_name: string
@@ -105,12 +121,17 @@ export default function ConversionsPage() {
   const [deletingLink, setDeletingLink] = useState<TrackingLink | null>(null)
   const [deleting, setDeleting] = useState(false)
 
+  // ROAS 기준 설정 모달
+  const [editingRoasLink, setEditingRoasLink] = useState<TrackingLink | null>(null)
+  const [roasForm, setRoasForm] = useState({ greenThreshold: 300, yellowThreshold: 150 })
+  const [updatingRoas, setUpdatingRoas] = useState(false)
+
   // 상품 선택 시 목적지 URL 자동 생성
   const generateProductUrl = (product: Product): string => {
-    const platformType = product.platform_type || product.platforms?.platform_type
-    const storeId = product.platforms?.store_id
+    const siteType = product.site_type || product.my_sites?.site_type
+    const storeId = product.my_sites?.store_id
 
-    if (platformType === 'naver') {
+    if (siteType === 'naver') {
       // 네이버 스마트스토어 상품 URL
       // store_id가 있으면 정상 URL, 없으면 단축 URL
       if (storeId) {
@@ -118,9 +139,9 @@ export default function ConversionsPage() {
       }
       // store_id가 없는 경우 (기존 데이터 호환) - 이 URL도 작동함
       return `https://smartstore.naver.com/products/${product.external_product_id}`
-    } else if (platformType === 'coupang') {
+    } else if (siteType === 'coupang') {
       return `https://www.coupang.com/vp/products/${product.external_product_id}`
-    } else if (platformType === 'custom') {
+    } else if (siteType === 'custom') {
       // 자체 사이트의 경우 기본 URL 반환 안함
       return ''
     }
@@ -169,39 +190,56 @@ export default function ConversionsPage() {
     }
   }
 
-  const fetchPlatforms = async () => {
+  const fetchMySites = async () => {
     try {
       const supabase = createClient()
       const { data, error } = await supabase
-        .from('platforms')
+        .from('my_sites')
         .select('*')
         .eq('status', 'connected')
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('Failed to fetch platforms:', error)
+        console.error('Failed to fetch my sites:', error)
         return
       }
-      setPlatforms(data || [])
+      setMySites(data || [])
     } catch (error) {
-      console.error('Failed to fetch platforms:', error)
+      console.error('Failed to fetch my sites:', error)
     }
   }
 
   const fetchAdChannels = async () => {
     try {
       const supabase = createClient()
-      const { data, error } = await supabase
+
+      // API 연동 채널 조회 (is_manual = false)
+      const { data: apiData, error: apiError } = await supabase
         .from('ad_channels')
         .select('id, channel_type, channel_name, status')
         .eq('status', 'connected')
+        .eq('is_manual', false)
         .order('created_at', { ascending: false })
 
-      if (error) {
-        console.error('Failed to fetch ad channels:', error)
-        return
+      if (apiError) {
+        console.error('Failed to fetch API channels:', apiError)
+      } else {
+        setApiChannels(apiData || [])
       }
-      setAdChannels(data || [])
+
+      // 수동 채널 조회 (is_manual = true)
+      const { data: manualData, error: manualError } = await supabase
+        .from('ad_channels')
+        .select('id, channel_type, channel_name, status')
+        .eq('status', 'connected')
+        .eq('is_manual', true)
+        .order('created_at', { ascending: false })
+
+      if (manualError) {
+        console.error('Failed to fetch manual channels:', manualError)
+      } else {
+        setManualChannels(manualData || [])
+      }
     } catch (error) {
       console.error('Failed to fetch ad channels:', error)
     }
@@ -286,10 +324,59 @@ export default function ConversionsPage() {
     }
   }
 
+  // ROAS 기준 업데이트
+  const handleUpdateRoas = async () => {
+    if (!editingRoasLink) return
+
+    // 유효성 검사
+    if (roasForm.greenThreshold <= roasForm.yellowThreshold) {
+      setMessage({ type: 'error', text: '초록불 기준은 노란불 기준보다 높아야 합니다' })
+      return
+    }
+    if (roasForm.yellowThreshold < 0 || roasForm.greenThreshold < 0) {
+      setMessage({ type: 'error', text: 'ROAS 기준은 0 이상이어야 합니다' })
+      return
+    }
+
+    setUpdatingRoas(true)
+    try {
+      const response = await fetch(`/api/tracking-links/${editingRoasLink.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetRoasGreen: roasForm.greenThreshold,
+          targetRoasYellow: roasForm.yellowThreshold
+        })
+      })
+
+      const result = await response.json()
+      if (result.success) {
+        setMessage({ type: 'success', text: 'ROAS 기준이 저장되었습니다' })
+        setEditingRoasLink(null)
+        fetchTrackingLinks()
+      } else {
+        setMessage({ type: 'error', text: result.error || '저장에 실패했습니다' })
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'ROAS 기준 저장 중 오류가 발생했습니다' })
+    } finally {
+      setUpdatingRoas(false)
+    }
+  }
+
+  // ROAS 설정 모달 열기
+  const openRoasModal = (link: TrackingLink) => {
+    setEditingRoasLink(link)
+    setRoasForm({
+      greenThreshold: link.target_roas_green ?? 300,
+      yellowThreshold: link.target_roas_yellow ?? 150
+    })
+  }
+
   useEffect(() => {
     fetchTrackingLinks()
     fetchProducts()
-    fetchPlatforms()
+    fetchMySites()
     fetchAdChannels()
   }, [])
 
@@ -305,7 +392,7 @@ export default function ConversionsPage() {
 
   // 모달 열릴 때 배경 스크롤 방지
   useEffect(() => {
-    if (showCreateModal || editingLink || editingLinkFull || deletingLink) {
+    if (showCreateModal || editingLink || editingLinkFull || deletingLink || editingRoasLink) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = 'unset'
@@ -313,7 +400,7 @@ export default function ConversionsPage() {
     return () => {
       document.body.style.overflow = 'unset'
     }
-  }, [showCreateModal, editingLink, editingLinkFull, deletingLink])
+  }, [showCreateModal, editingLink, editingLinkFull, deletingLink, editingRoasLink])
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text)
@@ -341,7 +428,9 @@ export default function ConversionsPage() {
           utmCampaign: formData.utmCampaign,
           targetUrl: formData.targetUrl,
           name: formData.name || `${formData.utmSource} - ${formData.utmCampaign}`,
-          adSpend: formData.adSpend || 0
+          adSpend: formData.adSpend || 0,
+          targetRoasGreen: formData.targetRoasGreen,
+          targetRoasYellow: formData.targetRoasYellow
         })
       })
 
@@ -351,7 +440,7 @@ export default function ConversionsPage() {
         setMessage({ type: 'success', text: '추적 링크가 발급되었습니다' })
         setShowCreateModal(false)
         setFormData({
-          platformId: '',
+          siteId: '',
           productId: '',
           utmSource: 'naver',
           utmMedium: 'paid',
@@ -359,7 +448,9 @@ export default function ConversionsPage() {
           targetUrl: '',
           name: '',
           adSpend: 0,
-          adChannelId: ''
+          adChannelId: '',
+          targetRoasGreen: 300,
+          targetRoasYellow: 150
         })
         fetchTrackingLinks()
       } else {
@@ -498,17 +589,23 @@ export default function ConversionsPage() {
             trackingLinks.map((link) => {
               const conversionRate = link.clicks > 0 ? ((link.conversions / link.clicks) * 100).toFixed(2) : '0.00'
               const linkRoas = link.ad_spend > 0 ? Math.round((link.revenue / link.ad_spend) * 100) : 0
-              const signal = getSignalLight(linkRoas)
+              const greenThreshold = link.target_roas_green ?? 300
+              const yellowThreshold = link.target_roas_yellow ?? 150
+              const signal = getSignalLight(linkRoas, greenThreshold, yellowThreshold)
               return (
                 <div key={link.id} className="p-4 hover:bg-white/5 transition-colors">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
-                        {/* ROAS 신호등 */}
+                        {/* ROAS 신호등 + 기준 설정 버튼 */}
                         {link.ad_spend > 0 && (
-                          <span className={`px-2 py-0.5 text-xs rounded ${signal.bg} ${signal.text}`}>
+                          <button
+                            onClick={() => openRoasModal(link)}
+                            className={`px-2 py-0.5 text-xs rounded ${signal.bg} ${signal.text} hover:opacity-80 transition-opacity`}
+                            title={`🟢 ${greenThreshold}%+ / 🟡 ${yellowThreshold}%+ (클릭하여 변경)`}
+                          >
                             {signal.label} {linkRoas}%
-                          </span>
+                          </button>
                         )}
                         <span className="px-2 py-0.5 text-xs font-mono bg-slate-700 text-slate-300 rounded">
                           {link.id}
@@ -601,7 +698,7 @@ export default function ConversionsPage() {
                       </div>
                     )}
 
-                    {/* 브릿지샵 URL (외부 플랫폼 광고용) */}
+                    {/* 브릿지샵 URL (외부 사이트 광고용) */}
                     {link.bridge_shop_url && (
                       <div>
                         <div className="flex items-center justify-between mb-1">
@@ -617,7 +714,7 @@ export default function ConversionsPage() {
                           </button>
                         </div>
                         <p className="text-xs font-mono text-purple-300/70 break-all">{link.bridge_shop_url}</p>
-                        <p className="text-xs text-slate-600 mt-1">메타/구글/틱톡 광고에 사용 (외부 플랫폼용)</p>
+                        <p className="text-xs text-slate-600 mt-1">메타/구글/틱톡 광고에 사용 (외부 사이트용)</p>
                       </div>
                     )}
 
@@ -703,35 +800,35 @@ export default function ConversionsPage() {
             </div>
 
             <div className="p-6 space-y-4 overflow-y-auto flex-1">
-              {/* 플랫폼 선택 - 맨 위 */}
+              {/* 내 사이트 선택 - 맨 위 */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                  판매 플랫폼 선택 *
+                  내 사이트 선택 *
                 </label>
-                {platforms.length > 0 ? (
+                {mySites.length > 0 ? (
                   <div className="grid grid-cols-3 gap-3">
-                    {platforms.map(platform => (
+                    {mySites.map(site => (
                       <button
-                        key={platform.id}
+                        key={site.id}
                         type="button"
-                        onClick={() => setFormData({ ...formData, platformId: platform.id, productId: '', targetUrl: '' })}
+                        onClick={() => setFormData({ ...formData, siteId: site.id, productId: '', targetUrl: '' })}
                         className={`p-4 rounded-xl border-2 text-left transition-all ${
-                          formData.platformId === platform.id
+                          formData.siteId === site.id
                             ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/10'
                             : 'border-white/10 bg-slate-900/50 hover:border-white/20 hover:bg-slate-800/50'
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          {/* 플랫폼 아이콘 */}
+                          {/* 사이트 아이콘 */}
                           <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                            platform.platform_type === 'naver' ? 'bg-green-500/20' :
-                            platform.platform_type === 'coupang' ? 'bg-red-500/20' : 'bg-slate-500/20'
+                            site.site_type === 'naver' ? 'bg-green-500/20' :
+                            site.site_type === 'coupang' ? 'bg-red-500/20' : 'bg-slate-500/20'
                           }`}>
-                            {platform.platform_type === 'naver' ? (
+                            {site.site_type === 'naver' ? (
                               <svg className="w-5 h-5 text-green-400" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z"/>
                               </svg>
-                            ) : platform.platform_type === 'coupang' ? (
+                            ) : site.site_type === 'coupang' ? (
                               <span className="text-red-400 font-bold text-sm">C</span>
                             ) : (
                               <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -741,17 +838,17 @@ export default function ConversionsPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className={`font-medium truncate ${
-                              formData.platformId === platform.id ? 'text-white' : 'text-slate-200'
+                              formData.siteId === site.id ? 'text-white' : 'text-slate-200'
                             }`}>
-                              {platform.platform_name}
+                              {site.site_name}
                             </p>
                             <p className="text-xs text-slate-400">
-                              {platform.platform_type === 'naver' ? '스마트스토어' :
-                               platform.platform_type === 'coupang' ? '쿠팡 마켓플레이스' : platform.platform_type}
+                              {site.site_type === 'naver' ? '스마트스토어' :
+                               site.site_type === 'coupang' ? '쿠팡 마켓플레이스' : site.site_type}
                             </p>
                           </div>
                           {/* 선택 표시 체크 */}
-                          {formData.platformId === platform.id && (
+                          {formData.siteId === site.id && (
                             <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
                               <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -764,23 +861,23 @@ export default function ConversionsPage() {
                   </div>
                 ) : (
                   <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                    <p className="text-sm text-amber-400 mb-2">연동된 플랫폼이 없습니다</p>
+                    <p className="text-sm text-amber-400 mb-2">연동된 사이트가 없습니다</p>
                     <p className="text-xs text-slate-400">
-                      먼저 <a href="/platforms" className="text-blue-400 hover:underline">플랫폼 연동</a>을 완료해주세요.
+                      먼저 <a href="/my-sites" className="text-blue-400 hover:underline">내 사이트 연동</a>을 완료해주세요.
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* 상품 선택 - 플랫폼 선택 후 표시 */}
-              {formData.platformId && (
+              {/* 상품 선택 - 사이트 선택 후 표시 */}
+              {formData.siteId && (
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
                     추적할 상품 선택 *
                   </label>
                   {(() => {
-                    // 선택된 플랫폼의 상품만 필터링
-                    const filteredProducts = products.filter(p => p.platform_id === formData.platformId)
+                    // 선택된 사이트의 상품만 필터링
+                    const filteredProducts = products.filter(p => p.my_site_id === formData.siteId)
 
                     if (filteredProducts.length > 0) {
                       return (
@@ -808,7 +905,7 @@ export default function ConversionsPage() {
                                     <div className="flex-1 min-w-0">
                                       <p className="text-sm font-medium text-white truncate">{selected.name}</p>
                                       <p className="text-xs text-slate-400">
-                                        {selected.platforms?.platform_name || selected.platform_type} · {selected.price.toLocaleString()}원
+                                        {selected.my_sites?.site_name || selected.site_type} · {selected.price.toLocaleString()}원
                                       </p>
                                     </div>
                                   </>
@@ -821,9 +918,9 @@ export default function ConversionsPage() {
                     } else {
                       return (
                         <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                          <p className="text-sm text-amber-400 mb-2">선택한 플랫폼에 상품이 없습니다</p>
+                          <p className="text-sm text-amber-400 mb-2">선택한 사이트에 상품이 없습니다</p>
                           <p className="text-xs text-slate-400">
-                            <a href="/platforms" className="text-blue-400 hover:underline">플랫폼 관리</a>에서 상품을 동기화해주세요.
+                            <a href="/my-sites" className="text-blue-400 hover:underline">내 사이트</a>에서 상품을 동기화해주세요.
                           </p>
                         </div>
                       )
@@ -860,29 +957,11 @@ export default function ConversionsPage() {
                 </p>
               </div>
 
+              {/* 광고 채널 선택 */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">트래픽 출처</label>
-                <Select
-                  value={formData.utmSource}
-                  onChange={(e) => setFormData({ ...formData, utmSource: e.target.value })}
-                >
-                  <option value="naver">네이버</option>
-                  <option value="google">구글</option>
-                  <option value="meta">메타 (페이스북/인스타)</option>
-                  <option value="kakao">카카오</option>
-                  <option value="youtube">유튜브</option>
-                  <option value="tiktok">틱톡</option>
-                  <option value="blog">블로그</option>
-                  <option value="instagram">인스타그램</option>
-                  <option value="cafe">카페/커뮤니티</option>
-                  <option value="direct">다이렉트 (직접 유입)</option>
-                </Select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">광고 유형</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {/* 유료 광고 버튼 */}
+                <label className="block text-sm font-medium text-slate-300 mb-2">광고 채널 선택 *</label>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  {/* API 연동 채널 버튼 */}
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, utmMedium: 'paid', adSpend: 0, adChannelId: '' })}
@@ -900,17 +979,17 @@ export default function ConversionsPage() {
                           <div className="w-2 h-2 rounded-full bg-blue-500" />
                         )}
                       </div>
-                      <span className="text-white font-medium">유료 광고</span>
+                      <span className="text-white font-medium">API 연동 채널</span>
                     </div>
                     <p className="text-xs text-slate-400">
-                      네이버 검색광고, 구글 애즈, 메타 광고, 카카오모먼트 등 광고 플랫폼에서 집행하는 광고
+                      광고비가 자동으로 연동되는 채널
                     </p>
                   </button>
 
-                  {/* 직접 광고 버튼 */}
+                  {/* 수동 채널 버튼 */}
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, utmMedium: 'direct', adSpend: 0, adChannelId: '' })}
+                    onClick={() => setFormData({ ...formData, utmMedium: 'direct', adSpend: 0, adChannelId: '', utmSource: 'blog' })}
                     className={`p-4 rounded-xl border-2 text-left transition-all ${
                       formData.utmMedium === 'direct'
                         ? 'border-emerald-500 bg-emerald-500/10'
@@ -925,67 +1004,112 @@ export default function ConversionsPage() {
                           <div className="w-2 h-2 rounded-full bg-emerald-500" />
                         )}
                       </div>
-                      <span className="text-white font-medium">직접 광고</span>
+                      <span className="text-white font-medium">수동 채널</span>
                     </div>
                     <p className="text-xs text-slate-400">
-                      인플루언서 협찬, 블로그 체험단, 내 SNS 채널, 이메일, SMS 등 직접 운영하는 마케팅
+                      블로그, SNS, 인플루언서 등 직접 관리하는 채널
                     </p>
                   </button>
                 </div>
-              </div>
 
-              {/* 유료 광고 선택 시 - 광고 채널 선택 */}
-              {formData.utmMedium === 'paid' && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">광고 채널 선택</label>
-                  {adChannels.length > 0 ? (
-                    <Select
-                      value={formData.adChannelId}
-                      onChange={(e) => {
-                        const selectedChannel = adChannels.find(ch => ch.id === e.target.value)
-                        setFormData({
-                          ...formData,
-                          adChannelId: e.target.value,
-                          utmSource: selectedChannel ? selectedChannel.channel_type : formData.utmSource
-                        })
-                      }}
-                    >
-                      <option value="">광고 채널을 선택하세요 (선택)</option>
-                      {adChannels.map(channel => (
-                        <option key={channel.id} value={channel.id}>
-                          {channel.channel_name} ({
-                            channel.channel_type === 'meta' ? 'Meta' :
-                            channel.channel_type === 'google' ? 'Google Ads' :
-                            channel.channel_type === 'naver_search' ? '네이버 검색광고' :
-                            channel.channel_type === 'naver_gfa' ? '네이버 GFA' :
-                            channel.channel_type === 'kakao' ? '카카오모먼트' :
-                            channel.channel_type === 'karrot' ? '당근 비즈니스' :
-                            channel.channel_type === 'toss' ? '토스' :
-                            channel.channel_type === 'tiktok' ? 'TikTok' :
-                            channel.channel_type === 'dable' ? '데이블' :
-                            channel.channel_type
+                {/* API 연동 채널 선택 시 - 드롭다운 */}
+                {formData.utmMedium === 'paid' && (
+                  <div className="mt-3">
+                    {apiChannels.length > 0 ? (
+                      <Select
+                        value={formData.adChannelId}
+                        onChange={(e) => {
+                          const selectedChannel = apiChannels.find(ch => ch.id === e.target.value)
+                          setFormData({
+                            ...formData,
+                            adChannelId: e.target.value,
+                            utmSource: selectedChannel ? selectedChannel.channel_type : formData.utmSource
                           })
-                        </option>
-                      ))}
-                    </Select>
-                  ) : (
-                    <div className="p-4 rounded-xl bg-slate-900/50 border border-white/10">
-                      <p className="text-sm text-slate-400 mb-2">연동된 광고 채널이 없습니다</p>
-                      <p className="text-xs text-slate-500">
-                        <a href="/ad-channels" className="text-blue-400 hover:underline">광고 채널 연동</a>에서 광고 계정을 연동하면 광고비가 자동으로 연결됩니다.
+                        }}
+                      >
+                        <option value="">연동된 광고 채널을 선택하세요</option>
+                        {apiChannels.map(channel => (
+                          <option key={channel.id} value={channel.id}>
+                            {channel.channel_name} ({
+                              channel.channel_type === 'meta' ? 'Meta' :
+                              channel.channel_type === 'google' ? 'Google Ads' :
+                              channel.channel_type === 'naver_search' ? '네이버 검색광고' :
+                              channel.channel_type === 'naver_gfa' ? '네이버 GFA' :
+                              channel.channel_type === 'kakao' ? '카카오모먼트' :
+                              channel.channel_type === 'karrot' ? '당근 비즈니스' :
+                              channel.channel_type === 'toss' ? '토스' :
+                              channel.channel_type === 'tiktok' ? 'TikTok' :
+                              channel.channel_type === 'dable' ? '데이블' :
+                              channel.channel_type
+                            })
+                          </option>
+                        ))}
+                      </Select>
+                    ) : (
+                      <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                        <p className="text-sm text-amber-400 mb-2">연동된 광고 채널이 없습니다</p>
+                        <p className="text-xs text-slate-400">
+                          <a href="/ad-channels" className="text-blue-400 hover:underline">광고 채널 연동</a>에서 광고 계정을 연동하세요.
+                        </p>
+                      </div>
+                    )}
+                    {formData.adChannelId && (
+                      <p className="text-xs text-blue-400 mt-2">
+                        ✓ 선택한 채널에서 자동으로 광고비가 연동됩니다
                       </p>
-                      <p className="text-xs text-slate-500 mt-2">
-                        연동 전에도 추적 링크를 발급할 수 있으며, 나중에 광고비를 수동으로 입력할 수 있습니다.
+                    )}
+                  </div>
+                )}
+
+                {/* 수동 채널 선택 시 - 드롭다운 */}
+                {formData.utmMedium === 'direct' && (
+                  <div className="mt-3">
+                    {manualChannels.length > 0 ? (
+                      <Select
+                        value={formData.adChannelId}
+                        onChange={(e) => {
+                          const selectedChannel = manualChannels.find(ch => ch.id === e.target.value)
+                          setFormData({
+                            ...formData,
+                            adChannelId: e.target.value,
+                            utmSource: selectedChannel ? selectedChannel.channel_type : formData.utmSource
+                          })
+                        }}
+                      >
+                        <option value="">수동 채널을 선택하세요</option>
+                        {manualChannels.map(channel => (
+                          <option key={channel.id} value={channel.id}>
+                            {channel.channel_name} ({
+                              channel.channel_type === 'blog' ? '블로그' :
+                              channel.channel_type === 'instagram' ? '인스타그램' :
+                              channel.channel_type === 'youtube' ? '유튜브' :
+                              channel.channel_type === 'cafe' ? '카페/커뮤니티' :
+                              channel.channel_type === 'influencer' ? '인플루언서/체험단' :
+                              channel.channel_type === 'email' ? '이메일/뉴스레터' :
+                              channel.channel_type === 'sms' ? 'SMS/알림톡' :
+                              channel.channel_type === 'offline' ? '오프라인 광고' :
+                              channel.channel_type === 'etc' ? '기타' :
+                              channel.channel_type
+                            })
+                          </option>
+                        ))}
+                      </Select>
+                    ) : (
+                      <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                        <p className="text-sm text-amber-400 mb-2">등록된 수동 채널이 없습니다</p>
+                        <p className="text-xs text-slate-400">
+                          <a href="/ad-channels" className="text-blue-400 hover:underline">광고 채널 관리</a>에서 수동 채널을 추가하세요.
+                        </p>
+                      </div>
+                    )}
+                    {formData.adChannelId && (
+                      <p className="text-xs text-emerald-400 mt-2">
+                        ✓ 선택한 채널에서 광고비를 수동으로 입력할 수 있습니다
                       </p>
-                    </div>
-                  )}
-                  {formData.adChannelId && (
-                    <p className="text-xs text-blue-400 mt-2">
-                      선택한 채널에서 자동으로 광고비가 연동됩니다
-                    </p>
-                  )}
-                </div>
-              )}
+                    )}
+                  </div>
+                )}
+              </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">추적 링크 이름 *</label>
@@ -1015,6 +1139,76 @@ export default function ConversionsPage() {
                   <p className="text-xs text-slate-500 mt-1">이 채널에 투입한 비용이 있다면 입력하세요 (ROAS 계산에 사용)</p>
                 </div>
               )}
+
+              {/* ROAS 기준 설정 */}
+              <div className="p-4 rounded-xl bg-slate-900/30 border border-white/5">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300">ROAS 신호등 기준 설정</label>
+                    <p className="text-xs text-slate-500 mt-0.5">이 추적 링크의 광고 효율 기준을 설정하세요</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* 초록불 기준 */}
+                  <div>
+                    <label className="flex items-center gap-1.5 text-xs font-medium text-emerald-400 mb-2">
+                      🟢 초록불 기준
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={formData.targetRoasGreen}
+                        onChange={(e) => setFormData({ ...formData, targetRoasGreen: parseInt(e.target.value) || 0 })}
+                        className="w-full px-4 py-2.5 pr-10 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none transition-colors"
+                        min="0"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">%</span>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-1">이상이면 효율 좋음</p>
+                  </div>
+
+                  {/* 노란불 기준 */}
+                  <div>
+                    <label className="flex items-center gap-1.5 text-xs font-medium text-amber-400 mb-2">
+                      🟡 노란불 기준
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={formData.targetRoasYellow}
+                        onChange={(e) => setFormData({ ...formData, targetRoasYellow: parseInt(e.target.value) || 0 })}
+                        className="w-full px-4 py-2.5 pr-10 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none transition-colors"
+                        min="0"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">%</span>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-1">이상이면 보통, 미만이면 주의</p>
+                  </div>
+                </div>
+
+                {/* 유효성 검사 경고 */}
+                {formData.targetRoasGreen <= formData.targetRoasYellow && (
+                  <div className="mt-3 p-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                    <p className="text-xs text-red-400">⚠️ 초록불 기준은 노란불 기준보다 높아야 합니다</p>
+                  </div>
+                )}
+
+                {/* 기준 설명 */}
+                <div className="mt-3 pt-3 border-t border-white/5">
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-400">
+                      🟢 {formData.targetRoasGreen}%+
+                    </span>
+                    <span className="px-2 py-1 rounded bg-amber-500/10 text-amber-400">
+                      🟡 {formData.targetRoasYellow}%~{formData.targetRoasGreen - 1}%
+                    </span>
+                    <span className="px-2 py-1 rounded bg-red-500/10 text-red-400">
+                      🔴 {formData.targetRoasYellow}% 미만
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="p-6 border-t border-white/5 flex gap-3 justify-end flex-shrink-0">
@@ -1026,7 +1220,7 @@ export default function ConversionsPage() {
               </button>
               <button
                 onClick={handleCreateTrackingLink}
-                disabled={creating || !formData.utmCampaign || !formData.targetUrl}
+                disabled={creating || !formData.utmCampaign || !formData.targetUrl || formData.targetRoasGreen <= formData.targetRoasYellow}
                 className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {creating ? (
@@ -1203,6 +1397,113 @@ export default function ConversionsPage() {
                 className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-medium transition-colors disabled:opacity-50"
               >
                 {deleting ? '삭제 중...' : '삭제'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ROAS 기준 설정 모달 */}
+      {editingRoasLink && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-semibold text-white">ROAS 기준 설정</h3>
+                <p className="text-sm text-slate-400 mt-1">{editingRoasLink.name}</p>
+              </div>
+              <button
+                onClick={() => setEditingRoasLink(null)}
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* 미리보기 */}
+              <div className="p-4 rounded-xl bg-slate-700/50">
+                <p className="text-xs text-slate-400 mb-3">현재 ROAS에 따른 신호등</p>
+                <div className="flex items-center gap-3">
+                  {(() => {
+                    const currentRoas = editingRoasLink.ad_spend > 0
+                      ? Math.round((editingRoasLink.revenue / editingRoasLink.ad_spend) * 100)
+                      : 0
+                    const signal = getSignalLight(currentRoas, roasForm.greenThreshold, roasForm.yellowThreshold)
+                    return (
+                      <>
+                        <span className={`px-3 py-1 text-sm rounded-lg ${signal.bg} ${signal.text}`}>
+                          {signal.label}
+                        </span>
+                        <span className="text-white font-bold">{currentRoas}%</span>
+                      </>
+                    )
+                  })()}
+                </div>
+              </div>
+
+              {/* 초록불 기준 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  🟢 초록불 기준 (효율 좋음)
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    value={roasForm.greenThreshold}
+                    onChange={(e) => setRoasForm({ ...roasForm, greenThreshold: parseInt(e.target.value) || 0 })}
+                    className="flex-1 h-11 px-4 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                    min="0"
+                  />
+                  <span className="text-slate-400">% 이상</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">이 ROAS 이상이면 초록불로 표시됩니다</p>
+              </div>
+
+              {/* 노란불 기준 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  🟡 노란불 기준 (주의 필요)
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    value={roasForm.yellowThreshold}
+                    onChange={(e) => setRoasForm({ ...roasForm, yellowThreshold: parseInt(e.target.value) || 0 })}
+                    className="flex-1 h-11 px-4 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20"
+                    min="0"
+                  />
+                  <span className="text-slate-400">% 이상</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">이 ROAS 이상이면 노란불, 미만이면 빨간불로 표시됩니다</p>
+              </div>
+
+              {/* 기준 설명 */}
+              <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-700">
+                <p className="text-xs text-slate-400 mb-2">신호등 기준</p>
+                <div className="space-y-1.5 text-sm">
+                  <p className="text-emerald-400">🟢 ROAS {roasForm.greenThreshold}% 이상 → 효율 좋음</p>
+                  <p className="text-amber-400">🟡 ROAS {roasForm.yellowThreshold}% ~ {roasForm.greenThreshold - 1}% → 주의 필요</p>
+                  <p className="text-red-400">🔴 ROAS {roasForm.yellowThreshold}% 미만 → 개선 필요</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setEditingRoasLink(null)}
+                className="flex-1 h-11 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-medium transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleUpdateRoas}
+                disabled={updatingRoas}
+                className="flex-1 h-11 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors disabled:opacity-50"
+              >
+                {updatingRoas ? '저장 중...' : '저장'}
               </button>
             </div>
           </div>

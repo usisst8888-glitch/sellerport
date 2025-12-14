@@ -1,6 +1,6 @@
 /**
  * 네이버 통계 조회 API
- * GET /api/naver/stats?platformId=xxx&startDate=xxx&endDate=xxx
+ * GET /api/naver/stats?siteId=xxx&startDate=xxx&endDate=xxx
  *
  * 특정 기간의 주문 통계를 조회합니다.
  */
@@ -20,34 +20,34 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const platformId = searchParams.get('platformId')
+    const siteId = searchParams.get('siteId')
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
 
-    if (!platformId) {
-      return NextResponse.json({ error: 'platformId가 필요합니다' }, { status: 400 })
+    if (!siteId) {
+      return NextResponse.json({ error: 'siteId가 필요합니다' }, { status: 400 })
     }
 
-    // 플랫폼 정보 조회
-    const { data: platform, error: platformError } = await supabase
-      .from('platforms')
+    // 사이트 정보 조회
+    const { data: site, error: siteError } = await supabase
+      .from('my_sites')
       .select('*')
-      .eq('id', platformId)
+      .eq('id', siteId)
       .eq('user_id', user.id)
       .single()
 
-    if (platformError || !platform) {
-      return NextResponse.json({ error: '플랫폼을 찾을 수 없습니다' }, { status: 404 })
+    if (siteError || !site) {
+      return NextResponse.json({ error: '사이트를 찾을 수 없습니다' }, { status: 404 })
     }
 
-    if (platform.status !== 'connected') {
-      return NextResponse.json({ error: '플랫폼이 연동되지 않았습니다' }, { status: 400 })
+    if (site.status !== 'connected') {
+      return NextResponse.json({ error: '사이트가 연동되지 않았습니다' }, { status: 400 })
     }
 
     // 네이버 API 클라이언트 생성
     const naverClient = createNaverClient(
-      platform.application_id,
-      platform.application_secret
+      site.application_id,
+      site.application_secret
     )
 
     // 날짜 기본값 (오늘)

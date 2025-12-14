@@ -20,7 +20,7 @@ const PLANS = [
     name: 'Free',
     price: 0,
     priceLabel: '무료',
-    features: ['슬롯 5개', '알림톡 10건/월', '플랫폼 1개 연동'],
+    features: ['슬롯 5개', '알림톡 10건/월', '사이트 1개 연동'],
     popular: false,
   },
   {
@@ -28,7 +28,7 @@ const PLANS = [
     name: 'Basic',
     price: 19900,
     priceLabel: '19,900원/월',
-    features: ['슬롯 50개', '알림톡 500건/월', '플랫폼 3개 연동', '기본 통계'],
+    features: ['슬롯 50개', '알림톡 500건/월', '사이트 3개 연동', '기본 통계'],
     popular: false,
   },
   {
@@ -36,7 +36,7 @@ const PLANS = [
     name: 'Pro',
     price: 49900,
     priceLabel: '49,900원/월',
-    features: ['슬롯 200개', '알림톡 2,000건/월', '플랫폼 10개 연동', '고급 분석', '우선 지원'],
+    features: ['슬롯 200개', '알림톡 2,000건/월', '사이트 10개 연동', '고급 분석', '우선 지원'],
     popular: true,
   },
   {
@@ -44,7 +44,7 @@ const PLANS = [
     name: 'Enterprise',
     price: 149900,
     priceLabel: '149,900원/월',
-    features: ['슬롯 무제한', '알림톡 10,000건/월', '플랫폼 무제한', '전용 매니저', 'API 액세스'],
+    features: ['슬롯 무제한', '알림톡 10,000건/월', '사이트 무제한', '전용 매니저', 'API 액세스'],
     popular: false,
   },
 ]

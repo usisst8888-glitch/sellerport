@@ -1,6 +1,6 @@
 # 셀러포트 (SellerPort) 개발 로드맵
 
-> **마지막 업데이트:** 2025-12-14
+> **마지막 업데이트:** 2025-12-15
 
 ## 프로젝트 개요
 
@@ -313,7 +313,7 @@ influencer_stats (인플루언서 효율 DB)
 | 전환 추적 (`/conversions`) | ✅ 완료 | 추적 링크 생성, 슬롯 관리 UI |
 | 수익 계산 (`/profit`) | ✅ 완료 | 마진 계산기 UI |
 | 알림 관리 (`/alerts`) | ✅ 완료 | 빨간불/노란불 알림 내역, 알림 설정 |
-| 플랫폼 연동 (`/platforms`) | ✅ 완료 | 네이버 API 키 입력 방식 + 자체 사이트 추적 코드 |
+| 내 사이트 연동 (`/my-sites`) | ✅ 완료 | 네이버 API 키 입력 방식 + 자체 사이트 추적 코드 |
 | 광고 채널 연동 (`/ad-channels`) | ✅ 완료 | Meta, 네이버 검색광고 연동 완료 (Google, 카카오 등 추가 예정) |
 | 디자이너 연결 (`/designers`) | ✅ 완료 | 디자이너 목록, 문의 모달 |
 | 결제 관리 (`/billing`) | ✅ 완료 | 구독 관리, 알림 충전 (15원/건) |
@@ -367,7 +367,120 @@ influencer_stats (인플루언서 효율 DB)
 
 ---
 
-## 최근 변경 사항 (2025-12-14)
+## 최근 변경 사항 (2025-12-15)
+
+### 추적 링크별 ROAS 기준 커스텀 기능
+
+추적 링크별로 ROAS 신호등 기준을 개별 설정할 수 있는 기능을 추가했습니다.
+
+#### DB 마이그레이션
+
+| 파일 | 설명 |
+|------|------|
+| `028_tracking_links_roas_threshold.sql` | tracking_links 테이블에 target_roas_green, target_roas_yellow 컬럼 추가 |
+
+#### 수정된 파일
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `/app/(protected)/conversions/page.tsx` | 추적 링크 생성 시 ROAS 기준 설정 UI 추가, 수정 모달에 ROAS 기준 설정 추가, 광고 채널 선택 UI 개편 (API 연동 채널 / 수동 채널 분리) |
+| `/app/api/tracking-links/route.ts` | targetRoasGreen, targetRoasYellow 파라미터 추가 |
+| `/app/api/tracking-links/[id]/route.ts` | PATCH에서 ROAS 기준 업데이트 지원 |
+| `/app/api/dashboard/stats/route.ts` | 추적 링크별 개별 ROAS 기준 적용하여 신호등 판정 |
+
+#### 기능 상세
+
+- **생성 시 설정**: 추적 링크 생성 모달에서 초록불/노란불 ROAS 기준(%) 직접 입력 가능
+- **수정 가능**: 기존 추적 링크의 ROAS 기준도 수정 모달에서 변경 가능
+- **개별 적용**: 대시보드 신호등이 각 추적 링크의 개별 기준으로 판정됨
+- **기본값**: 설정하지 않으면 기존 기준 적용 (초록: 300%, 노란: 150%)
+- **유효성 검사**: 초록불 기준이 노란불 기준보다 높아야 함
+
+---
+
+### 광고 채널 선택 UI 개편
+
+추적 링크 생성 시 광고 채널 선택 방식을 개선했습니다.
+
+#### 변경 내용
+
+| 항목 | 이전 | 이후 |
+|------|------|------|
+| 사이트 선택 라벨 | "판매 사이트 선택" | "내 사이트 선택" |
+| 트래픽 출처 선택 | 고정 목록 (네이버, 구글, 메타 등) | 광고 채널 선택으로 대체 |
+| 광고 유형 선택 | "paid" / "direct" 선택 | 제거됨 |
+| 채널 선택 방식 | - | "API 연동 채널" / "수동 채널" 버튼 선택 후 드롭다운에서 등록된 채널 선택 |
+
+#### 채널 분리 구현
+
+- `apiChannels`: is_manual=false인 채널 (Meta, Google, 네이버 검색광고 등 API 연동 채널)
+- `manualChannels`: is_manual=true인 채널 (인플루언서, 체험단, 블로그 등 수동 채널)
+- 각각 별도 드롭다운으로 사용자가 등록한 채널 목록 표시
+
+---
+
+### 사이드바 메뉴명 변경
+
+| 이전 | 이후 |
+|------|------|
+| 광고채널별 관리 | 광고 채널 관리 |
+
+#### 수정된 파일
+
+- `/components/layout/sidebar.tsx`
+- `/components/layout/mobile-sidebar.tsx`
+- `/app/(protected)/ad-management/page.tsx`
+
+---
+
+### 파비콘 추가
+
+사이드바 로고와 동일한 스타일의 파비콘을 추가했습니다.
+
+#### 생성된 파일
+
+| 파일 | 설명 |
+|------|------|
+| `/app/icon.tsx` | 32x32 파비콘 (브라우저 탭용) - 파란색 그라데이션 배경 + 흰색 "S" |
+| `/app/apple-icon.tsx` | 180x180 Apple Touch Icon (모바일 홈 화면용) |
+
+---
+
+## 변경 사항 (2025-12-14)
+
+### 용어 개선: "플랫폼 연동" → "내 사이트 연동"
+
+사용자 친화적인 용어로 변경하여 쇼핑몰, 회원가입 사이트, DB 수집 사이트 등 다양한 유형을 포괄할 수 있도록 개선했습니다.
+
+#### DB 마이그레이션
+
+| 파일 | 설명 |
+|------|------|
+| `027_rename_platforms_to_my_sites.sql` | platforms → my_sites 테이블 리네이밍, 컬럼명 변경 (platform_type → site_type, platform_name → site_name) |
+
+#### 변경된 파일/폴더
+
+| 항목 | 이전 | 이후 |
+|------|------|------|
+| 페이지 경로 | `/platforms` | `/my-sites` |
+| 컴포넌트 폴더 | `components/platforms/` | `components/my-sites/` |
+| 사이드바 메뉴 | "플랫폼 연동" | "내 사이트" |
+| DB 테이블 | `platforms` | `my_sites` |
+| 컬럼명 | `platform_id`, `platform_type`, `platform_name` | `my_site_id`, `site_type`, `site_name` |
+
+#### 수정된 API 파일
+
+- `/api/naver/verify/route.ts` - platformId → siteId
+- `/api/naver/sync/route.ts` - platforms → my_sites
+- `/api/naver/stats/route.ts` - platformId → siteId
+- `/api/naver/test/route.ts` - platforms → my_sites
+- `/api/naver/orders/poll/route.ts` - platforms → sites
+- `/api/dashboard/stats/route.ts` - platforms → my_sites
+- `/api/products/route.ts` - platform_id → my_site_id
+- `/api/orders/sync/route.ts` - platforms → sites
+- `/api/cron/sync-orders/route.ts` - platforms → sites
+
+---
 
 ### 네이버 검색광고 API 연동 구현
 
@@ -824,7 +937,7 @@ ad_spend_daily (일별 광고비)
 ### Supabase 설정
 - [x] 프로젝트 생성
 - [x] profiles 테이블 (사용자 프로필 - 회원 정보 및 요금제)
-- [x] platforms 테이블 (연동 플랫폼 - 네이버 스마트스토어 등 판매 채널 연동)
+- [x] my_sites 테이블 (내 사이트 - 네이버 스마트스토어, 자체몰, 서비스 사이트 등 연동)
 - [x] orders 테이블 (주문 내역 - 네이버/쿠팡 등 플랫폼 주문 동기화)
 - [x] products 테이블 (상품 목록 - 연동된 플랫폼의 상품 정보)
 - [x] tracking_links 테이블 (추적 링크 - 광고 전환 추적을 위한 UTM 링크)

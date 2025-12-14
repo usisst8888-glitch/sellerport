@@ -8,8 +8,10 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { TermsContent, PrivacyContent, MarketingContent } from '@/components/legal/legal-contents'
 
 type UserType = 'seller' | 'agency'
+type ModalType = 'terms' | 'privacy' | 'marketing' | null
 
 export default function SignupPage() {
   const [email, setEmail] = useState('')
@@ -30,6 +32,14 @@ export default function SignupPage() {
   const [verifyingCode, setVerifyingCode] = useState(false)
   const [countdown, setCountdown] = useState(0)
   const [codeSent, setCodeSent] = useState(false)
+
+  // 약관 동의 상태
+  const [agreeTerms, setAgreeTerms] = useState(false)
+  const [agreePrivacy, setAgreePrivacy] = useState(false)
+  const [agreeMarketing, setAgreeMarketing] = useState(false)
+
+  // 약관 모달 상태
+  const [modalOpen, setModalOpen] = useState<ModalType>(null)
 
   // 카운트다운 타이머
   useEffect(() => {
@@ -131,6 +141,13 @@ export default function SignupPage() {
       return
     }
 
+    // 필수 약관 동의 확인
+    if (!agreeTerms || !agreePrivacy) {
+      setMessage({ type: 'error', text: '필수 약관에 동의해주세요' })
+      setLoading(false)
+      return
+    }
+
     if (password !== confirmPassword) {
       setMessage({ type: 'error', text: '비밀번호가 일치하지 않습니다.' })
       setLoading(false)
@@ -152,7 +169,8 @@ export default function SignupPage() {
           display_name: displayName,
           user_type: userType,
           phone: phone.replace(/[^0-9]/g, ''),
-          phone_verified: true
+          phone_verified: true,
+          marketing_agreed: agreeMarketing
         }
       },
     })
@@ -176,7 +194,8 @@ export default function SignupPage() {
           display_name: displayName,
           user_type: userType,
           phone: phone.replace(/[^0-9]/g, ''),
-          phone_verified: true
+          phone_verified: true,
+          marketing_agreed: agreeMarketing
         }, { onConflict: 'id' })
     }
 
@@ -375,6 +394,139 @@ export default function SignupPage() {
               />
             </div>
 
+            {/* 약관 동의 */}
+            <div className="space-y-3 pt-4 border-t border-slate-700">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-slate-300">약관 동의</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const allChecked = agreeTerms && agreePrivacy && agreeMarketing
+                    setAgreeTerms(!allChecked)
+                    setAgreePrivacy(!allChecked)
+                    setAgreeMarketing(!allChecked)
+                  }}
+                  className="text-xs text-blue-400 hover:text-blue-300"
+                >
+                  {agreeTerms && agreePrivacy && agreeMarketing ? '전체 해제' : '전체 동의'}
+                </button>
+              </div>
+
+              {/* 이용약관 동의 (필수) */}
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div
+                  className="relative flex items-center justify-center mt-0.5"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <input
+                    type="checkbox"
+                    checked={agreeTerms}
+                    onChange={(e) => setAgreeTerms(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div
+                    onClick={() => setAgreeTerms(!agreeTerms)}
+                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors cursor-pointer ${
+                    agreeTerms
+                      ? 'bg-blue-600 border-blue-600'
+                      : 'border-slate-500 group-hover:border-slate-400'
+                  }`}>
+                    {agreeTerms && (
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span className="text-sm text-slate-300">
+                  <span className="text-red-400">[필수]</span>{' '}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); setModalOpen('terms'); }}
+                    className="text-blue-400 hover:underline"
+                  >
+                    이용약관
+                  </button>에 동의합니다
+                </span>
+              </label>
+
+              {/* 개인정보 수집·이용 동의 (필수) */}
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div
+                  className="relative flex items-center justify-center mt-0.5"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <input
+                    type="checkbox"
+                    checked={agreePrivacy}
+                    onChange={(e) => setAgreePrivacy(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div
+                    onClick={() => setAgreePrivacy(!agreePrivacy)}
+                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors cursor-pointer ${
+                    agreePrivacy
+                      ? 'bg-blue-600 border-blue-600'
+                      : 'border-slate-500 group-hover:border-slate-400'
+                  }`}>
+                    {agreePrivacy && (
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span className="text-sm text-slate-300">
+                  <span className="text-red-400">[필수]</span>{' '}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); setModalOpen('privacy'); }}
+                    className="text-blue-400 hover:underline"
+                  >
+                    개인정보 수집·이용
+                  </button>에 동의합니다
+                </span>
+              </label>
+
+              {/* 마케팅 정보 수신 동의 (선택) */}
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div
+                  className="relative flex items-center justify-center mt-0.5"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <input
+                    type="checkbox"
+                    checked={agreeMarketing}
+                    onChange={(e) => setAgreeMarketing(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div
+                    onClick={() => setAgreeMarketing(!agreeMarketing)}
+                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors cursor-pointer ${
+                    agreeMarketing
+                      ? 'bg-blue-600 border-blue-600'
+                      : 'border-slate-500 group-hover:border-slate-400'
+                  }`}>
+                    {agreeMarketing && (
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span className="text-sm text-slate-300">
+                  <span className="text-slate-500">[선택]</span>{' '}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); setModalOpen('marketing'); }}
+                    className="text-blue-400 hover:underline"
+                  >
+                    마케팅 정보 수신
+                  </button>에 동의합니다
+                </span>
+              </label>
+            </div>
+
             {message && (
               <div
                 className={`p-3 rounded-xl text-sm ${
@@ -390,7 +542,7 @@ export default function SignupPage() {
             <Button
               type="submit"
               className="w-full bg-blue-600 hover:bg-blue-500 text-white"
-              disabled={loading || !isPhoneVerified}
+              disabled={loading || !isPhoneVerified || !agreeTerms || !agreePrivacy}
             >
               {loading ? '처리 중...' : '회원가입'}
             </Button>
@@ -402,8 +554,56 @@ export default function SignupPage() {
               로그인
             </Link>
           </div>
+
+          <div className="mt-4 text-center">
+            <Link href="/" className="text-sm text-slate-500 hover:text-slate-300 transition-colors flex items-center justify-center gap-1">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              홈으로 돌아가기
+            </Link>
+          </div>
         </CardContent>
       </Card>
+
+      {/* 약관 모달 */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* 배경 오버레이 */}
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setModalOpen(null)}
+          />
+
+          {/* 모달 컨텐츠 */}
+          <div className="relative w-full max-w-3xl max-h-[85vh] bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+            {/* 모달 헤더 */}
+            <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-slate-800 border-b border-slate-700">
+              <h2 className="text-xl font-bold text-white">
+                {modalOpen === 'terms' && '이용약관'}
+                {modalOpen === 'privacy' && '개인정보 수집·이용 동의'}
+                {modalOpen === 'marketing' && '마케팅 정보 수신 동의'}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setModalOpen(null)}
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* 모달 본문 */}
+            <div className="p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
+              {modalOpen === 'terms' && <TermsContent />}
+              {modalOpen === 'privacy' && <PrivacyContent />}
+              {modalOpen === 'marketing' && <MarketingContent />}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

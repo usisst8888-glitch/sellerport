@@ -19,28 +19,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 })
     }
 
-    const { platformId } = await request.json()
+    const { siteId } = await request.json()
 
-    if (!platformId) {
-      return NextResponse.json({ error: 'platformId가 필요합니다' }, { status: 400 })
+    if (!siteId) {
+      return NextResponse.json({ error: 'siteId가 필요합니다' }, { status: 400 })
     }
 
-    // 플랫폼 정보 조회
-    const { data: platform, error: platformError } = await supabase
-      .from('platforms')
+    // 사이트 정보 조회
+    const { data: site, error: siteError } = await supabase
+      .from('my_sites')
       .select('*')
-      .eq('id', platformId)
+      .eq('id', siteId)
       .eq('user_id', user.id)
       .single()
 
-    if (platformError || !platform) {
-      return NextResponse.json({ error: '플랫폼을 찾을 수 없습니다' }, { status: 404 })
+    if (siteError || !site) {
+      return NextResponse.json({ error: '사이트를 찾을 수 없습니다' }, { status: 404 })
     }
 
     // 네이버 API 클라이언트 생성 및 토큰 발급 테스트
     const naverClient = createNaverClient(
-      platform.application_id,
-      platform.application_secret
+      site.application_id,
+      site.application_secret
     )
 
     try {
@@ -49,12 +49,12 @@ export async function POST(request: NextRequest) {
 
       // 연동 상태 업데이트
       await supabase
-        .from('platforms')
+        .from('my_sites')
         .update({
           status: 'connected',
           last_sync_at: new Date().toISOString()
         })
-        .eq('id', platformId)
+        .eq('id', siteId)
 
       return NextResponse.json({
         success: true,
@@ -64,13 +64,13 @@ export async function POST(request: NextRequest) {
     } catch (apiError) {
       // API 호출 실패 - 키가 유효하지 않음
       console.error('Naver API 인증 실패:', apiError)
-      console.error('사용된 Application ID:', platform.application_id)
-      console.error('사용된 Application Secret (앞 10자):', platform.application_secret?.substring(0, 10))
+      console.error('사용된 Application ID:', site.application_id)
+      console.error('사용된 Application Secret (앞 10자):', site.application_secret?.substring(0, 10))
 
       await supabase
-        .from('platforms')
+        .from('my_sites')
         .update({ status: 'error' })
-        .eq('id', platformId)
+        .eq('id', siteId)
 
       const errorMessage = apiError instanceof Error ? apiError.message : '알 수 없는 오류'
       return NextResponse.json({

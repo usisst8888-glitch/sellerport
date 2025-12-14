@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-// 플랫폼 로고 컴포넌트
+// 사이트 로고 컴포넌트
 const NaverLogo = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
     <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z" fill="#03C75A"/>
@@ -158,7 +158,7 @@ export default function Home() {
                   </Link>
                   <Link href="/signup">
                     <Button className="bg-blue-600 text-white hover:bg-blue-500 transition-all duration-200">
-                      사전예약 하기
+                      무료로 시작하기
                     </Button>
                   </Link>
                 </>
@@ -191,7 +191,7 @@ export default function Home() {
               부터
               <br />
               <span className="bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent">
-                마진·세금 계산
+                성과 분석
               </span>
               까지
             </h2>
@@ -199,13 +199,13 @@ export default function Home() {
             <p className="text-lg sm:text-xl text-slate-300 mb-10 max-w-3xl mx-auto leading-relaxed animate-fade-in-up animation-delay-200">
               광고 효율을 <span className="text-green-400 font-semibold">🟢</span><span className="text-yellow-400 font-semibold">🟡</span><span className="text-red-400 font-semibold">🔴</span> 신호등으로 한눈에 파악하고,
               <br className="hidden sm:block" />
-              실제 순수익까지 자동으로 계산해드려요
+              모든 채널의 성과를 통합 관리하세요
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up animation-delay-400">
               <Link href="/signup">
                 <Button size="lg" className="bg-blue-600 text-white hover:bg-blue-500 text-lg px-8 h-14 w-full sm:w-auto transition-all duration-200">
-                  사전예약 하기
+                  무료로 시작하기
                 </Button>
               </Link>
               <Link href="#features">
@@ -222,13 +222,13 @@ export default function Home() {
                 <span className="text-slate-500">→</span>
                 <span className="px-3 py-1.5 rounded-lg bg-violet-500/20 text-violet-300">전환 추적</span>
                 <span className="text-slate-500">→</span>
-                <span className="px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-300">주문 수집</span>
+                <span className="px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-300">데이터 수집</span>
                 <span className="text-slate-500">→</span>
-                <span className="px-3 py-1.5 rounded-lg bg-pink-500/20 text-pink-300">수수료 계산</span>
+                <span className="px-3 py-1.5 rounded-lg bg-pink-500/20 text-pink-300">성과 분석</span>
                 <span className="text-slate-500">→</span>
-                <span className="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300">마진 계산</span>
+                <span className="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300">신호등 알림</span>
                 <span className="text-slate-500">→</span>
-                <span className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-300 font-semibold">실제 순수익</span>
+                <span className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-300 font-semibold">광고 최적화</span>
               </div>
             </div>
 
@@ -244,7 +244,7 @@ export default function Home() {
                 <p className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent transition-transform duration-300 group-hover:scale-110">
                   {stat2.count}+
                 </p>
-                <p className="text-sm text-slate-400 mt-2">사전예약</p>
+                <p className="text-sm text-slate-400 mt-2">가입자 수</p>
               </div>
               <div className="group" ref={stat3.ref}>
                 <p className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent transition-transform duration-300 group-hover:scale-110">
@@ -428,7 +428,8 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 마진/세금 자동 계산 섹션 */}
+        {/* 마진/세금 자동 계산 섹션 - 정식 오픈 후 활성화 예정 */}
+        {/*
         <section className="py-20 bg-slate-900/80 relative">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
@@ -442,7 +443,6 @@ export default function Home() {
             </div>
 
             <div className="grid md:grid-cols-2 gap-8 items-center">
-              {/* 기능 설명 */}
               <div className="space-y-6">
                 <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-emerald-500/30 transition-all">
                   <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
@@ -481,7 +481,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 시각적 데모 */}
               <div className="p-6 rounded-2xl bg-slate-800/80 border border-slate-700/50">
                 <div className="text-center mb-6">
                   <p className="text-slate-500 text-xs mb-2">이번 달 매출</p>
@@ -527,9 +526,10 @@ export default function Home() {
             </div>
           </div>
         </section>
+        */}
 
         {/* 카톡 알림 섹션 */}
-        <section className="py-20 bg-slate-800 relative">
+        <section className="py-20 bg-slate-900/80 relative">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <p className="text-blue-400 font-semibold mb-3 text-sm uppercase tracking-widest">KakaoTalk Alerts</p>
@@ -546,7 +546,7 @@ export default function Home() {
                 </div>
                 <h4 className="font-bold text-amber-400 mb-2">주문 알림</h4>
                 <p className="text-slate-400 text-sm leading-relaxed">
-                  유입경로 + 상품 + 마진까지 포함된 주문 알림
+                  유입경로 + 상품 + 전환 정보 포함 주문 알림
                 </p>
               </div>
 
@@ -720,14 +720,14 @@ export default function Home() {
                       <td className="px-6 py-4 text-center text-green-400 font-bold bg-blue-600/10">O</td>
                     </tr>
                     <tr className="border-b border-slate-700/30">
-                      <td className="px-6 py-4 font-medium text-slate-300">마진 자동 계산</td>
+                      <td className="px-6 py-4 font-medium text-slate-300">광고 성과 분석</td>
                       <td className="px-4 py-4 text-center text-slate-500">X</td>
                       <td className="px-4 py-4 text-center text-green-400">O</td>
                       <td className="px-4 py-4 text-center text-slate-500">X</td>
                       <td className="px-6 py-4 text-center text-green-400 font-bold bg-blue-600/10">O</td>
                     </tr>
                     <tr className="border-b border-slate-700/30">
-                      <td className="px-6 py-4 font-medium text-slate-300">세금 계산 (부가세/종소세)</td>
+                      <td className="px-6 py-4 font-medium text-slate-300">채널별 통합 대시보드</td>
                       <td className="px-4 py-4 text-center text-slate-500">X</td>
                       <td className="px-4 py-4 text-center text-slate-500">X</td>
                       <td className="px-4 py-4 text-center text-slate-500">X</td>
@@ -778,7 +778,7 @@ export default function Home() {
                 모든 온라인 비즈니스를 위한 <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">올인원 솔루션</span>
               </h3>
               <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-                쇼핑몰부터 서비스 사이트까지, 광고 전환 추적과 수익 계산을 셀러포트 하나로 해결하세요
+                쇼핑몰부터 서비스 사이트까지, 광고 전환 추적과 성과 분석을 셀러포트 하나로 해결하세요
               </p>
             </div>
 
@@ -812,31 +812,32 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* 마진 계산 */}
+              {/* 광고 채널 통합 */}
               <div className="group p-6 rounded-2xl bg-gradient-to-b from-violet-600/20 to-slate-800/50 border border-violet-500/30 hover:border-violet-400 transition-all duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-violet-500/20">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center mb-4 shadow-lg shadow-violet-500/30">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
                   </svg>
                 </div>
-                <h4 className="text-lg font-bold mb-2 text-violet-400">마진 자동 계산</h4>
+                <h4 className="text-lg font-bold mb-2 text-violet-400">광고 채널 통합</h4>
                 <p className="text-slate-400 text-sm leading-relaxed">
-                  원가, 수수료, 광고비 입력하면<br/>
-                  순이익 자동 계산
+                  메타, 네이버, 구글, 카카오<br/>
+                  모든 광고를 한 곳에서 관리
                 </p>
               </div>
 
-              {/* 세금 계산 */}
+              {/* 실시간 대시보드 */}
               <div className="group p-6 rounded-2xl bg-gradient-to-b from-pink-600/20 to-slate-800/50 border border-pink-500/30 hover:border-pink-400 transition-all duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-pink-500/20">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center mb-4 shadow-lg shadow-pink-500/30">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                 </div>
-                <h4 className="text-lg font-bold mb-2 text-pink-400">세금 계산</h4>
+                <h4 className="text-lg font-bold mb-2 text-pink-400">실시간 대시보드</h4>
                 <p className="text-slate-400 text-sm leading-relaxed">
-                  분기별 부가세, 연간 종소세<br/>
-                  예상 세금 미리 확인
+                  클릭, 전환, 매출 데이터<br/>
+                  실시간으로 한눈에 확인
                 </p>
               </div>
 
@@ -918,7 +919,7 @@ export default function Home() {
                 { step: '1', title: '사이트 연동', desc: '쇼핑몰, 서비스, 자체 사이트 등', color: 'blue' },
                 { step: '2', title: '광고 연동', desc: '메타, 구글, 네이버 광고 연결', color: 'violet' },
                 { step: '3', title: '신호등 확인', desc: '🟢🟡🔴 광고 효율 실시간 확인', color: 'emerald' },
-                { step: '4', title: '순수익 확인', desc: '마진, 세금까지 자동 계산', color: 'pink' },
+                { step: '4', title: '성과 확인', desc: '효율, 전환율 한눈에 파악', color: 'pink' },
               ].map((item, index) => (
                 <div key={index} className="relative">
                   <div className="flex flex-col items-center text-center p-6">
@@ -941,7 +942,8 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 고객 사례 */}
+        {/* 고객 사례 - 정식 오픈 후 활성화 예정 */}
+        {/*
         <section className="py-24 bg-slate-900/80 relative">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
@@ -952,7 +954,6 @@ export default function Home() {
             </div>
 
             <div className="grid md:grid-cols-3 gap-6">
-              {/* 사례 1 */}
               <div className="p-6 rounded-2xl bg-gradient-to-b from-slate-800 to-slate-800/50 border border-slate-700/50 hover:border-blue-500/30 transition-all duration-300">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white font-bold">
@@ -979,7 +980,6 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* 사례 2 */}
               <div className="p-6 rounded-2xl bg-gradient-to-b from-slate-800 to-slate-800/50 border border-slate-700/50 hover:border-violet-500/30 transition-all duration-300">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-white font-bold">
@@ -1006,7 +1006,6 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* 사례 3 */}
               <div className="p-6 rounded-2xl bg-gradient-to-b from-slate-800 to-slate-800/50 border border-slate-700/50 hover:border-emerald-500/30 transition-all duration-300">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-bold">
@@ -1034,7 +1033,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 전체 통계 */}
             <div className="mt-12 p-6 rounded-2xl bg-gradient-to-r from-blue-600/10 via-violet-600/10 to-pink-600/10 border border-slate-700/50">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
                 <div>
@@ -1057,9 +1055,10 @@ export default function Home() {
             </div>
           </div>
         </section>
+        */}
 
         {/* 요금 안내 */}
-        <section id="pricing" className="py-24 bg-slate-800 relative">
+        <section id="pricing" className="py-24 bg-slate-900/80 relative">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <p className="text-blue-400 font-semibold mb-3 text-sm uppercase tracking-widest">Pricing</p>
@@ -1083,7 +1082,7 @@ export default function Home() {
                   <p className="text-xs text-slate-500 mt-1">알림톡 미포함</p>
                 </div>
                 <ul className="space-y-2 mb-6">
-                  {['추적 링크 5개', '기본 전환 추적', '마진 계산기', '세금 계산기', '디자이너 연결'].map((feature, i) => (
+                  {['추적 링크 5개', '기본 전환 추적', '신호등 시스템', '실시간 대시보드', '디자이너 연결'].map((feature, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm">
                       <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -1094,7 +1093,7 @@ export default function Home() {
                 </ul>
                 <Link href="/signup">
                   <Button className="w-full bg-slate-700 hover:bg-slate-600 text-white">
-                    사전예약 하기
+                    무료로 시작하기
                   </Button>
                 </Link>
               </div>
@@ -1116,7 +1115,7 @@ export default function Home() {
                   <p className="text-xs text-emerald-400 mt-1">알림톡 300건 포함</p>
                 </div>
                 <ul className="space-y-2 mb-6">
-                  {['무제한 추적 링크', '모든 채널 전환 추적', '🟢🟡🔴 신호등 시스템', '마진/세금 자동 계산', '카톡 알림', '디자이너 연결'].map((feature, i) => (
+                  {['무제한 추적 링크', '모든 채널 전환 추적', '🟢🟡🔴 신호등 시스템', '광고 성과 분석', '카톡 알림', '디자이너 연결'].map((feature, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm">
                       <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -1198,10 +1197,10 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 지원 플랫폼 */}
-        <section className="py-20 bg-slate-900/80 relative overflow-hidden">
+        {/* 지원 사이트 */}
+        <section className="py-20 bg-slate-800 relative overflow-hidden">
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <p className="text-center text-slate-400 mb-12 font-medium uppercase tracking-widest text-sm">연동 지원 플랫폼</p>
+            <p className="text-center text-slate-400 mb-12 font-medium uppercase tracking-widest text-sm">연동 지원 사이트</p>
             <div className="flex flex-wrap justify-center items-center gap-6 sm:gap-10">
               {[
                 { Logo: NaverLogo, name: '스마트스토어' },
@@ -1227,7 +1226,7 @@ export default function Home() {
         </section>
 
         {/* CTA 섹션 */}
-        <section className="py-28 bg-slate-800">
+        <section className="py-28 bg-slate-900/80">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h3 className="text-4xl sm:text-5xl font-bold mb-6 text-white leading-tight">
               지금 바로 시작하세요
@@ -1236,11 +1235,11 @@ export default function Home() {
               쇼핑몰, 서비스 사이트, 자체 제작 사이트 모두 <span className="text-blue-400 font-semibold">무료</span>로 시작하세요
             </p>
             <p className="text-slate-500 mb-10">
-              광고 전환 추적 · 마진 계산 · 세금 계산 · 카톡 알림 · 신호등 시스템 모두 무료!
+              광고 전환 추적 · 성과 분석 · 신호등 알림 · 카톡 알림 · 디자이너 연결 모두 무료!
             </p>
             <Link href="/signup">
               <Button size="lg" className="bg-blue-600 text-white hover:bg-blue-500 text-lg px-12 h-14 transition-all duration-200">
-                사전예약 하기
+                무료로 시작하기
               </Button>
             </Link>
           </div>
@@ -1259,7 +1258,7 @@ export default function Home() {
                 </div>
                 <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
                   모든 온라인 비즈니스를 위한 광고 성과 분석 플랫폼.
-                  광고 전환 추적부터 마진·세금 계산, 디자이너 연결까지.
+                  광고 전환 추적부터 성과 분석, 디자이너 연결까지.
                 </p>
               </div>
               <div>
@@ -1273,19 +1272,38 @@ export default function Home() {
               <div>
                 <h6 className="font-semibold mb-4 text-slate-200">회사</h6>
                 <ul className="space-y-3 text-sm text-slate-400">
-                  <li><Link href="#" className="hover:text-white transition-colors duration-300">이용약관</Link></li>
-                  <li><Link href="#" className="hover:text-white transition-colors duration-300">개인정보처리방침</Link></li>
+                  <li><Link href="/terms" className="hover:text-white transition-colors duration-300">이용약관</Link></li>
+                  <li><Link href="/privacy" className="hover:text-white transition-colors duration-300">개인정보처리방침</Link></li>
                   <li><Link href="#" className="hover:text-white transition-colors duration-300">문의하기</Link></li>
                 </ul>
               </div>
             </div>
-            <div className="mt-16 pt-8 border-t border-slate-700/50 flex flex-col md:flex-row justify-between items-center gap-4">
-              <p className="text-sm text-slate-500">
-                어시스트 솔루션 (602-27-04681)
-              </p>
-              <p className="text-sm text-slate-500">
-                © 2025 SellerPort. All rights reserved.
-              </p>
+            <div className="mt-16 pt-8 border-t border-slate-700/50">
+              <div className="grid md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">서비스 운영</p>
+                  <p className="text-sm text-slate-400">
+                    어시스트솔루션 (602-27-04681) 대표 배철응
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    서울시 광진구 화양동 15-51
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">결제 및 고객센터 운영</p>
+                  <p className="text-sm text-slate-400">
+                    (주)리프컴퍼니 (413-87-02826) 대표 박상호
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    서울시 광진구 구의동 218-13 202호
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <p className="text-sm text-slate-500">
+                  © 2025 SellerPort. All rights reserved.
+                </p>
+              </div>
             </div>
           </div>
         </footer>

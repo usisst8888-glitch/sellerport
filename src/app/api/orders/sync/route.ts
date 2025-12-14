@@ -41,35 +41,35 @@ export async function POST(request: NextRequest) {
       userId = user.id
     }
 
-    // Body에서 platformId 확인 (특정 플랫폼만 동기화)
-    let platformId: string | null = null
+    // Body에서 siteId 확인 (특정 사이트만 동기화)
+    let siteId: string | null = null
     try {
       const body = await request.json()
-      platformId = body.platformId || null
+      siteId = body.siteId || null
     } catch {
       // Body가 없어도 OK
     }
 
-    // 동기화할 플랫폼 목록 조회
+    // 동기화할 사이트 목록 조회
     let query = supabase
-      .from('platforms')
+      .from('my_sites')
       .select('*')
       .eq('status', 'connected')
-      .eq('platform_type', 'naver')
+      .eq('site_type', 'naver')
 
     if (userId) {
       query = query.eq('user_id', userId)
     }
-    if (platformId) {
-      query = query.eq('id', platformId)
+    if (siteId) {
+      query = query.eq('id', siteId)
     }
 
-    const { data: platforms, error: platformError } = await query
+    const { data: sites, error: siteError } = await query
 
-    if (platformError || !platforms || platforms.length === 0) {
+    if (siteError || !sites || sites.length === 0) {
       return NextResponse.json({
         success: true,
-        message: '동기화할 플랫폼이 없습니다',
+        message: '동기화할 사이트가 없습니다',
         synced: 0
       })
     }
@@ -78,12 +78,12 @@ export async function POST(request: NextRequest) {
     let totalMatched = 0
     const errors: string[] = []
 
-    // 각 플랫폼별로 주문 동기화
-    for (const platform of platforms) {
+    // 각 사이트별로 주문 동기화
+    for (const site of sites) {
       try {
         const client = createNaverClient(
-          platform.application_id,
-          platform.application_secret
+          site.application_id,
+          site.application_secret
         )
 
         // 최근 7일간 주문 조회
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
           const { data: existingOrder } = await supabase
             .from('orders')
             .select('id')
-            .eq('platform_id', platform.id)
+            .eq('my_site_id', site.id)
             .eq('external_order_id', order.orderId)
             .eq('product_order_id', order.productOrderId || order.orderId)
             .single()
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
           const { data: product } = await supabase
             .from('products')
             .select('id, cost')
-            .eq('platform_id', platform.id)
+            .eq('my_site_id', site.id)
             .eq('external_product_id', String(order.originProductNo))
             .single()
 
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
             const { data: trackingLink } = await supabase
               .from('tracking_links')
               .select('id, campaign_id')
-              .eq('user_id', platform.user_id)
+              .eq('user_id', site.user_id)
               .eq('utm_campaign', utmParams.utm_campaign)
               .single()
 
@@ -178,10 +178,10 @@ export async function POST(request: NextRequest) {
           const { data: newOrder, error: insertError } = await supabase
             .from('orders')
             .insert({
-              user_id: platform.user_id,
-              platform_id: platform.id,
+              user_id: site.user_id,
+              my_site_id: site.id,
               product_id: product?.id || null,
-              platform_type: 'naver',
+              site_type: 'naver',
               external_order_id: order.orderId,
               product_order_id: order.productOrderId || order.orderId,
               external_product_id: String(order.originProductNo),
@@ -275,15 +275,15 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // 플랫폼 마지막 동기화 시간 업데이트
+        // 사이트 마지막 동기화 시간 업데이트
         await supabase
-          .from('platforms')
+          .from('my_sites')
           .update({ last_sync_at: new Date().toISOString() })
-          .eq('id', platform.id)
+          .eq('id', site.id)
 
       } catch (err) {
-        console.error(`Platform ${platform.id} sync error:`, err)
-        errors.push(`${platform.platform_name}: ${err instanceof Error ? err.message : 'Unknown error'}`)
+        console.error(`Site ${site.id} sync error:`, err)
+        errors.push(`${site.site_name}: ${err instanceof Error ? err.message : 'Unknown error'}`)
       }
     }
 
@@ -293,7 +293,7 @@ export async function POST(request: NextRequest) {
       data: {
         synced: totalSynced,
         matched: totalMatched,
-        platforms: platforms.length,
+        sites: sites.length,
         errors: errors.length > 0 ? errors : undefined
       }
     })

@@ -431,23 +431,23 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* 연동된 플랫폼 - 전체 너비 */}
+      {/* 연동된 사이트 - 전체 너비 */}
       <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold text-white flex items-center gap-2">
             <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
-            연동된 플랫폼
+            연동된 사이트
           </h2>
-          <Link href="/platforms" className="text-xs text-blue-400 hover:text-blue-300">
+          <Link href="/my-sites" className="text-xs text-blue-400 hover:text-blue-300">
             전체 관리 →
           </Link>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {/* 네이버 스마트스토어 */}
-          <Link href="/platforms" className="flex flex-col items-center p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700 transition-colors">
+          <Link href="/my-sites" className="flex flex-col items-center p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700 transition-colors">
             <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center text-2xl mb-2">🛒</div>
             <p className="text-sm font-medium text-white text-center">네이버</p>
             <p className="text-xs text-slate-500">스마트스토어</p>

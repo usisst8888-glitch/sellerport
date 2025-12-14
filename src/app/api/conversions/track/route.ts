@@ -36,14 +36,14 @@ interface ConversionData {
 
   // 추가 정보
   userId?: string
-  platformType?: string     // 'naver', 'coupang', 'cafe24' 등
+  siteType?: string     // 'naver', 'coupang', 'cafe24' 등
   metadata?: Record<string, any>
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: ConversionData = await request.json()
-    const { orderId, orderAmount, trackingLinkId, clickId, productId, productName, quantity = 1, fbp, fbc, userId, platformType, metadata } = body
+    const { orderId, orderAmount, trackingLinkId, clickId, productId, productName, quantity = 1, fbp, fbc, userId, siteType, metadata } = body
 
     if (!orderId || !orderAmount) {
       return NextResponse.json({
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
       quantity,
       fbp: finalFbp,
       fbc: finalFbc,
-      platform_type: platformType,
+      site_type: siteType,
       converted_at: new Date().toISOString(),
       metadata: metadata || {}
     })

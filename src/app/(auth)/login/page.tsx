@@ -97,6 +97,15 @@ export default function LoginPage() {
               회원가입
             </Link>
           </div>
+
+          <div className="mt-4 text-center">
+            <Link href="/" className="text-sm text-slate-500 hover:text-slate-300 transition-colors flex items-center justify-center gap-1">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              홈으로 돌아가기
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>

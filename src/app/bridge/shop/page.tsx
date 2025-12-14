@@ -6,7 +6,7 @@ import Image from 'next/image'
 
 /**
  * 범용 브릿지샵 페이지 (구글/메타/틱톡 광고용)
- * 판매 플랫폼별 디자인 적용
+ * 판매 사이트별 디자인 적용
  */
 
 interface TrackingLinkData {
@@ -21,16 +21,16 @@ interface TrackingLinkData {
     name: string
     image_url: string | null
     price: number
-    platform_type: string
-    platforms?: {
+    site_type: string
+    my_sites?: {
       id: string
-      platform_type: string
-      platform_name: string
+      site_type: string
+      site_name: string
     } | null
   } | null
 }
 
-// 플랫폼별 테마 설정
+// 사이트별 테마 설정
 const platformThemes = {
   naver: {
     name: '스마트스토어',
@@ -182,14 +182,14 @@ function BridgeShopPage() {
     window.location.href = targetUrl.toString()
   }
 
-  // 플랫폼 타입 결정
+  // 사이트 타입 결정
   const getPlatformType = (): PlatformType => {
-    const platformType = trackingLink?.products?.platform_type ||
-                        trackingLink?.products?.platforms?.platform_type
+    const siteType = trackingLink?.products?.site_type ||
+                        trackingLink?.products?.my_sites?.site_type
 
-    if (platformType === 'naver') return 'naver'
-    if (platformType === 'coupang') return 'coupang'
-    if (platformType === 'cafe24') return 'cafe24'
+    if (siteType === 'naver') return 'naver'
+    if (siteType === 'coupang') return 'coupang'
+    if (siteType === 'cafe24') return 'cafe24'
     return 'custom'
   }
 
@@ -222,7 +222,7 @@ function BridgeShopPage() {
   const product = trackingLink.products
   const platformType = getPlatformType()
   const theme = platformThemes[platformType]
-  const storeName = product?.platforms?.platform_name || theme.name
+  const storeName = product?.my_sites?.site_name || theme.name
 
   return (
     <>
@@ -248,7 +248,7 @@ function BridgeShopPage() {
         className={`min-h-screen bg-gradient-to-b ${theme.bgGradient}`}
         style={{ cursor: 'default' }}
       >
-        {/* 플랫폼별 헤더 */}
+        {/* 사이트별 헤더 */}
         <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200">
           <div className="max-w-[1200px] mx-auto px-4 h-14 flex items-center justify-between">
             <div className="flex items-center gap-3">

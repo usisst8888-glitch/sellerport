@@ -1,6 +1,6 @@
 /**
  * 주문 동기화 Cron Job
- * 5분마다 실행되어 모든 연결된 플랫폼의 주문을 동기화합니다.
+ * 5분마다 실행되어 모든 연결된 사이트의 주문을 동기화합니다.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -29,29 +29,29 @@ export async function GET(request: NextRequest) {
   const supabase = getSupabaseAdmin()
 
   try {
-    // 모든 연결된 플랫폼 조회
-    const { data: platforms, error: platformError } = await supabase
-      .from('platforms')
+    // 모든 연결된 사이트 조회
+    const { data: sites, error: siteError } = await supabase
+      .from('my_sites')
       .select('*')
       .eq('status', 'connected')
 
-    if (platformError || !platforms) {
-      console.error('[Cron] Platform fetch error:', platformError)
-      return NextResponse.json({ error: 'Platform fetch failed' }, { status: 500 })
+    if (siteError || !sites) {
+      console.error('[Cron] Site fetch error:', siteError)
+      return NextResponse.json({ error: 'Site fetch failed' }, { status: 500 })
     }
 
-    console.log(`[Cron] Found ${platforms.length} connected platforms`)
+    console.log(`[Cron] Found ${sites.length} connected sites`)
 
     let totalSynced = 0
     let totalMatched = 0
 
-    for (const platform of platforms) {
-      if (platform.platform_type !== 'naver') continue
+    for (const site of sites) {
+      if (site.site_type !== 'naver') continue
 
       try {
         const client = createNaverClient(
-          platform.application_id,
-          platform.application_secret
+          site.application_id,
+          site.application_secret
         )
 
         // 최근 24시간 주문 조회
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
           const { data: existing } = await supabase
             .from('orders')
             .select('id')
-            .eq('platform_id', platform.id)
+            .eq('my_site_id', site.id)
             .eq('external_order_id', order.orderId)
             .eq('product_order_id', order.productOrderId || order.orderId)
             .single()
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
           const { data: product } = await supabase
             .from('products')
             .select('id, cost')
-            .eq('platform_id', platform.id)
+            .eq('my_site_id', site.id)
             .eq('external_product_id', String(order.originProductNo))
             .single()
 
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
             const { data: trackingLink } = await supabase
               .from('tracking_links')
               .select('id, campaign_id')
-              .eq('user_id', platform.user_id)
+              .eq('user_id', site.user_id)
               .eq('utm_campaign', utmParams.utm_campaign)
               .single()
 
@@ -131,10 +131,10 @@ export async function GET(request: NextRequest) {
           const { data: newOrder } = await supabase
             .from('orders')
             .insert({
-              user_id: platform.user_id,
-              platform_id: platform.id,
+              user_id: site.user_id,
+              my_site_id: site.id,
               product_id: product?.id || null,
-              platform_type: 'naver',
+              site_type: 'naver',
               external_order_id: order.orderId,
               product_order_id: order.productOrderId || order.orderId,
               external_product_id: String(order.originProductNo),
@@ -201,18 +201,18 @@ export async function GET(request: NextRequest) {
             }
 
             // 주문 알림 발송
-            await sendOrderAlert(platform.user_id, order, profit, supabase)
+            await sendOrderAlert(site.user_id, order, profit, supabase)
           }
         }
 
         // 마지막 동기화 시간 업데이트
         await supabase
-          .from('platforms')
+          .from('my_sites')
           .update({ last_sync_at: new Date().toISOString() })
-          .eq('id', platform.id)
+          .eq('id', site.id)
 
       } catch (err) {
-        console.error(`[Cron] Platform ${platform.id} error:`, err)
+        console.error(`[Cron] Site ${site.id} error:`, err)
       }
     }
 

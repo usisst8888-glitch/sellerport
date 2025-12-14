@@ -63,7 +63,7 @@ export function generateOptimizationTips(metrics: CampaignMetrics): Optimization
       actionItems: [
         '일일 예산 30-50% 증액',
         '유사 타겟으로 확장',
-        '다른 플랫폼에도 동일 소재 테스트'
+        '다른 채널에도 동일 소재 테스트'
       ]
     })
   } else if (metrics.roas < ROAS_THRESHOLDS.CRITICAL) {

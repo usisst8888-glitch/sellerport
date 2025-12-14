@@ -402,14 +402,14 @@ export default function AdManagementPage() {
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">광고채널별 관리</h1>
+          <h1 className="text-2xl font-bold text-white">광고 채널 관리</h1>
           <p className="mt-1 text-sm text-slate-400">
             연동된 광고 채널별로 캠페인을 관리하고 성과를 확인하세요
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowManualModal(true)}
+            onClick={() => window.location.href = '/ad-channels?tab=manual'}
             className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors flex items-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -478,7 +478,7 @@ export default function AdManagementPage() {
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setShowManualModal(true)}
+                onClick={() => window.location.href = '/ad-channels?tab=manual'}
                 className="px-3 py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 hover:text-purple-200 text-sm transition-colors flex items-center gap-1.5"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -621,7 +621,7 @@ export default function AdManagementPage() {
             </p>
             <div className="flex items-center justify-center gap-3">
               <button
-                onClick={() => setShowManualModal(true)}
+                onClick={() => window.location.href = '/ad-channels?tab=manual'}
                 className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-medium transition-colors"
               >
                 수동 채널 추가

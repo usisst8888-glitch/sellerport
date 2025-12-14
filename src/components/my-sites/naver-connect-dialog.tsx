@@ -49,13 +49,13 @@ export function NaverConnectDialog({ children, onSuccess }: NaverConnectDialogPr
         return
       }
 
-      // 플랫폼 정보 저장 (API 키는 암호화하여 저장)
+      // 사이트 정보 저장 (API 키는 암호화하여 저장)
       const { error: insertError } = await supabase
-        .from('platforms')
+        .from('my_sites')
         .insert({
           user_id: user.id,
-          platform_type: 'naver',
-          platform_name: storeName.trim(),
+          site_type: 'naver',
+          site_name: storeName.trim(),
           store_id: storeId.trim().toLowerCase(), // 스마트스토어 ID (URL용)
           application_id: clientId.trim(),
           application_secret: clientSecret.trim(),

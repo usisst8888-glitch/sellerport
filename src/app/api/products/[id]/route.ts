@@ -28,10 +28,10 @@ export async function GET(
       .from('products')
       .select(`
         *,
-        platforms (
+        my_sites (
           id,
-          platform_type,
-          platform_name
+          site_type,
+          site_name
         )
       `)
       .eq('id', id)

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Select } from '@/components/ui/select'
 
-// 플랫폼별 수수료 구조
+// 사이트별 수수료 구조
 // 네이버: 채널별, 카테고리별로 다름 (결제수수료 별도)
 // 쿠팡: 카테고리별 6~10.8% (로켓배송 여부에 따라 추가)
 // G마켓/옥션/11번가: 카테고리별 9~15%
@@ -25,7 +25,7 @@ interface PlatformFeeConfig {
   paymentFee?: number
 }
 
-// 로드맵 기반 플랫폼: 네이버, 쿠팡, 카페24, 아임웹, 고도몰, 메이크샵
+// 로드맵 기반 사이트: 네이버, 쿠팡, 카페24, 아임웹, 고도몰, 메이크샵
 const PLATFORM_FEE_CONFIG: Record<string, PlatformFeeConfig> = {
   naver: {
     name: '네이버 스마트스토어',
@@ -161,7 +161,7 @@ function calculatePlatformFee(
       }
     }
   } else {
-    // 채널이 없는 플랫폼 (자사몰: 카페24, 아임웹 등)
+    // 채널이 없는 사이트 (자사몰: 카페24, 아임웹 등)
     feeRate = Math.round(((config.baseFee || 0) + (config.paymentFee || 0)) * 100) / 100
     breakdown = config.paymentFee && config.paymentFee > 0
       ? `PG수수료 ${config.paymentFee}%`
@@ -172,7 +172,7 @@ function calculatePlatformFee(
   return { totalFee, feeRate: Math.round(feeRate * 100) / 100, breakdown }
 }
 
-// 기존 단순 수수료 (호환성용) - 로드맵 기반 플랫폼만
+// 기존 단순 수수료 (호환성용) - 로드맵 기반 사이트만
 const PLATFORM_FEES: Record<string, number> = {
   naver: 4.63, // 스마트스토어 평균 (결제수수료 포함)
   coupang: 10.8, // 마켓플레이스 평균
@@ -186,11 +186,11 @@ const PLATFORM_FEES: Record<string, number> = {
 interface Product {
   id: string
   name: string
-  platform_type: string
+  site_type: string
   price: number
   cost: number
-  platforms?: {
-    platform_name: string
+  my_sites?: {
+    site_name: string
   }
 }
 
@@ -378,7 +378,7 @@ export default function ProfitPage() {
     useCustomFee: false, // 직접 입력 모드 사용 여부
   })
 
-  // 플랫폼 변경 시 채널/카테고리 초기화
+  // 사이트 변경 시 채널/카테고리 초기화
   const handlePlatformChange = (platform: string) => {
     const config = PLATFORM_FEE_CONFIG[platform]
     const defaultChannel = config?.channels?.[0]?.id || 'standard'
@@ -390,7 +390,7 @@ export default function ProfitPage() {
     })
   }
 
-  // 현재 선택된 플랫폼의 채널 목록
+  // 현재 선택된 사이트의 채널 목록
   const currentChannels = PLATFORM_FEE_CONFIG[calcValues.platform]?.channels || []
   const currentChannel = currentChannels.find(c => c.id === calcValues.channel)
   const currentCategories = currentChannel?.categories || []
@@ -462,7 +462,7 @@ export default function ProfitPage() {
   // 상품별 수익 계산
   const calculateProductProfits = (productList: Product[]) => {
     const profits: ProductProfit[] = productList.map(product => {
-      const platformFeeRate = PLATFORM_FEES[product.platform_type] || PLATFORM_FEES.etc
+      const platformFeeRate = PLATFORM_FEES[product.site_type] || PLATFORM_FEES.etc
       const platformFee = Math.round(product.price * (platformFeeRate / 100))
       const shippingCost = 3000 // 기본 배송비 가정
       const adSpend = 0 // 광고비는 추적 링크에서 계산
@@ -474,8 +474,8 @@ export default function ProfitPage() {
       return {
         id: product.id,
         name: product.name,
-        platform: product.platforms?.platform_name || product.platform_type,
-        platformType: product.platform_type,
+        platform: product.my_sites?.site_name || product.site_type,
+        platformType: product.site_type,
         sellingPrice: product.price,
         cost: product.cost,
         platformFee,
@@ -671,7 +671,7 @@ export default function ProfitPage() {
             <div className="bg-slate-800/50 rounded-xl p-4 text-center">
               <p className="text-2xl mb-1">🏪</p>
               <p className="text-xs text-slate-500">수수료</p>
-              <p className="text-sm text-slate-300">플랫폼별 상이</p>
+              <p className="text-sm text-slate-300">사이트별 상이</p>
             </div>
             <div className="bg-slate-800/50 rounded-xl p-4 text-center">
               <p className="text-2xl mb-1">🚚</p>
@@ -868,9 +868,9 @@ export default function ProfitPage() {
             </div>
 
             <div className="p-6 space-y-4">
-              {/* 플랫폼 선택 - 한 줄로 */}
+              {/* 사이트 선택 - 한 줄로 */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-300">판매 플랫폼</label>
+                <label className="block text-sm font-medium text-slate-300">판매 사이트</label>
                 <div className="flex gap-2">
                   <Select
                     value={calcValues.platform}

@@ -1,6 +1,6 @@
 /**
  * 네이버 API 테스트 엔드포인트
- * GET /api/naver/test?platformId=xxx
+ * GET /api/naver/test?siteId=xxx
  *
  * 인증 및 상품 조회 API를 테스트합니다.
  */
@@ -20,48 +20,48 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const platformId = searchParams.get('platformId')
+    const siteId = searchParams.get('siteId')
 
-    if (!platformId) {
-      // platformId가 없으면 사용자의 네이버 플랫폼 목록 조회
-      const { data: platforms } = await supabase
-        .from('platforms')
-        .select('id, platform_name, platform_type, status, application_id')
+    if (!siteId) {
+      // siteId가 없으면 사용자의 네이버 사이트 목록 조회
+      const { data: sites } = await supabase
+        .from('my_sites')
+        .select('id, site_name, site_type, status, application_id')
         .eq('user_id', user.id)
-        .eq('platform_type', 'naver')
+        .eq('site_type', 'naver')
 
       return NextResponse.json({
-        message: 'platformId 파라미터를 추가해주세요',
-        availablePlatforms: platforms
+        message: 'siteId 파라미터를 추가해주세요',
+        availableSites: sites
       })
     }
 
-    // 플랫폼 정보 조회
-    const { data: platform, error: platformError } = await supabase
-      .from('platforms')
+    // 사이트 정보 조회
+    const { data: site, error: siteError } = await supabase
+      .from('my_sites')
       .select('*')
-      .eq('id', platformId)
+      .eq('id', siteId)
       .eq('user_id', user.id)
       .single()
 
-    if (platformError || !platform) {
-      return NextResponse.json({ error: '플랫폼을 찾을 수 없습니다' }, { status: 404 })
+    if (siteError || !site) {
+      return NextResponse.json({ error: '사이트를 찾을 수 없습니다' }, { status: 404 })
     }
 
     const results: Record<string, unknown> = {
-      platform: {
-        id: platform.id,
-        name: platform.platform_name,
-        status: platform.status,
-        applicationId: platform.application_id,
-        applicationSecretLength: platform.application_secret?.length
+      site: {
+        id: site.id,
+        name: site.site_name,
+        status: site.status,
+        applicationId: site.application_id,
+        applicationSecretLength: site.application_secret?.length
       }
     }
 
     // 네이버 API 클라이언트 생성
     const naverClient = createNaverClient(
-      platform.application_id,
-      platform.application_secret
+      site.application_id,
+      site.application_secret
     )
 
     // 1. 인증 토큰 테스트

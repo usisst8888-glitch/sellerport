@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     // 쿼리 파라미터
     const { searchParams } = new URL(request.url)
-    const platformId = searchParams.get('platformId')
+    const siteId = searchParams.get('siteId')
     const status = searchParams.get('status')
 
     // 상품 목록 조회
@@ -28,18 +28,18 @@ export async function GET(request: NextRequest) {
       .from('products')
       .select(`
         *,
-        platforms (
+        my_sites (
           id,
-          platform_type,
-          platform_name,
+          site_type,
+          site_name,
           store_id
         )
       `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
-    if (platformId) {
-      query = query.eq('platform_id', platformId)
+    if (siteId) {
+      query = query.eq('my_site_id', siteId)
     }
 
     if (status) {
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const {
-      platformId,
+      siteId,
       externalProductId,
       name,
       price,
@@ -105,20 +105,20 @@ export async function POST(request: NextRequest) {
       imageUrl
     } = body
 
-    if (!platformId || !name || !price) {
+    if (!siteId || !name || !price) {
       return NextResponse.json({ error: '필수 항목이 누락되었습니다' }, { status: 400 })
     }
 
-    // 플랫폼 존재 확인
-    const { data: platform, error: platformError } = await supabase
-      .from('platforms')
-      .select('id, platform_type')
-      .eq('id', platformId)
+    // 사이트 존재 확인
+    const { data: site, error: siteError } = await supabase
+      .from('my_sites')
+      .select('id, site_type')
+      .eq('id', siteId)
       .eq('user_id', user.id)
       .single()
 
-    if (platformError || !platform) {
-      return NextResponse.json({ error: '플랫폼을 찾을 수 없습니다' }, { status: 404 })
+    if (siteError || !site) {
+      return NextResponse.json({ error: '사이트를 찾을 수 없습니다' }, { status: 404 })
     }
 
     // 상품 생성
@@ -126,8 +126,8 @@ export async function POST(request: NextRequest) {
       .from('products')
       .insert({
         user_id: user.id,
-        platform_id: platformId,
-        platform_type: platform.platform_type,
+        my_site_id: siteId,
+        site_type: site.site_type,
         external_product_id: externalProductId || `manual_${Date.now()}`,
         name,
         price,

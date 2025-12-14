@@ -41,23 +41,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 폴링 대상 플랫폼 조회
+    // 폴링 대상 사이트 조회
     let query = supabase
-      .from('platforms')
+      .from('my_sites')
       .select('id, user_id, application_id, application_secret, last_sync_at')
-      .eq('platform_type', 'naver')
+      .eq('site_type', 'naver')
       .eq('status', 'connected')
 
     if (userId) {
       query = query.eq('user_id', userId)
     }
 
-    const { data: platforms, error: platformsError } = await query
+    const { data: sites, error: sitesError } = await query
 
-    if (platformsError || !platforms || platforms.length === 0) {
+    if (sitesError || !sites || sites.length === 0) {
       return NextResponse.json({
         success: true,
-        message: '폴링할 플랫폼이 없습니다',
+        message: '폴링할 사이트가 없습니다',
         processed: 0
       })
     }
@@ -66,21 +66,21 @@ export async function POST(request: NextRequest) {
     let totalMatched = 0
     const results: any[] = []
 
-    // 각 플랫폼별 주문 폴링
-    for (const platform of platforms) {
+    // 각 사이트별 주문 폴링
+    for (const site of sites) {
       try {
-        if (!platform.application_id || !platform.application_secret) {
+        if (!site.application_id || !site.application_secret) {
           continue
         }
 
         const naverClient = createNaverClient(
-          platform.application_id,
-          platform.application_secret
+          site.application_id,
+          site.application_secret
         )
 
         // 최근 주문 조회 (마지막 동기화 이후)
-        const lastSync = platform.last_sync_at
-          ? new Date(platform.last_sync_at)
+        const lastSync = site.last_sync_at
+          ? new Date(site.last_sync_at)
           : new Date(Date.now() - 24 * 60 * 60 * 1000) // 기본 24시간 전
 
         const now = new Date()
@@ -95,9 +95,9 @@ export async function POST(request: NextRequest) {
         for (const order of orders) {
           // 주문 저장
           const { error: orderError } = await supabase.from('orders').upsert({
-            user_id: platform.user_id,
-            platform_id: platform.id,
-            platform_type: 'naver',
+            user_id: site.user_id,
+            my_site_id: site.id,
+            site_type: 'naver',
             external_order_id: order.orderId,
             product_order_id: order.productOrderId,
             external_product_id: order.originProductNo?.toString(),
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
             ordered_at: order.orderDate,
             synced_at: now.toISOString()
           }, {
-            onConflict: 'platform_id,external_order_id,product_order_id'
+            onConflict: 'my_site_id,external_order_id,product_order_id'
           })
 
           if (!orderError) {
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
           }
 
           // 추적 링크 매칭 시도 (UTM 캠페인 기반)
-          const matched = await tryTrackingLinkMatching(platform.user_id, order)
+          const matched = await tryTrackingLinkMatching(site.user_id, order)
           if (matched) {
             totalMatched++
           }
@@ -128,20 +128,20 @@ export async function POST(request: NextRequest) {
 
         // 마지막 동기화 시간 업데이트
         await supabase
-          .from('platforms')
+          .from('my_sites')
           .update({ last_sync_at: now.toISOString() })
-          .eq('id', platform.id)
+          .eq('id', site.id)
 
         results.push({
-          platformId: platform.id,
+          siteId: site.id,
           orders: orders.length,
           matched: totalMatched
         })
 
       } catch (err) {
-        console.error(`Platform ${platform.id} polling error:`, err)
+        console.error(`Site ${site.id} polling error:`, err)
         results.push({
-          platformId: platform.id,
+          siteId: site.id,
           error: err instanceof Error ? err.message : 'Unknown error'
         })
       }
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      totalPlatforms: platforms.length,
+      totalSites: sites.length,
       totalNewOrders,
       totalMatched,
       results
@@ -213,7 +213,7 @@ async function tryTrackingLinkMatching(userId: string, order: any): Promise<bool
           order_amount: order.totalPaymentAmount,
           product_name: order.productName,
           quantity: order.quantity,
-          platform_type: 'naver',
+          site_type: 'naver',
           converted_at: new Date().toISOString()
         })
 

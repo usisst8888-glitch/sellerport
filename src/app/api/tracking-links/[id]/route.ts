@@ -65,7 +65,7 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { name, status, targetUrl, adSpend, productId } = body
+    const { name, status, targetUrl, adSpend, productId, targetRoasGreen, targetRoasYellow } = body
 
     const updateData: Record<string, unknown> = {}
     if (name !== undefined) updateData.name = name
@@ -73,6 +73,8 @@ export async function PATCH(
     if (targetUrl !== undefined) updateData.target_url = targetUrl
     if (adSpend !== undefined) updateData.ad_spend = adSpend
     if (productId !== undefined) updateData.product_id = productId
+    if (targetRoasGreen !== undefined) updateData.target_roas_green = targetRoasGreen
+    if (targetRoasYellow !== undefined) updateData.target_roas_yellow = targetRoasYellow
 
     const { data: trackingLink, error } = await supabase
       .from('tracking_links')
