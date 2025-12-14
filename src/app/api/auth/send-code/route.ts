@@ -18,7 +18,7 @@ function getSupabaseAdmin() {
 }
 
 // 테스트용 번호 (알리고 심사 완료 전까지)
-const TEST_PHONE = '01071838563'
+const TEST_PHONE = '01012341234'
 const TEST_CODE = '123456'
 
 // 6자리 인증번호 생성
@@ -56,6 +56,23 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = getSupabaseAdmin()
+
+    // 이미 가입된 전화번호인지 확인 (중복 가입 방지)
+    // 테스트 번호는 중복 체크 건너뛰기
+    if (normalizedPhone !== TEST_PHONE) {
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('phone', normalizedPhone)
+        .single()
+
+      if (existingUser) {
+        return NextResponse.json(
+          { error: '이미 가입된 전화번호입니다' },
+          { status: 409 }
+        )
+      }
+    }
 
     // 최근 1분 내 요청 횟수 확인 (스팸 방지)
     const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString()
