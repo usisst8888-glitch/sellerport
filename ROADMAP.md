@@ -419,6 +419,90 @@ influencer_stats (인플루언서 효율 DB)
 
 ---
 
+### 광고 채널 연동 다이얼로그 컴포넌트 추가
+
+광고 채널 연동 페이지(`/ad-channels`)에서 사용할 연동 다이얼로그 컴포넌트들을 추가했습니다.
+
+#### 생성된 파일
+
+| 파일 | 설명 |
+|------|------|
+| `/components/ad-channels/google-ads-connect-dialog.tsx` | Google Ads 연동 다이얼로그 |
+| `/components/ad-channels/instagram-connect-dialog.tsx` | Instagram 연동 다이얼로그 |
+| `/components/ad-channels/kakao-moment-connect-dialog.tsx` | 카카오모먼트 연동 다이얼로그 |
+| `/components/ad-channels/naver-blog-connect-dialog.tsx` | 네이버 블로그 연동 다이얼로그 |
+| `/components/ad-channels/naver-gfa-connect-dialog.tsx` | 네이버 GFA 연동 다이얼로그 |
+| `/components/ad-channels/threads-connect-dialog.tsx` | Threads 연동 다이얼로그 |
+| `/components/ad-channels/tiktok-ads-connect-dialog.tsx` | TikTok Ads 연동 다이얼로그 |
+| `/components/ad-channels/tiktok-connect-dialog.tsx` | TikTok 계정 연동 다이얼로그 |
+| `/components/ad-channels/youtube-connect-dialog.tsx` | YouTube 연동 다이얼로그 |
+
+---
+
+### 내 사이트 연동 다이얼로그 컴포넌트 추가
+
+내 사이트 연동 페이지(`/my-sites`)에서 사용할 연동 다이얼로그 컴포넌트들을 추가했습니다.
+
+#### 생성된 파일
+
+| 파일 | 설명 |
+|------|------|
+| `/components/my-sites/coupang-connect-dialog.tsx` | 쿠팡 Wing API 연동 다이얼로그 |
+| `/components/my-sites/custom-site-connect-dialog.tsx` | 자체 사이트 추적 코드 설치 다이얼로그 |
+| `/components/my-sites/naver-connect-dialog.tsx` | 네이버 스마트스토어 연동 다이얼로그 (기존 파일 이동) |
+
+---
+
+### 법적 페이지 추가
+
+서비스 이용에 필요한 법적 문서 페이지들을 추가했습니다.
+
+#### 생성된 파일
+
+| 파일 | 설명 |
+|------|------|
+| `/app/(auth)/terms/page.tsx` | 이용약관 페이지 |
+| `/app/(auth)/privacy/page.tsx` | 개인정보처리방침 페이지 |
+| `/app/(auth)/marketing/page.tsx` | 마케팅 정보 수신 동의 페이지 |
+| `/components/legal/legal-contents.tsx` | 법적 문서 내용 컴포넌트 (약관, 개인정보처리방침, 마케팅 동의 내용) |
+
+---
+
+### 회원가입 페이지 개선
+
+회원가입 시 필수 약관 동의 및 마케팅 수신 동의 체크박스를 추가했습니다.
+
+#### 수정된 파일
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `/app/(auth)/signup/page.tsx` | 이용약관, 개인정보처리방침 동의 체크박스 추가, 마케팅 수신 동의 체크박스 추가 |
+| `/app/(auth)/login/page.tsx` | 회원가입 링크 스타일 개선 |
+
+---
+
+### 랜딩페이지 개선
+
+#### 수정된 파일
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `/app/page.tsx` | UI 개선 및 레이아웃 조정 |
+
+---
+
+### 광고 채널 연동 페이지 대폭 개선
+
+광고 채널 연동 페이지(`/ad-channels`)의 UI/UX를 대폭 개선했습니다.
+
+#### 수정된 파일
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `/app/(protected)/ad-channels/page.tsx` | 수동 채널 추가 기능, 탭 UI 개선, 채널 목록 표시 개선 (+1054줄 대규모 개선) |
+
+---
+
 ### 사이드바 메뉴명 변경
 
 | 이전 | 이후 |
@@ -443,6 +527,45 @@ influencer_stats (인플루언서 효율 DB)
 |------|------|
 | `/app/icon.tsx` | 32x32 파비콘 (브라우저 탭용) - 파란색 그라데이션 배경 + 흰색 "S" |
 | `/app/apple-icon.tsx` | 180x180 Apple Touch Icon (모바일 홈 화면용) |
+
+---
+
+### platforms → my_sites 리네이밍
+
+#### DB 마이그레이션
+
+| 파일 | 설명 |
+|------|------|
+| `027_rename_platforms_to_my_sites.sql` | platforms → my_sites 테이블 리네이밍 |
+
+#### 변경된 파일
+
+- `/app/(protected)/platforms/page.tsx` → `/app/(protected)/my-sites/page.tsx`
+- `/components/platforms/naver-connect-dialog.tsx` → `/components/my-sites/naver-connect-dialog.tsx`
+- 다수 API 파일에서 테이블 참조 변경
+
+---
+
+### 기타 수정된 파일
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `/app/(protected)/dashboard/page.tsx` | 대시보드 UI 개선 |
+| `/app/(protected)/guide/page.tsx` | 가이드 페이지 수정 |
+| `/app/(protected)/payment/page.tsx` | 결제 페이지 수정 |
+| `/app/(protected)/products/page.tsx` | 상품 페이지 수정 |
+| `/app/(protected)/profit/page.tsx` | 수익 페이지 수정 |
+| `/app/(protected)/settings/page.tsx` | 설정 페이지 수정 |
+| `/app/bridge/shop/page.tsx` | 브릿지샵 페이지 수정 |
+| `/app/api/bridge/tracking-link/route.ts` | API 수정 |
+| `/app/api/conversions/track/route.ts` | API 수정 |
+| `/app/api/cron/sync-orders/route.ts` | 크론잡 수정 |
+| `/app/api/naver/*` | 네이버 API 전체 수정 (my_sites 테이블 참조) |
+| `/app/api/orders/sync/route.ts` | 주문 동기화 API 수정 |
+| `/app/api/products/*` | 상품 API 수정 |
+| `/app/api/profit/stats/route.ts` | 수익 통계 API 수정 |
+| `/lib/ai/optimization-tips.ts` | AI 최적화 팁 수정 |
+| `/lib/supabase/middleware.ts` | 미들웨어 수정 |
 
 ---
 
