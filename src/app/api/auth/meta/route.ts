@@ -19,11 +19,11 @@ export async function GET(request: NextRequest) {
     }
 
     // 필요한 권한들 (Meta Marketing API)
+    // 참고: read_insights는 앱 검토 승인 후 사용 가능
     const scopes = [
       'ads_management',     // 광고 관리 (읽기/쓰기)
       'ads_read',           // 광고 읽기
       'business_management', // 비즈니스 관리
-      'read_insights',      // 인사이트 읽기
     ].join(',')
 
     // state에 user_id 저장 (보안상 서명된 토큰 사용 권장)

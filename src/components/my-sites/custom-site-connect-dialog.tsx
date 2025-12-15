@@ -153,7 +153,7 @@ export function CustomSiteConnectDialog({
   }
 
   const getTrackingScript = () => {
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://sellerport.co.kr'
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://sellerport.app'
     return `<!-- SellerPort 전환 추적 코드 -->
 <script>
 (function() {

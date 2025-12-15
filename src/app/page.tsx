@@ -149,6 +149,13 @@ export default function Home() {
         // UTM 파라미터 추출
         const urlParams = new URLSearchParams(window.location.search)
 
+        // 추적 링크 ID 확인 (URL 파라미터 또는 쿠키에서)
+        const spClick = urlParams.get('sp_click')
+        const spTrackingLink = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('sp_tracking_link='))
+          ?.split('=')[1]
+
         await fetch('/api/analytics/visit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -162,6 +169,8 @@ export default function Home() {
             referer: document.referrer || null,
             visitorId,
             sessionId,
+            spClick: spClick || null,
+            trackingLinkId: spTrackingLink || null,
           }),
         })
       } catch (error) {

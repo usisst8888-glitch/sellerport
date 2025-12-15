@@ -23,6 +23,8 @@ interface SiteVisit {
   session_id: string | null
   visitor_id: string | null
   user_id: string | null
+  sp_click: string | null
+  tracking_link_id: string | null
   created_at: string
 }
 
@@ -312,10 +314,10 @@ export default function AdminVisitsPage() {
               <tr className="border-b border-white/5">
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">시간</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">페이지</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">추적 링크</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">UTM Source</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">레퍼럴</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">기기</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">브라우저</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">IP</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">상세</th>
               </tr>
@@ -329,6 +331,15 @@ export default function AdminVisitsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-sm text-white font-mono">{visit.page_path}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    {visit.tracking_link_id ? (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-emerald-500/20 text-emerald-400">
+                        {visit.tracking_link_id.slice(0, 8)}...
+                      </span>
+                    ) : (
+                      <span className="text-sm text-slate-500">-</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     {visit.utm_source ? (
@@ -474,6 +485,23 @@ export default function AdminVisitsPage() {
                         <p className="text-sm text-white">{selectedVisit.utm_term}</p>
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* 추적 링크 정보 */}
+              {(selectedVisit.tracking_link_id || selectedVisit.sp_click) && (
+                <div className="border-t border-white/5 pt-4">
+                  <p className="text-xs text-slate-500 mb-3">추적 링크 정보</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-emerald-900/20 px-3 py-2 rounded-lg border border-emerald-500/20">
+                      <p className="text-xs text-emerald-400">추적 링크 ID</p>
+                      <p className="text-sm text-white font-mono break-all">{selectedVisit.tracking_link_id || '-'}</p>
+                    </div>
+                    <div className="bg-emerald-900/20 px-3 py-2 rounded-lg border border-emerald-500/20">
+                      <p className="text-xs text-emerald-400">클릭 ID (sp_click)</p>
+                      <p className="text-sm text-white font-mono break-all">{selectedVisit.sp_click || '-'}</p>
+                    </div>
                   </div>
                 </div>
               )}

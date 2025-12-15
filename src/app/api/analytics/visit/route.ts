@@ -71,7 +71,9 @@ export async function POST(request: NextRequest) {
       referer,
       visitorId,
       sessionId,
-      userId
+      userId,
+      spClick,
+      trackingLinkId
     } = body
 
     // 헤더에서 정보 추출
@@ -105,6 +107,8 @@ export async function POST(request: NextRequest) {
       visitor_id: visitorId || null,
       session_id: sessionId || null,
       user_id: userId || null,
+      sp_click: spClick || null,
+      tracking_link_id: trackingLinkId || null,
     })
 
     if (error) {

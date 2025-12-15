@@ -94,12 +94,12 @@ const externalSites = [
   },
 ]
 
-// 자체몰 사이트 (스크립트 설치 가능 → 직접 추적)
-const customSites = [
+// 내 웹사이트 (스크립트 설치 가능 → 직접 추적, 브릿지샵 불필요)
+const mySites = [
   {
     id: 'cafe24',
     name: '카페24',
-    description: '추적 스크립트 설치',
+    description: '쇼핑몰 솔루션',
     logo: Cafe24Logo,
     status: 'available',
     scriptInstallable: true,
@@ -107,7 +107,7 @@ const customSites = [
   {
     id: 'imweb',
     name: '아임웹',
-    description: '추적 스크립트 설치',
+    description: '쇼핑몰 솔루션',
     logo: ImwebLogo,
     status: 'available',
     scriptInstallable: true,
@@ -115,7 +115,7 @@ const customSites = [
   {
     id: 'godo',
     name: '고도몰',
-    description: '추적 스크립트 설치',
+    description: '쇼핑몰 솔루션',
     logo: GodoLogo,
     status: 'available',
     scriptInstallable: true,
@@ -123,15 +123,23 @@ const customSites = [
   {
     id: 'makeshop',
     name: '메이크샵',
-    description: '추적 스크립트 설치',
+    description: '쇼핑몰 솔루션',
     logo: MakeshopLogo,
+    status: 'available',
+    scriptInstallable: true,
+  },
+  {
+    id: 'custom',
+    name: '일반 웹사이트',
+    description: '워드프레스, Wix 등',
+    logo: CustomSiteLogo,
     status: 'available',
     scriptInstallable: true,
   },
 ]
 
 // 모든 사이트 설정
-const siteConfigs = [...externalSites, ...customSites]
+const siteConfigs = [...externalSites, ...mySites]
 
 export default function MySitesPage() {
   const [connectedSites, setConnectedSites] = useState<MySite[]>([])
@@ -176,7 +184,7 @@ export default function MySitesPage() {
 
   // 추적 코드 생성
   const getTrackingCode = () => {
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://sellerport.co.kr'
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://sellerport.app'
     return `<!-- SellerPort 전환 추적 코드 -->
 <script>
 (function() {
@@ -471,187 +479,131 @@ export default function MySitesPage() {
         </div>
       </div>
 
-      {/* 자체몰 사이트 (직접 추적 가능) */}
+      {/* 내 웹사이트 (직접 추적 가능, 브릿지샵 불필요) */}
       <div className="mb-8">
-        <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-lg font-semibold text-white">자체몰 사이트</h2>
-          <span className="px-2 py-0.5 text-xs bg-emerald-500/20 text-emerald-400 rounded-full">직접 추적</span>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-white">내 웹사이트</h2>
+            <span className="px-2 py-0.5 text-xs bg-emerald-500/20 text-emerald-400 rounded-full">직접 추적</span>
+          </div>
+          <Button
+            onClick={() => setShowTrackingCode(!showTrackingCode)}
+            variant="outline"
+            size="sm"
+            className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/20"
+          >
+            {showTrackingCode ? '추적 코드 숨기기' : '추적 코드 보기'}
+          </Button>
         </div>
         <p className="text-sm text-slate-400 mb-4">
-          추적 스크립트 설치가 가능하여 광고 URL에 직접 파라미터를 추가하여 추적합니다. 브릿지샵이 필요 없습니다.
+          추적 스크립트 설치가 가능한 사이트입니다. 브릿지샵 없이 직접 전환 추적이 가능합니다.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {customSites.map((site) => (
+
+        {/* 추적 코드 섹션 */}
+        {showTrackingCode && (
+          <div className="mb-6 bg-gradient-to-br from-emerald-900/30 to-slate-800/40 border border-emerald-500/30 rounded-xl p-5 space-y-4">
+            {/* 추적 코드 박스 */}
+            <div className="bg-slate-900 rounded-lg p-4 border border-slate-700">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-emerald-400 font-medium">HTML 추적 코드</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCopyCode}
+                  className="h-7 text-xs border-slate-600 text-slate-300 hover:bg-slate-700"
+                >
+                  {copiedCode ? (
+                    <>
+                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      복사됨!
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      복사
+                    </>
+                  )}
+                </Button>
+              </div>
+              <pre className="text-xs text-slate-300 overflow-x-auto whitespace-pre-wrap font-mono">
+                {getTrackingCode()}
+              </pre>
+            </div>
+
+            {/* 설치 가이드 */}
+            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+              <h4 className="text-sm font-semibold text-white mb-3">설치 방법</h4>
+              <ol className="space-y-2 text-sm text-slate-400">
+                <li className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs shrink-0 mt-0.5">1</span>
+                  <span>위 코드를 복사합니다.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs shrink-0 mt-0.5">2</span>
+                  <span>웹사이트의 <code className="px-1 py-0.5 bg-slate-700 rounded text-emerald-300">&lt;head&gt;</code> 태그 안에 붙여넣습니다.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs shrink-0 mt-0.5">3</span>
+                  <span>모든 페이지에 코드가 포함되도록 공통 헤더에 추가하세요.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs shrink-0 mt-0.5">4</span>
+                  <span>전환 추적 페이지에서 추적 링크를 만들고 발급받으세요.</span>
+                </li>
+              </ol>
+            </div>
+
+            {/* 전환 이벤트 추적 */}
+            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+              <h4 className="text-sm font-semibold text-white mb-3">전환 이벤트 추적 (선택)</h4>
+              <p className="text-sm text-slate-400 mb-3">
+                구매 완료, 회원가입 등 특정 이벤트를 추적하려면 해당 이벤트 발생 시 아래 코드를 호출하세요.
+              </p>
+              <div className="bg-slate-900 rounded-lg p-3 border border-slate-700">
+                <pre className="text-xs text-slate-300 font-mono overflow-x-auto">{`// 전환 이벤트 전송 (예: 구매 완료)
+window.sellerport?.track('conversion', {
+  orderId: '주문번호',
+  amount: 50000,  // 주문 금액
+  productName: '상품명'
+});`}</pre>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          {mySites.map((site) => (
             <div
               key={site.id}
-              className={`bg-slate-800 border border-slate-700 rounded-xl p-6 ${site.status === 'coming_soon' ? 'opacity-60' : ''}`}
+              className={`bg-slate-800 border border-slate-700 rounded-xl p-5 ${site.status === 'coming_soon' ? 'opacity-60' : ''}`}
             >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  {<site.logo className="w-10 h-10" />}
-                  <div>
-                    <h3 className="font-semibold text-white">{site.name}</h3>
-                    <p className="text-sm text-slate-400">{site.description}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-4">
+              <div className="flex flex-col items-center text-center">
+                {<site.logo className="w-12 h-12 mb-3" />}
+                <h3 className="font-semibold text-white">{site.name}</h3>
+                <p className="text-xs text-slate-400 mb-4">{site.description}</p>
                 {site.status === 'available' ? (
                   <CustomSiteConnectDialog
                     siteType={site.id as 'cafe24' | 'imweb' | 'godo' | 'makeshop' | 'custom'}
                     siteName={site.name}
-                    siteDescription={`${site.name} 쇼핑몰을 연동하고 광고 전환을 추적하세요`}
+                    siteDescription={site.id === 'custom'
+                      ? '워드프레스, Wix 등 직접 제작한 웹사이트를 연동하세요'
+                      : `${site.name} 쇼핑몰을 연동하고 광고 전환을 추적하세요`}
                     onSuccess={fetchMySites}
                   >
-                    <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white">연동하기</Button>
+                    <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white" size="sm">연동하기</Button>
                   </CustomSiteConnectDialog>
                 ) : (
-                  <Button className="w-full border-slate-600 text-slate-400" variant="outline" disabled>
+                  <Button className="w-full border-slate-600 text-slate-400" variant="outline" size="sm" disabled>
                     준비 중
                   </Button>
                 )}
               </div>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* 자체 제작 사이트 */}
-      <div className="mt-8">
-        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <CustomSiteLogo className="w-6 h-6" />
-          자체 제작 사이트 / 일반 웹사이트
-        </h2>
-        <div className="bg-gradient-to-br from-emerald-900/30 to-slate-800/40 border border-emerald-500/30 rounded-xl p-6">
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
-            <div>
-              <h3 className="font-semibold text-white mb-1">일반 웹사이트 연동</h3>
-              <p className="text-sm text-slate-400">
-                워드프레스, Wix, 직접 제작한 사이트 등 모든 웹사이트를 연동하고 전환을 추적할 수 있습니다.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <CustomSiteConnectDialog
-                siteType="custom"
-                siteName="일반 웹사이트"
-                siteDescription="워드프레스, Wix 등 직접 제작한 웹사이트를 연동하세요"
-                onSuccess={fetchMySites}
-              >
-                <Button className="bg-emerald-600 hover:bg-emerald-500 text-white">
-                  <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  사이트 추가
-                </Button>
-              </CustomSiteConnectDialog>
-              <Button
-                onClick={() => setShowTrackingCode(!showTrackingCode)}
-                variant="outline"
-                className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/20"
-              >
-                {showTrackingCode ? '코드 숨기기' : '추적 코드 보기'}
-              </Button>
-            </div>
-          </div>
-
-          {showTrackingCode && (
-            <div className="space-y-4">
-              {/* 추적 코드 박스 */}
-              <div className="bg-slate-900 rounded-lg p-4 border border-slate-700">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-emerald-400 font-medium">HTML 추적 코드</span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleCopyCode}
-                    className="h-7 text-xs border-slate-600 text-slate-300 hover:bg-slate-700"
-                  >
-                    {copiedCode ? (
-                      <>
-                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        복사됨!
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        복사
-                      </>
-                    )}
-                  </Button>
-                </div>
-                <pre className="text-xs text-slate-300 overflow-x-auto whitespace-pre-wrap font-mono">
-                  {getTrackingCode()}
-                </pre>
-              </div>
-
-              {/* 설치 가이드 */}
-              <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-                <h4 className="text-sm font-semibold text-white mb-3">설치 방법</h4>
-                <ol className="space-y-2 text-sm text-slate-400">
-                  <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs shrink-0 mt-0.5">1</span>
-                    <span>위 코드를 복사합니다.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs shrink-0 mt-0.5">2</span>
-                    <span>웹사이트의 <code className="px-1 py-0.5 bg-slate-700 rounded text-emerald-300">&lt;head&gt;</code> 태그 안에 붙여넣습니다.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs shrink-0 mt-0.5">3</span>
-                    <span>모든 페이지에 코드가 포함되도록 공통 헤더에 추가하세요.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs shrink-0 mt-0.5">4</span>
-                    <span>전환 추적 페이지에서 추적 링크를 만들고 발급받으세요.</span>
-                  </li>
-                </ol>
-              </div>
-
-              {/* 전환 이벤트 추적 */}
-              <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-                <h4 className="text-sm font-semibold text-white mb-3">전환 이벤트 추적 (선택)</h4>
-                <p className="text-sm text-slate-400 mb-3">
-                  구매 완료, 회원가입 등 특정 이벤트를 추적하려면 해당 이벤트 발생 시 아래 코드를 호출하세요.
-                </p>
-                <div className="bg-slate-900 rounded-lg p-3 border border-slate-700">
-                  <pre className="text-xs text-slate-300 font-mono overflow-x-auto">{`// 전환 이벤트 전송 (예: 구매 완료)
-window.sellerport?.track('conversion', {
-  orderId: '주문번호',
-  amount: 50000,  // 주문 금액
-  productName: '상품명'
-});`}</pre>
-                </div>
-              </div>
-
-              {/* 사이트별 가이드 */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50 text-center">
-                  <span className="text-2xl mb-1 block">📝</span>
-                  <p className="text-xs text-white font-medium">워드프레스</p>
-                  <p className="text-xs text-slate-500">테마 헤더에 추가</p>
-                </div>
-                <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50 text-center">
-                  <span className="text-2xl mb-1 block">🎨</span>
-                  <p className="text-xs text-white font-medium">Wix / Squarespace</p>
-                  <p className="text-xs text-slate-500">설정 → 추적코드</p>
-                </div>
-                <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50 text-center">
-                  <span className="text-2xl mb-1 block">🛒</span>
-                  <p className="text-xs text-white font-medium">Shopify</p>
-                  <p className="text-xs text-slate-500">theme.liquid</p>
-                </div>
-                <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50 text-center">
-                  <span className="text-2xl mb-1 block">💻</span>
-                  <p className="text-xs text-white font-medium">직접 제작</p>
-                  <p className="text-xs text-slate-500">HTML head 태그</p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

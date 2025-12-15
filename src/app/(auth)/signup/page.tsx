@@ -10,7 +10,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { TermsContent, PrivacyContent, MarketingContent } from '@/components/legal/legal-contents'
 
-type UserType = 'seller' | 'agency'
+type UserType = 'seller' | 'agency' | 'designer' | 'influencer'
 type ModalType = 'terms' | 'privacy' | 'marketing' | null
 
 export default function SignupPage() {
@@ -266,17 +266,17 @@ export default function SignupPage() {
                 <button
                   type="button"
                   onClick={() => setUserType('seller')}
-                  className={`p-4 rounded-xl border-2 transition-all ${
+                  className={`p-3 rounded-xl border-2 transition-all ${
                     userType === 'seller'
                       ? 'border-blue-500 bg-blue-500/10'
                       : 'border-slate-600 bg-slate-700/50 hover:border-slate-500'
                   }`}
                 >
-                  <div className="flex flex-col items-center gap-2">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  <div className="flex flex-col items-center gap-1.5">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center ${
                       userType === 'seller' ? 'bg-blue-500/20' : 'bg-slate-600'
                     }`}>
-                      <svg className={`w-5 h-5 ${userType === 'seller' ? 'text-blue-400' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className={`w-4 h-4 ${userType === 'seller' ? 'text-blue-400' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                       </svg>
                     </div>
@@ -289,17 +289,17 @@ export default function SignupPage() {
                 <button
                   type="button"
                   onClick={() => setUserType('agency')}
-                  className={`p-4 rounded-xl border-2 transition-all ${
+                  className={`p-3 rounded-xl border-2 transition-all ${
                     userType === 'agency'
                       ? 'border-purple-500 bg-purple-500/10'
                       : 'border-slate-600 bg-slate-700/50 hover:border-slate-500'
                   }`}
                 >
-                  <div className="flex flex-col items-center gap-2">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  <div className="flex flex-col items-center gap-1.5">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center ${
                       userType === 'agency' ? 'bg-purple-500/20' : 'bg-slate-600'
                     }`}>
-                      <svg className={`w-5 h-5 ${userType === 'agency' ? 'text-purple-400' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className={`w-4 h-4 ${userType === 'agency' ? 'text-purple-400' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                       </svg>
                     </div>
@@ -307,6 +307,52 @@ export default function SignupPage() {
                       광고 대행사
                     </span>
                     <span className="text-xs text-slate-500">여러 셀러 관리</span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUserType('designer')}
+                  className={`p-3 rounded-xl border-2 transition-all ${
+                    userType === 'designer'
+                      ? 'border-pink-500 bg-pink-500/10'
+                      : 'border-slate-600 bg-slate-700/50 hover:border-slate-500'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-1.5">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center ${
+                      userType === 'designer' ? 'bg-pink-500/20' : 'bg-slate-600'
+                    }`}>
+                      <svg className={`w-4 h-4 ${userType === 'designer' ? 'text-pink-400' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                      </svg>
+                    </div>
+                    <span className={`text-sm font-medium ${userType === 'designer' ? 'text-pink-400' : 'text-slate-400'}`}>
+                      디자이너
+                    </span>
+                    <span className="text-xs text-slate-500">상세페이지/광고 제작</span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUserType('influencer')}
+                  className={`p-3 rounded-xl border-2 transition-all ${
+                    userType === 'influencer'
+                      ? 'border-amber-500 bg-amber-500/10'
+                      : 'border-slate-600 bg-slate-700/50 hover:border-slate-500'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-1.5">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center ${
+                      userType === 'influencer' ? 'bg-amber-500/20' : 'bg-slate-600'
+                    }`}>
+                      <svg className={`w-4 h-4 ${userType === 'influencer' ? 'text-amber-400' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                      </svg>
+                    </div>
+                    <span className={`text-sm font-medium ${userType === 'influencer' ? 'text-amber-400' : 'text-slate-400'}`}>
+                      인플루언서
+                    </span>
+                    <span className="text-xs text-slate-500">SNS 콘텐츠 제작</span>
                   </div>
                 </button>
               </div>

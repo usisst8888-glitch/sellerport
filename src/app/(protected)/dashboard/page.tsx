@@ -87,11 +87,6 @@ function getStatusText(status: string) {
 }
 
 function formatCurrency(value: number) {
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`
-  } else if (value >= 1000) {
-    return `${(value / 1000).toFixed(0)}K`
-  }
   return value.toLocaleString()
 }
 
@@ -285,10 +280,6 @@ export default function DashboardPage() {
               <div>
                 <span className="text-3xl font-bold text-white">{today.conversions}</span>
                 <span className="text-slate-400 ml-1">건</span>
-              </div>
-              <div>
-                <span className="text-2xl font-bold text-emerald-400">{formatCurrency(today.revenue)}</span>
-                <span className="text-slate-400 ml-1">원</span>
               </div>
             </div>
           </div>

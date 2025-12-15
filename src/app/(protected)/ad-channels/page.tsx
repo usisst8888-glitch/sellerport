@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import { GoogleAdsConnectDialog } from '@/components/ad-channels/google-ads-connect-dialog'
@@ -11,6 +12,8 @@ import { YouTubeConnectDialog } from '@/components/ad-channels/youtube-connect-d
 import { InstagramConnectDialog } from '@/components/ad-channels/instagram-connect-dialog'
 import { TikTokConnectDialog } from '@/components/ad-channels/tiktok-connect-dialog'
 import { ThreadsConnectDialog } from '@/components/ad-channels/threads-connect-dialog'
+import { NaverBlogConnectDialog } from '@/components/ad-channels/naver-blog-connect-dialog'
+import { MetaConnectDialog } from '@/components/ad-channels/meta-connect-dialog'
 
 // 네이버 검색광고 연동 모달 컴포넌트
 interface NaverSearchAdsModalProps {
@@ -27,8 +30,12 @@ function NaverSearchAdsModal({ isOpen, onClose, onSuccess }: NaverSearchAdsModal
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async () => {
+    if (!customerId || !apiKey || !secretKey) {
+      setError('필수 항목을 모두 입력해주세요.')
+      return
+    }
+
     setError('')
     setLoading(true)
 
@@ -51,10 +58,8 @@ function NaverSearchAdsModal({ isOpen, onClose, onSuccess }: NaverSearchAdsModal
         return
       }
 
-      // 성공
       onSuccess()
       onClose()
-      // 폼 초기화
       setCustomerId('')
       setApiKey('')
       setSecretKey('')
@@ -66,145 +71,169 @@ function NaverSearchAdsModal({ isOpen, onClose, onSuccess }: NaverSearchAdsModal
     }
   }
 
+  const handleClose = () => {
+    setError('')
+    setCustomerId('')
+    setApiKey('')
+    setSecretKey('')
+    setAccountName('')
+    onClose()
+  }
+
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* 백드롭 */}
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* 모달 */}
-      <div className="relative bg-slate-800 rounded-2xl border border-white/10 p-6 w-full max-w-md mx-4 shadow-2xl">
-        {/* 헤더 */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[#03C75A] flex items-center justify-center">
-              <span className="text-white font-bold text-sm">SA</span>
-            </div>
-            <div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={handleClose} />
+      <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl bg-slate-800 border border-white/10 shadow-2xl">
+        <div className="p-6 border-b border-white/5 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-[#03C75A] flex items-center justify-center">
+                <span className="text-white font-bold">SA</span>
+              </div>
               <h2 className="text-lg font-semibold text-white">네이버 검색광고 연동</h2>
-              <p className="text-sm text-slate-400">API 키를 입력해주세요</p>
             </div>
+            <button onClick={handleClose} className="text-slate-400 hover:text-white transition-colors p-1">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-white transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
         </div>
 
-        {/* 에러 메시지 */}
-        {error && (
-          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-            <p className="text-sm text-red-400">{error}</p>
-          </div>
-        )}
+        <div className="p-6 overflow-y-auto flex-1">
+          <div className="space-y-4">
+            {error && (
+              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                <p className="text-sm text-red-400">{error}</p>
+              </div>
+            )}
 
-        {/* 폼 */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">
-              고객 ID (Customer ID) <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="text"
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              placeholder="예: 1234567"
-              className="w-full px-3 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50"
-              required
-            />
-          </div>
+            <div className="space-y-2 mb-4">
+              <div className="flex items-center gap-2 text-xs text-slate-400">
+                <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                네이버 검색광고 광고비 자동 수집
+              </div>
+              <div className="flex items-center gap-2 text-xs text-slate-400">
+                <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                키워드별 전환 데이터 추적
+              </div>
+              <div className="flex items-center gap-2 text-xs text-slate-400">
+                <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                캠페인 성과 및 ROAS 분석
+              </div>
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">
-              API Key (액세스 라이선스) <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="text"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="API 키 입력"
-              className="w-full px-3 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50"
-              required
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                계정 별칭
+              </label>
+              <input
+                type="text"
+                value={accountName}
+                onChange={(e) => setAccountName(e.target.value)}
+                placeholder="예: 내 검색광고 계정"
+                className="w-full px-3 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">
-              Secret Key (비밀키) <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="password"
-              value={secretKey}
-              onChange={(e) => setSecretKey(e.target.value)}
-              placeholder="비밀키 입력"
-              className="w-full px-3 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50"
-              required
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                고객 ID <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                value={customerId}
+                onChange={(e) => setCustomerId(e.target.value)}
+                placeholder="예: 1234567"
+                className="w-full px-3 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50"
+                required
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">
-              계정 이름 (선택)
-            </label>
-            <input
-              type="text"
-              value={accountName}
-              onChange={(e) => setAccountName(e.target.value)}
-              placeholder="예: 내 검색광고 계정"
-              className="w-full px-3 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                API Key <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="API 키 입력"
+                className="w-full px-3 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50"
+                required
+              />
+            </div>
 
-          {/* API 키 발급 안내 */}
-          <div className="p-3 bg-slate-900/50 rounded-lg border border-white/5">
-            <p className="text-xs text-slate-400">
-              API 키는 <a
-                href="https://searchad.naver.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:underline"
-              >
-                네이버 검색광고 관리 시스템
-              </a>의 [도구 → API 사용관리]에서 발급받을 수 있습니다.
-            </p>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                Secret Key <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="password"
+                value={secretKey}
+                onChange={(e) => setSecretKey(e.target.value)}
+                placeholder="비밀키 입력"
+                className="w-full px-3 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50"
+                required
+              />
+            </div>
           </div>
+        </div>
 
-          {/* 버튼 */}
-          <div className="flex gap-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="flex-1 border-white/10 text-slate-300 hover:bg-white/5"
-              disabled={loading}
-            >
-              취소
-            </Button>
-            <Button
-              type="submit"
-              className="flex-1 bg-[#03C75A] hover:bg-[#02b351] text-white"
-              disabled={loading}
-            >
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  연동 중...
-                </div>
-              ) : '연동하기'}
-            </Button>
-          </div>
-        </form>
+        <NaverSearchAdsFooter loading={loading} onClose={handleClose} onSubmit={handleSubmit} disabled={!customerId || !apiKey || !secretKey} />
+      </div>
+    </div>
+  )
+}
+
+function NaverSearchAdsFooter({ loading, onClose, onSubmit, disabled }: { loading: boolean; onClose: () => void; onSubmit: () => void; disabled: boolean }) {
+  const router = useRouter()
+
+  return (
+    <div className="p-6 border-t border-white/5 flex-shrink-0">
+      <button
+        type="button"
+        onClick={() => router.push('/guide?tab=adchannels&channel=naver-search')}
+        className="w-full mb-3 px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors flex items-center justify-center gap-2"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        연동 방법 자세히 보기
+      </button>
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={loading}
+          className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-slate-300 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+        >
+          취소
+        </button>
+        <button
+          type="button"
+          onClick={onSubmit}
+          disabled={loading || disabled}
+          className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {loading ? (
+            <>
+              <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <span>연동 중...</span>
+            </>
+          ) : '연동하기'}
+        </button>
       </div>
     </div>
   )
@@ -424,11 +453,16 @@ const adChannels: AdChannelConfig[] = [
 ]
 
 export default function AdChannelsPage() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const [connectedChannels, setConnectedChannels] = useState<AdChannel[]>([])
   const [manualChannels, setManualChannels] = useState<AdChannel[]>([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [naverSearchModalOpen, setNaverSearchModalOpen] = useState(false)
+
+  // 모달 열기용 상태 (가이드에서 연결)
+  const [connectModalOpen, setConnectModalOpen] = useState<string | null>(null)
 
   // 수동 채널 추가 모달
   const [showManualModal, setShowManualModal] = useState(false)
@@ -448,23 +482,43 @@ export default function AdChannelsPage() {
   // 현재 보기 탭 (API / 수동)
   const [activeTab, setActiveTab] = useState<'api' | 'manual'>('api')
 
+  // 모달 닫기 함수
+  const closeConnectModal = useCallback(() => {
+    setConnectModalOpen(null)
+    // URL에서 connect 파라미터 제거
+    router.replace('/ad-channels')
+  }, [router])
+
   useEffect(() => {
     fetchConnectedChannels()
     fetchManualChannels()
 
     // URL 파라미터에서 메시지 확인
-    const urlParams = new URLSearchParams(window.location.search)
-    const success = urlParams.get('success')
-    const error = urlParams.get('error')
-    const tab = urlParams.get('tab')
+    const success = searchParams.get('success')
+    const error = searchParams.get('error')
+    const tab = searchParams.get('tab')
+    const connect = searchParams.get('connect')
 
     // 탭 파라미터가 있으면 해당 탭으로 이동
     if (tab === 'manual') {
       setActiveTab('manual')
     }
 
+    // 연동 모달 자동 열기 (가이드에서 연결)
+    if (connect) {
+      if (connect === 'naver-search') {
+        setNaverSearchModalOpen(true)
+      } else {
+        setConnectModalOpen(connect)
+      }
+    }
+
     if (success === 'meta_connected') {
       setMessage({ type: 'success', text: 'Meta 광고 계정이 성공적으로 연동되었습니다!' })
+    } else if (success === 'google_ads_connected') {
+      setMessage({ type: 'success', text: 'Google Ads 계정이 성공적으로 연동되었습니다!' })
+    } else if (success === 'google_ads_pending') {
+      setMessage({ type: 'success', text: 'Google 계정이 연결되었습니다. 광고 계정 데이터는 곧 동기화됩니다.' })
     } else if (error) {
       const errorMessages: Record<string, string> = {
         'no_ad_accounts': 'Meta에 연결된 광고 계정이 없습니다. 광고 계정을 먼저 생성해주세요.',
@@ -478,11 +532,11 @@ export default function AdChannelsPage() {
       setMessage({ type: 'error', text: errorMessages[error] || `연동 중 오류가 발생했습니다: ${error}` })
     }
 
-    // URL에서 파라미터 제거
+    // URL에서 파라미터 제거 (connect 제외)
     if (success || error || tab) {
-      window.history.replaceState({}, '', '/ad-channels')
+      router.replace('/ad-channels')
     }
-  }, [])
+  }, [searchParams, router])
 
   // 메시지 자동 제거
   useEffect(() => {
@@ -532,7 +586,7 @@ export default function AdChannelsPage() {
 
   const handleConnect = (channelId: string) => {
     if (channelId === 'meta') {
-      window.location.href = '/api/auth/meta'
+      window.open('/api/auth/meta', '_blank', 'width=600,height=700')
     } else if (channelId === 'naver_search') {
       setNaverSearchModalOpen(true)
     } else {
@@ -631,7 +685,12 @@ export default function AdChannelsPage() {
   }
 
   const getChannelStatus = (channelId: string) => {
-    return connectedChannels.find(c => c.channel_type === channelId)
+    // channelId와 channel_type 매핑 (UI id → DB channel_type)
+    const channelTypeMap: Record<string, string> = {
+      'google': 'google_ads',
+    }
+    const dbChannelType = channelTypeMap[channelId] || channelId
+    return connectedChannels.find(c => c.channel_type === dbChannelType)
   }
 
   const getManualChannelIcon = (type: string) => {
@@ -863,7 +922,16 @@ export default function AdChannelsPage() {
                           </Button>
                         </div>
                       ) : (
-                        channel.id === 'google' ? (
+                        channel.id === 'meta' ? (
+                          <MetaConnectDialog onSuccess={() => {
+                            fetchConnectedChannels()
+                            setMessage({ type: 'success', text: 'Meta 광고 계정이 연동되었습니다!' })
+                          }}>
+                            <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white">
+                              연동하기
+                            </Button>
+                          </MetaConnectDialog>
+                        ) : channel.id === 'google' ? (
                           <GoogleAdsConnectDialog onSuccess={() => {
                             fetchConnectedChannels()
                             setMessage({ type: 'success', text: 'Google Ads 계정이 연동되었습니다!' })
@@ -1321,6 +1389,98 @@ export default function AdChannelsPage() {
           </div>
         </div>
       )}
+
+      {/* 가이드에서 연동 시 모달들 (controlled) */}
+      <MetaConnectDialog
+        open={connectModalOpen === 'meta'}
+        onOpenChange={(open) => !open && closeConnectModal()}
+        onSuccess={() => {
+          fetchConnectedChannels()
+          setMessage({ type: 'success', text: 'Meta 광고 계정이 연동되었습니다!' })
+          closeConnectModal()
+        }}
+      />
+      <GoogleAdsConnectDialog
+        open={connectModalOpen === 'google-ads'}
+        onOpenChange={(open) => !open && closeConnectModal()}
+        onSuccess={() => {
+          fetchConnectedChannels()
+          setMessage({ type: 'success', text: 'Google Ads 계정이 연동되었습니다!' })
+          closeConnectModal()
+        }}
+      />
+      <KakaoMomentConnectDialog
+        open={connectModalOpen === 'kakao-moment'}
+        onOpenChange={(open) => !open && closeConnectModal()}
+        onSuccess={() => {
+          fetchConnectedChannels()
+          setMessage({ type: 'success', text: '카카오모먼트 계정이 연동되었습니다!' })
+          closeConnectModal()
+        }}
+      />
+      <TikTokAdsConnectDialog
+        open={connectModalOpen === 'tiktok-ads'}
+        onOpenChange={(open) => !open && closeConnectModal()}
+        onSuccess={() => {
+          fetchConnectedChannels()
+          setMessage({ type: 'success', text: 'TikTok Ads 계정이 연동되었습니다!' })
+          closeConnectModal()
+        }}
+      />
+      <NaverGfaConnectDialog
+        open={connectModalOpen === 'naver-gfa'}
+        onOpenChange={(open) => !open && closeConnectModal()}
+        onSuccess={() => {
+          fetchConnectedChannels()
+          setMessage({ type: 'success', text: '네이버 GFA 계정이 연동되었습니다!' })
+          closeConnectModal()
+        }}
+      />
+      <YouTubeConnectDialog
+        open={connectModalOpen === 'youtube'}
+        onOpenChange={(open) => !open && closeConnectModal()}
+        onSuccess={() => {
+          fetchConnectedChannels()
+          setMessage({ type: 'success', text: 'YouTube 채널이 연동되었습니다!' })
+          closeConnectModal()
+        }}
+      />
+      <InstagramConnectDialog
+        open={connectModalOpen === 'instagram'}
+        onOpenChange={(open) => !open && closeConnectModal()}
+        onSuccess={() => {
+          fetchConnectedChannels()
+          setMessage({ type: 'success', text: 'Instagram 계정이 연동되었습니다!' })
+          closeConnectModal()
+        }}
+      />
+      <TikTokConnectDialog
+        open={connectModalOpen === 'tiktok'}
+        onOpenChange={(open) => !open && closeConnectModal()}
+        onSuccess={() => {
+          fetchConnectedChannels()
+          setMessage({ type: 'success', text: 'TikTok 채널이 연동되었습니다!' })
+          closeConnectModal()
+        }}
+      />
+      <ThreadsConnectDialog
+        open={connectModalOpen === 'threads'}
+        onOpenChange={(open) => !open && closeConnectModal()}
+        onSuccess={() => {
+          fetchConnectedChannels()
+          setMessage({ type: 'success', text: 'Threads 계정이 연동되었습니다!' })
+          closeConnectModal()
+        }}
+      />
+      <NaverBlogConnectDialog
+        open={connectModalOpen === 'naver-blog'}
+        onOpenChange={(open) => !open && closeConnectModal()}
+        onSuccess={() => {
+          fetchConnectedChannels()
+          setMessage({ type: 'success', text: '네이버 블로그가 연동되었습니다!' })
+          closeConnectModal()
+        }}
+      />
     </div>
   )
 }

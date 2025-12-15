@@ -58,6 +58,61 @@ export async function GET(
     const fbp = cookies.get('_fbp')?.value || null
     const fbc = cookies.get('_fbc')?.value || null
 
+    // 셀러포트 도메인인지 체크
+    const isSellerportDomain = (url: string) => {
+      try {
+        const hostname = new URL(url).hostname.toLowerCase()
+        return hostname.includes('sellerport.app')
+      } catch {
+        return false
+      }
+    }
+
+    // User Agent 파싱 헬퍼
+    const parseUserAgent = (ua: string) => {
+      let browser = null
+      let os = null
+      let deviceType = 'desktop'
+
+      if (/mobile/i.test(ua)) {
+        deviceType = 'mobile'
+      } else if (/tablet|ipad/i.test(ua)) {
+        deviceType = 'tablet'
+      }
+
+      if (/chrome/i.test(ua) && !/edg/i.test(ua)) {
+        browser = 'Chrome'
+      } else if (/safari/i.test(ua) && !/chrome/i.test(ua)) {
+        browser = 'Safari'
+      } else if (/firefox/i.test(ua)) {
+        browser = 'Firefox'
+      } else if (/edg/i.test(ua)) {
+        browser = 'Edge'
+      }
+
+      if (/windows/i.test(ua)) {
+        os = 'Windows'
+      } else if (/macintosh|mac os/i.test(ua)) {
+        os = 'Mac'
+      } else if (/iphone/i.test(ua)) {
+        os = 'iOS'
+      } else if (/android/i.test(ua)) {
+        os = 'Android'
+      }
+
+      return { browser, os, deviceType }
+    }
+
+    // 레퍼러에서 도메인 추출
+    const extractDomain = (ref: string) => {
+      if (!ref) return null
+      try {
+        return new URL(ref).hostname
+      } catch {
+        return null
+      }
+    }
+
     // 클릭 수 증가 + 클릭 로그 기록 (병렬 처리)
     const recordClick = async () => {
       try {
@@ -122,6 +177,29 @@ export async function GET(
                 .eq('id', trackingLink.campaign_id)
             }
           }
+        }
+
+        // 셀러포트 도메인으로 가는 경우에만 site_visits에도 기록
+        if (isSellerportDomain(trackingLink.target_url) && isUniqueClick) {
+          const { browser, os, deviceType } = parseUserAgent(userAgent)
+          const refererDomain = extractDomain(referer)
+          const targetUrl = new URL(trackingLink.target_url)
+
+          await supabase.from('site_visits').insert({
+            page_path: targetUrl.pathname || '/',
+            utm_source: trackingLink.utm_source || null,
+            utm_medium: trackingLink.utm_medium || null,
+            utm_campaign: trackingLink.utm_campaign || null,
+            referer: referer || null,
+            referer_domain: refererDomain,
+            user_agent: userAgent.slice(0, 500),
+            device_type: deviceType,
+            browser,
+            os,
+            ip_address: ip,
+            sp_click: clickId,
+            tracking_link_id: trackingLinkId,
+          })
         }
       } catch (err) {
         console.error('Click record error:', err)
