@@ -61,16 +61,22 @@ export async function GET(
     // 클릭 수 증가 + 클릭 로그 기록 (병렬 처리)
     const recordClick = async () => {
       try {
-        // 1. 추적 링크 클릭 수 증가
-        await supabase
-          .from('tracking_links')
-          .update({
-            clicks: (trackingLink.clicks || 0) + 1,
-            last_click_at: new Date().toISOString()
-          })
-          .eq('id', trackingLinkId)
+        // 유효 클릭 체크 (같은 IP + User Agent가 1시간 내 클릭한 적 있는지)
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
 
-        // 2. 클릭 상세 로그 저장
+        const { data: recentClick } = await supabase
+          .from('tracking_link_clicks')
+          .select('id')
+          .eq('tracking_link_id', trackingLinkId)
+          .eq('ip_address', ip)
+          .eq('user_agent', userAgent.slice(0, 500))
+          .gte('clicked_at', oneHourAgo)
+          .limit(1)
+          .single()
+
+        const isUniqueClick = !recentClick
+
+        // 1. 클릭 상세 로그 저장 (모든 클릭 기록, is_unique 플래그로 구분)
         await supabase.from('tracking_link_clicks').insert({
           id: clickId,
           tracking_link_id: trackingLinkId,
@@ -86,22 +92,35 @@ export async function GET(
           utm_medium: trackingLink.utm_medium,
           utm_campaign: trackingLink.utm_campaign,
           is_converted: false,
+          is_unique: isUniqueClick,
           created_at: new Date().toISOString()
         })
 
-        // 3. 캠페인 클릭 수 증가
-        if (trackingLink.campaign_id) {
-          const { data: campaign } = await supabase
-            .from('campaigns')
-            .select('clicks')
-            .eq('id', trackingLink.campaign_id)
-            .single()
+        // 유효 클릭인 경우에만 클릭 수 증가
+        if (isUniqueClick) {
+          // 2. 추적 링크 클릭 수 증가
+          await supabase
+            .from('tracking_links')
+            .update({
+              clicks: (trackingLink.clicks || 0) + 1,
+              last_click_at: new Date().toISOString()
+            })
+            .eq('id', trackingLinkId)
 
-          if (campaign) {
-            await supabase
+          // 3. 캠페인 클릭 수 증가
+          if (trackingLink.campaign_id) {
+            const { data: campaign } = await supabase
               .from('campaigns')
-              .update({ clicks: (campaign.clicks || 0) + 1 })
+              .select('clicks')
               .eq('id', trackingLink.campaign_id)
+              .single()
+
+            if (campaign) {
+              await supabase
+                .from('campaigns')
+                .update({ clicks: (campaign.clicks || 0) + 1 })
+                .eq('id', trackingLink.campaign_id)
+            }
           }
         }
       } catch (err) {

@@ -525,17 +525,33 @@ export default function MySitesPage() {
         <div className="bg-gradient-to-br from-emerald-900/30 to-slate-800/40 border border-emerald-500/30 rounded-xl p-6">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
             <div>
-              <h3 className="font-semibold text-white mb-1">추적 코드 설치</h3>
+              <h3 className="font-semibold text-white mb-1">일반 웹사이트 연동</h3>
               <p className="text-sm text-slate-400">
-                워드프레스, Wix, 직접 제작한 사이트 등 모든 웹사이트에 추적 코드를 설치하여 전환을 추적할 수 있습니다.
+                워드프레스, Wix, 직접 제작한 사이트 등 모든 웹사이트를 연동하고 전환을 추적할 수 있습니다.
               </p>
             </div>
-            <Button
-              onClick={() => setShowTrackingCode(!showTrackingCode)}
-              className={showTrackingCode ? "bg-slate-600 hover:bg-slate-500" : "bg-emerald-600 hover:bg-emerald-500"}
-            >
-              {showTrackingCode ? '코드 숨기기' : '추적 코드 보기'}
-            </Button>
+            <div className="flex gap-2">
+              <CustomSiteConnectDialog
+                siteType="custom"
+                siteName="일반 웹사이트"
+                siteDescription="워드프레스, Wix 등 직접 제작한 웹사이트를 연동하세요"
+                onSuccess={fetchMySites}
+              >
+                <Button className="bg-emerald-600 hover:bg-emerald-500 text-white">
+                  <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  사이트 추가
+                </Button>
+              </CustomSiteConnectDialog>
+              <Button
+                onClick={() => setShowTrackingCode(!showTrackingCode)}
+                variant="outline"
+                className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/20"
+              >
+                {showTrackingCode ? '코드 숨기기' : '추적 코드 보기'}
+              </Button>
+            </div>
           </div>
 
           {showTrackingCode && (

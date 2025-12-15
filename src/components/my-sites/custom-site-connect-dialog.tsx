@@ -57,14 +57,14 @@ const siteConfigs = {
     ],
   },
   custom: {
-    name: '기타 자사몰',
+    name: '일반 웹사이트',
     color: '#10B981',
-    urlPlaceholder: 'mystore.com',
-    urlHint: '쇼핑몰 도메인을 입력하세요',
+    urlPlaceholder: 'example.com',
+    urlHint: '웹사이트 주소를 입력하세요 (예: mysite.com)',
     guideSteps: [
-      '쇼핑몰 관리자 페이지 접속',
-      '모든 페이지에 적용되는 head 또는 헤더 영역 찾기',
-      '추적 스크립트 붙여넣기',
+      '웹사이트 관리자 페이지 또는 HTML 파일 접속',
+      '모든 페이지에 적용되는 <head> 태그 찾기',
+      '추적 스크립트 붙여넣기 후 저장/배포',
     ],
   },
 }
@@ -241,7 +241,7 @@ export function CustomSiteConnectDialog({
                     <label className="block text-sm font-medium text-slate-300 mb-2">사이트 별칭 *</label>
                     <input
                       type="text"
-                      placeholder={`예: 내 ${config.name} 쇼핑몰`}
+                      placeholder={siteType === 'custom' ? '예: 내 회사 홈페이지' : `예: 내 ${config.name} 쇼핑몰`}
                       value={siteName}
                       onChange={(e) => setSiteName(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
@@ -271,7 +271,7 @@ export function CustomSiteConnectDialog({
                   <div className="p-3 rounded-xl bg-slate-900/50">
                     <p className="text-xs text-slate-400 font-medium mb-2">연동 후 사용 가능한 기능</p>
                     <ul className="text-xs text-slate-500 space-y-1">
-                      <li>- 광고 클릭 → 구매 전환 추적</li>
+                      <li>- 광고 클릭 → {siteType === 'custom' ? '전환(회원가입, 구매 등)' : '구매 전환'} 추적</li>
                       <li>- ROAS (광고비 대비 매출) 계산</li>
                       <li>- 광고 채널별 성과 분석</li>
                     </ul>

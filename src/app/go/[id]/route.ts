@@ -56,16 +56,22 @@ export async function GET(
     // 클릭 기록 (비동기)
     const recordClick = async () => {
       try {
-        // 추적 링크 클릭 수 증가
-        await supabase
-          .from('tracking_links')
-          .update({
-            clicks: (trackingLink.clicks || 0) + 1,
-            last_click_at: new Date().toISOString()
-          })
-          .eq('id', trackingLinkId)
+        // 유효 클릭 체크 (같은 IP + User Agent가 1시간 내 클릭한 적 있는지)
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
 
-        // 클릭 로그 저장
+        const { data: recentClick } = await supabase
+          .from('tracking_link_clicks')
+          .select('id')
+          .eq('tracking_link_id', trackingLinkId)
+          .eq('ip_address', ip)
+          .eq('user_agent', userAgent.slice(0, 500))
+          .gte('clicked_at', oneHourAgo)
+          .limit(1)
+          .single()
+
+        const isUniqueClick = !recentClick
+
+        // 클릭 로그 저장 (모든 클릭 기록, is_unique 플래그로 구분)
         await supabase.from('tracking_link_clicks').insert({
           tracking_link_id: trackingLinkId,
           user_id: trackingLink.user_id,
@@ -78,11 +84,23 @@ export async function GET(
           utm_source: trackingLink.utm_source,
           utm_medium: trackingLink.utm_medium,
           utm_campaign: trackingLink.utm_campaign,
+          is_unique: isUniqueClick,
           metadata: {
             source: 'go_redirect',
             type: 'organic'
           }
         })
+
+        // 유효 클릭인 경우에만 클릭 수 증가
+        if (isUniqueClick) {
+          await supabase
+            .from('tracking_links')
+            .update({
+              clicks: (trackingLink.clicks || 0) + 1,
+              last_click_at: new Date().toISOString()
+            })
+            .eq('id', trackingLinkId)
+        }
       } catch (err) {
         console.error('Click record error:', err)
       }
