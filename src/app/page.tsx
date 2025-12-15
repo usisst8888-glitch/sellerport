@@ -128,6 +128,51 @@ export default function Home() {
     checkAuth()
   }, [])
 
+  // 방문자 로그 전송
+  useEffect(() => {
+    const logVisit = async () => {
+      try {
+        // 고유 방문자 ID 생성/조회 (localStorage)
+        let visitorId = localStorage.getItem('sp_visitor_id')
+        if (!visitorId) {
+          visitorId = crypto.randomUUID()
+          localStorage.setItem('sp_visitor_id', visitorId)
+        }
+
+        // 세션 ID (sessionStorage)
+        let sessionId = sessionStorage.getItem('sp_session_id')
+        if (!sessionId) {
+          sessionId = crypto.randomUUID()
+          sessionStorage.setItem('sp_session_id', sessionId)
+        }
+
+        // UTM 파라미터 추출
+        const urlParams = new URLSearchParams(window.location.search)
+
+        await fetch('/api/analytics/visit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pagePath: window.location.pathname,
+            utmSource: urlParams.get('utm_source'),
+            utmMedium: urlParams.get('utm_medium'),
+            utmCampaign: urlParams.get('utm_campaign'),
+            utmContent: urlParams.get('utm_content'),
+            utmTerm: urlParams.get('utm_term'),
+            referer: document.referrer || null,
+            visitorId,
+            sessionId,
+          }),
+        })
+      } catch (error) {
+        // 로그 실패해도 무시 (사용자 경험에 영향 X)
+        console.error('Visit log error:', error)
+      }
+    }
+
+    logVisit()
+  }, [])
+
   const handleLogout = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
