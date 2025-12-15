@@ -64,7 +64,12 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-slate-300">비밀번호</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-slate-300">비밀번호</Label>
+                <Link href="/forgot-password" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                  비밀번호 찾기
+                </Link>
+              </div>
               <Input
                 id="password"
                 type="password"

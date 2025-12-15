@@ -249,6 +249,15 @@ export default function SettingsPage() {
               <span className="text-sm text-slate-400">가입일</span>
               <span className="text-sm text-white">{profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('ko-KR') : '-'}</span>
             </div>
+            <Link href="/change-password" className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg hover:bg-slate-700 transition-colors group">
+              <span className="text-sm text-slate-400">비밀번호</span>
+              <div className="flex items-center gap-2 text-sm text-slate-300 group-hover:text-white">
+                <span>변경하기</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </Link>
           </div>
         </div>
       </div>

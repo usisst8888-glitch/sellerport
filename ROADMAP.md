@@ -369,6 +369,54 @@ influencer_stats (인플루언서 효율 DB)
 
 ## 최근 변경 사항 (2025-12-15)
 
+### 비밀번호 찾기/재설정 기능 추가
+
+비밀번호를 잊어버린 사용자를 위한 비밀번호 재설정 기능을 추가했습니다.
+
+#### 생성된 파일
+
+| 파일 | 설명 |
+|------|------|
+| `/app/(auth)/forgot-password/page.tsx` | 비밀번호 찾기 페이지 - 이메일 입력 후 재설정 링크 발송 |
+| `/app/(auth)/reset-password/page.tsx` | 비밀번호 재설정 페이지 - 이메일 링크 클릭 후 새 비밀번호 설정 |
+| `/app/(protected)/change-password/page.tsx` | 비밀번호 변경 페이지 - 로그인 상태에서 비밀번호 변경 |
+| `/app/auth/callback/route.ts` | Supabase 인증 콜백 라우트 |
+
+#### 수정된 파일
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `/app/(auth)/login/page.tsx` | 비밀번호 찾기 링크 추가 |
+| `/app/(protected)/settings/page.tsx` | 계정 정보 섹션에 비밀번호 변경 링크 추가 (다른 항목과 통일된 디자인) |
+| `/app/page.tsx` | 홈페이지에서 code 파라미터 감지 시 reset-password로 리다이렉트 |
+
+#### 기능 상세
+
+- **비밀번호 찾기**: 이메일 입력 → Supabase에서 재설정 링크 발송 → 이메일 링크 클릭 → 새 비밀번호 설정
+- **비밀번호 변경**: 로그인 상태에서 현재 비밀번호 확인 후 새 비밀번호로 변경
+- **PKCE 보안**: 비밀번호 재설정 링크는 같은 브라우저에서만 유효 (보안상 의도된 동작)
+- **에러 메시지 한글화**: "New password should be different from the old password" → "새 비밀번호는 기존 비밀번호와 달라야 합니다"
+- **비밀번호 보기/숨기기**: 새 비밀번호 입력 시 눈 아이콘으로 비밀번호 표시/숨기기 가능
+
+#### Supabase 설정 필요
+
+- **Redirect URLs 추가**: `https://sellerport.app/reset-password`, `http://localhost:3002/reset-password`
+- **SMTP 설정**: Google Workspace SMTP 사용 (`admin@sellerport.app`)
+
+---
+
+### 회원가입 전화번호 중복 체크 추가
+
+회원가입 시 이미 가입된 전화번호로 중복 가입을 방지하는 기능을 추가했습니다.
+
+#### 수정된 파일
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `/app/api/auth/send-code/route.ts` | 인증번호 발송 전 전화번호 중복 체크 추가 (테스트 번호 제외) |
+
+---
+
 ### 추적 링크별 ROAS 기준 커스텀 기능
 
 추적 링크별로 ROAS 신호등 기준을 개별 설정할 수 있는 기능을 추가했습니다.

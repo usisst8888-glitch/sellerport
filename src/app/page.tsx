@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 // 사이트 로고 컴포넌트
 const NaverLogo = ({ className }: { className?: string }) => (
@@ -105,6 +106,18 @@ export default function Home() {
   const stat1 = useCountUp(99, 2000)
   const stat2 = useCountUp(847, 1500)
   const stat3 = useCountUp(24, 1800)
+  const router = useRouter()
+
+  // Supabase가 홈으로 리다이렉트할 때 code 파라미터를 감지하여 reset-password로 전달
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const code = urlParams.get('code')
+    if (code) {
+      // code가 있으면 바로 비밀번호 재설정 페이지로 리다이렉트
+      router.replace(`/reset-password?code=${code}`)
+      return
+    }
+  }, [router])
 
   useEffect(() => {
     const checkAuth = async () => {
