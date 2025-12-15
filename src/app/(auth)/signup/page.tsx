@@ -199,6 +199,35 @@ export default function SignupPage() {
         }, { onConflict: 'id' })
     }
 
+    // 전환 추적 (셀러포트 자체 추적 시스템)
+    try {
+      const trackingLinkId = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('sp_tracking_link='))
+        ?.split('=')[1]
+
+      if (trackingLinkId) {
+        await fetch('/api/conversions/track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            trackingLinkId,
+            orderId: `SIGNUP-${data.user?.id || Date.now()}`,
+            orderAmount: 0, // 회원가입은 금액 0
+            productName: '회원가입',
+            metadata: {
+              event_type: 'signup',
+              user_type: userType,
+              email: email
+            }
+          })
+        })
+      }
+    } catch (conversionError) {
+      console.error('Conversion tracking error:', conversionError)
+      // 전환 추적 실패해도 회원가입은 성공으로 처리
+    }
+
     // 회원가입 성공 시 바로 대시보드로 이동
     setMessage({
       type: 'success',
