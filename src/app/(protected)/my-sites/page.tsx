@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { NaverConnectDialog } from '@/components/my-sites/naver-connect-dialog'
 import { CustomSiteConnectDialog } from '@/components/my-sites/custom-site-connect-dialog'
-import { CoupangConnectDialog } from '@/components/my-sites/coupang-connect-dialog'
 import { createClient } from '@/lib/supabase/client'
 
 interface MySite {
@@ -24,122 +24,86 @@ interface LoadingState {
   }
 }
 
-// 사이트 로고 컴포넌트
-const NaverLogo = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z" fill="#03C75A"/>
-  </svg>
-)
+// 사이트 로고 경로 매핑
+const siteLogos: Record<string, string> = {
+  naver: '/site_logo/smartstore.png',
+  cafe24: '/site_logo/cafe24.png',
+  imweb: '/site_logo/imweb.png',
+  godo: '/site_logo/godomall.png',
+  makeshop: '/site_logo/makeshop.png',
+  custom: '/site_logo/own_site.png',
+}
 
-const Cafe24Logo = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none">
-    <rect width="100" height="100" rx="20" fill="#1A1A1A"/>
-    <text x="50" y="62" textAnchor="middle" fill="white" fontSize="32" fontWeight="bold" fontFamily="Arial">C24</text>
-  </svg>
-)
-
-const ImwebLogo = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none">
-    <rect width="100" height="100" rx="20" fill="#6366F1"/>
-    <text x="50" y="65" textAnchor="middle" fill="white" fontSize="28" fontWeight="bold" fontFamily="Arial">IM</text>
-  </svg>
-)
-
-const GodoLogo = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none">
-    <rect width="100" height="100" rx="20" fill="#FF6B35"/>
-    <text x="50" y="62" textAnchor="middle" fill="white" fontSize="24" fontWeight="bold" fontFamily="Arial">GODO</text>
-  </svg>
-)
-
-const MakeshopLogo = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none">
-    <rect width="100" height="100" rx="20" fill="#E91E63"/>
-    <text x="50" y="62" textAnchor="middle" fill="white" fontSize="20" fontWeight="bold" fontFamily="Arial">MAKE</text>
-  </svg>
-)
-
-const CoupangLogo = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none">
-    <rect width="100" height="100" rx="20" fill="#E31837"/>
-    <path d="M25 50C25 36.2 36.2 25 50 25C58.5 25 66 29.5 70.5 36L62 42C59.5 38 55 35 50 35C41.7 35 35 41.7 35 50C35 58.3 41.7 65 50 65C55 65 59.5 62 62 58L70.5 64C66 70.5 58.5 75 50 75C36.2 75 25 63.8 25 50Z" fill="white"/>
-  </svg>
-)
-
-const CustomSiteLogo = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none">
-    <rect width="100" height="100" rx="20" fill="#10B981"/>
-    <path d="M50 20L80 35V65L50 80L20 65V35L50 20Z" stroke="white" strokeWidth="4" fill="none"/>
-    <path d="M50 45L65 52.5V67.5L50 75L35 67.5V52.5L50 45Z" fill="white"/>
-  </svg>
-)
-
-// 외부 사이트 (스크립트 설치 불가 → 브릿지샵 필요)
-const externalSites = [
+// 쇼핑 추적 사이트
+const shoppingSites = [
   {
     id: 'naver',
     name: '네이버 스마트스토어',
     description: '커머스 API 인증',
-    logo: NaverLogo,
     status: 'available',
-    scriptInstallable: false,
+    needsBridgeShop: true,
   },
-  {
-    id: 'coupang',
-    name: '쿠팡',
-    description: 'HMAC 인증',
-    logo: CoupangLogo,
-    status: 'available',
-    scriptInstallable: false,
-  },
-]
-
-// 내 웹사이트 (스크립트 설치 가능 → 직접 추적, 브릿지샵 불필요)
-const mySites = [
   {
     id: 'cafe24',
     name: '카페24',
     description: '쇼핑몰 솔루션',
-    logo: Cafe24Logo,
     status: 'available',
-    scriptInstallable: true,
+    needsBridgeShop: false,
   },
   {
     id: 'imweb',
     name: '아임웹',
     description: '쇼핑몰 솔루션',
-    logo: ImwebLogo,
     status: 'available',
-    scriptInstallable: true,
+    needsBridgeShop: false,
   },
   {
     id: 'godo',
     name: '고도몰',
     description: '쇼핑몰 솔루션',
-    logo: GodoLogo,
     status: 'available',
-    scriptInstallable: true,
+    needsBridgeShop: false,
   },
   {
     id: 'makeshop',
     name: '메이크샵',
     description: '쇼핑몰 솔루션',
-    logo: MakeshopLogo,
     status: 'available',
-    scriptInstallable: true,
+    needsBridgeShop: false,
+  },
+]
+
+// 회원가입 추적 사이트
+const signupSites = [
+  {
+    id: 'imweb',
+    name: '아임웹',
+    description: '회원가입 폼 추적',
+    status: 'available',
   },
   {
     id: 'custom',
     name: '일반 웹사이트',
-    description: '워드프레스, Wix 등',
-    logo: CustomSiteLogo,
+    description: '자체 제작 사이트',
     status: 'available',
-    scriptInstallable: true,
   },
 ]
 
-// 모든 사이트 설정
-const siteConfigs = [...externalSites, ...mySites]
+// DB 추적 사이트
+const dbSites = [
+  {
+    id: 'imweb',
+    name: '아임웹',
+    description: 'DB 수집 폼 추적',
+    status: 'available',
+  },
+  {
+    id: 'custom',
+    name: '일반 웹사이트',
+    description: '자체 제작 사이트',
+    status: 'available',
+  },
+]
 
 export default function MySitesPage() {
   const [connectedSites, setConnectedSites] = useState<MySite[]>([])
@@ -147,8 +111,14 @@ export default function MySitesPage() {
   const [loadingStates, setLoadingStates] = useState<LoadingState>({})
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [showTrackingCode, setShowTrackingCode] = useState(false)
+  const [showSignupCode, setShowSignupCode] = useState(false)
+  const [showDbCode, setShowDbCode] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [copiedCode, setCopiedCode] = useState(false)
+  const [copiedSignupCode, setCopiedSignupCode] = useState(false)
+  const [copiedDbCode, setCopiedDbCode] = useState(false)
+  const [copiedSignupEventCode, setCopiedSignupEventCode] = useState(false)
+  const [copiedDbEventCode, setCopiedDbEventCode] = useState(false)
 
   const fetchMySites = async () => {
     const supabase = createClient()
@@ -204,6 +174,48 @@ export default function MySitesPage() {
     navigator.clipboard.writeText(getTrackingCode())
     setCopiedCode(true)
     setTimeout(() => setCopiedCode(false), 2000)
+  }
+
+  // 회원가입 이벤트 코드
+  const getSignupEventCode = () => {
+    return `// 회원가입 완료 시 호출
+window.sellerport?.track('signup', {
+  userId: '신규회원ID',      // 선택: 회원 고유 ID
+  email: 'user@email.com'   // 선택: 회원 이메일
+});`
+  }
+
+  // DB 수집 이벤트 코드
+  const getDbEventCode = () => {
+    return `// DB 수집(상담신청/문의) 완료 시 호출
+window.sellerport?.track('lead', {
+  formId: '폼ID',           // 선택: 폼 구분용 ID
+  formName: '상담신청'       // 선택: 폼 이름
+});`
+  }
+
+  const handleCopySignupCode = () => {
+    navigator.clipboard.writeText(getTrackingCode())
+    setCopiedSignupCode(true)
+    setTimeout(() => setCopiedSignupCode(false), 2000)
+  }
+
+  const handleCopyDbCode = () => {
+    navigator.clipboard.writeText(getTrackingCode())
+    setCopiedDbCode(true)
+    setTimeout(() => setCopiedDbCode(false), 2000)
+  }
+
+  const handleCopySignupEventCode = () => {
+    navigator.clipboard.writeText(getSignupEventCode())
+    setCopiedSignupEventCode(true)
+    setTimeout(() => setCopiedSignupEventCode(false), 2000)
+  }
+
+  const handleCopyDbEventCode = () => {
+    navigator.clipboard.writeText(getDbEventCode())
+    setCopiedDbEventCode(true)
+    setTimeout(() => setCopiedDbEventCode(false), 2000)
   }
 
   // 연동 검증
@@ -291,10 +303,9 @@ export default function MySitesPage() {
   }
 
   const getSiteLogo = (type: string) => {
-    const config = siteConfigs.find(p => p.id === type)
-    if (config?.logo) {
-      const Logo = config.logo
-      return <Logo className="w-8 h-8" />
+    const logoPath = siteLogos[type]
+    if (logoPath) {
+      return <Image src={logoPath} alt={type} width={32} height={32} className="rounded-lg" />
     }
     return <span className="text-2xl">🔗</span>
   }
@@ -344,77 +355,79 @@ export default function MySitesPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
           </div>
         ) : connectedSites.length > 0 ? (
-          <div className="space-y-3">
-            {connectedSites.map((site) => (
-              <div
-                key={site.id}
-                className="p-4 bg-slate-700/50 border border-slate-600 rounded-lg"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {getSiteLogo(site.site_type)}
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-white">{site.site_name}</h3>
-                        {getStatusBadge(site.status)}
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {connectedSites.map((site) => (
+                <div
+                  key={site.id}
+                  className="p-4 bg-slate-700/50 border border-slate-600 rounded-lg"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {getSiteLogo(site.site_type)}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium text-white">{site.site_name}</h3>
+                          {getStatusBadge(site.status)}
+                        </div>
+                        <p className="text-sm text-slate-400">
+                          {site.last_sync_at
+                            ? `마지막 동기화: ${new Date(site.last_sync_at).toLocaleString('ko-KR')}`
+                            : '아직 동기화되지 않음'}
+                        </p>
                       </div>
-                      <p className="text-sm text-slate-400">
-                        {site.last_sync_at
-                          ? `마지막 동기화: ${new Date(site.last_sync_at).toLocaleString('ko-KR')}`
-                          : '아직 동기화되지 않음'}
-                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      {site.status === 'pending_verification' ? (
+                        <Button
+                          size="sm"
+                          className="bg-amber-500 hover:bg-amber-400 text-black font-medium"
+                          onClick={() => handleVerify(site.id)}
+                          disabled={loadingStates[site.id]?.verifying}
+                        >
+                          {loadingStates[site.id]?.verifying ? (
+                            <>
+                              <svg className="animate-spin -ml-1 mr-2 h-3 w-3" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              검증 중...
+                            </>
+                          ) : '검증하기'}
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-500 text-white font-medium"
+                          onClick={() => handleSync(site.id)}
+                          disabled={loadingStates[site.id]?.syncing || site.status !== 'connected'}
+                        >
+                          {loadingStates[site.id]?.syncing ? (
+                            <>
+                              <svg className="animate-spin -ml-1 mr-2 h-3 w-3" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              동기화 중...
+                            </>
+                          ) : '동기화'}
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-red-500/50 text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                        onClick={() => handleDisconnect(site.id)}
+                      >
+                        해제
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    {site.status === 'pending_verification' ? (
-                      <Button
-                        size="sm"
-                        className="bg-amber-500 hover:bg-amber-400 text-black font-medium"
-                        onClick={() => handleVerify(site.id)}
-                        disabled={loadingStates[site.id]?.verifying}
-                      >
-                        {loadingStates[site.id]?.verifying ? (
-                          <>
-                            <svg className="animate-spin -ml-1 mr-2 h-3 w-3" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            검증 중...
-                          </>
-                        ) : '검증하기'}
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-500 text-white font-medium"
-                        onClick={() => handleSync(site.id)}
-                        disabled={loadingStates[site.id]?.syncing || site.status !== 'connected'}
-                      >
-                        {loadingStates[site.id]?.syncing ? (
-                          <>
-                            <svg className="animate-spin -ml-1 mr-2 h-3 w-3" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            동기화 중...
-                          </>
-                        ) : '동기화'}
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-red-500/50 text-red-400 hover:bg-red-500/20 hover:text-red-300"
-                      onClick={() => handleDisconnect(site.id)}
-                    >
-                      해제
-                    </Button>
-                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
             {/* 안내 문구 */}
-            <p className="text-xs text-slate-500 mt-3 flex items-center gap-1.5">
+            <p className="text-xs text-slate-500 flex items-center gap-1.5">
               <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -431,81 +444,31 @@ export default function MySitesPage() {
         )}
       </div>
 
-      {/* 외부 마켓플레이스 (브릿지샵 필요) */}
+      {/* 쇼핑 추적 */}
       <div className="mb-8">
-        <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-lg font-semibold text-white">외부 마켓플레이스</h2>
-          <span className="px-2 py-0.5 text-xs bg-purple-500/20 text-purple-400 rounded-full">브릿지샵 사용</span>
-        </div>
-        <p className="text-sm text-slate-400 mb-4">
-          스크립트 설치가 불가능하여 메타/구글/틱톡 광고 시 브릿지샵(중간 페이지)을 통해 추적합니다.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {externalSites.map((site) => (
-            <div
-              key={site.id}
-              className={`bg-slate-800 border border-slate-700 rounded-xl p-6 ${site.status === 'coming_soon' ? 'opacity-60' : ''}`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  {<site.logo className="w-10 h-10" />}
-                  <div>
-                    <h3 className="font-semibold text-white">{site.name}</h3>
-                    <p className="text-sm text-slate-400">{site.description}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-4">
-                {site.status === 'available' ? (
-                  site.id === 'naver' ? (
-                    <NaverConnectDialog onSuccess={fetchMySites}>
-                      <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white">연동하기</Button>
-                    </NaverConnectDialog>
-                  ) : site.id === 'coupang' ? (
-                    <CoupangConnectDialog onSuccess={fetchMySites}>
-                      <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white">연동하기</Button>
-                    </CoupangConnectDialog>
-                  ) : (
-                    <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white">연동하기</Button>
-                  )
-                ) : (
-                  <Button className="w-full border-slate-600 text-slate-400" variant="outline" disabled>
-                    준비 중
-                  </Button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 내 웹사이트 (직접 추적 가능, 브릿지샵 불필요) */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-white">내 웹사이트</h2>
-            <span className="px-2 py-0.5 text-xs bg-emerald-500/20 text-emerald-400 rounded-full">직접 추적</span>
-          </div>
-          <Button
+        <div className="flex items-center gap-3 mb-4">
+          <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          <h2 className="text-lg font-semibold text-white">쇼핑 추적</h2>
+          <button
             onClick={() => setShowTrackingCode(!showTrackingCode)}
-            variant="outline"
-            size="sm"
-            className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/20"
+            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors"
           >
-            {showTrackingCode ? '추적 코드 숨기기' : '추적 코드 보기'}
-          </Button>
+            {showTrackingCode ? '추적 코드 숨기기' : '추적 코드 설치'}
+          </button>
         </div>
         <p className="text-sm text-slate-400 mb-4">
-          추적 스크립트 설치가 가능한 사이트입니다. 브릿지샵 없이 직접 전환 추적이 가능합니다.
+          상품 구매 전환을 추적합니다. 광고를 통해 들어온 고객의 구매를 측정할 수 있습니다.
         </p>
 
         {/* 추적 코드 섹션 */}
         {showTrackingCode && (
-          <div className="mb-6 bg-gradient-to-br from-emerald-900/30 to-slate-800/40 border border-emerald-500/30 rounded-xl p-5 space-y-4">
+          <div className="mb-6 bg-gradient-to-br from-blue-900/30 to-slate-800/40 border border-blue-500/30 rounded-xl p-5 space-y-4">
             {/* 추적 코드 박스 */}
             <div className="bg-slate-900 rounded-lg p-4 border border-slate-700">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-emerald-400 font-medium">HTML 추적 코드</span>
+                <span className="text-xs text-blue-400 font-medium">HTML 추적 코드</span>
                 <Button
                   size="sm"
                   variant="outline"
@@ -539,62 +502,301 @@ export default function MySitesPage() {
               <h4 className="text-sm font-semibold text-white mb-3">설치 방법</h4>
               <ol className="space-y-2 text-sm text-slate-400">
                 <li className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs shrink-0 mt-0.5">1</span>
+                  <span className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-xs shrink-0 mt-0.5">1</span>
                   <span>위 코드를 복사합니다.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs shrink-0 mt-0.5">2</span>
-                  <span>웹사이트의 <code className="px-1 py-0.5 bg-slate-700 rounded text-emerald-300">&lt;head&gt;</code> 태그 안에 붙여넣습니다.</span>
+                  <span className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-xs shrink-0 mt-0.5">2</span>
+                  <span>웹사이트의 <code className="px-1 py-0.5 bg-slate-700 rounded text-blue-300">&lt;head&gt;</code> 태그 안에 붙여넣습니다.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs shrink-0 mt-0.5">3</span>
+                  <span className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-xs shrink-0 mt-0.5">3</span>
                   <span>모든 페이지에 코드가 포함되도록 공통 헤더에 추가하세요.</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs shrink-0 mt-0.5">4</span>
-                  <span>전환 추적 페이지에서 추적 링크를 만들고 발급받으세요.</span>
-                </li>
               </ol>
-            </div>
-
-            {/* 전환 이벤트 추적 */}
-            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-              <h4 className="text-sm font-semibold text-white mb-3">전환 이벤트 추적 (선택)</h4>
-              <p className="text-sm text-slate-400 mb-3">
-                구매 완료, 회원가입 등 특정 이벤트를 추적하려면 해당 이벤트 발생 시 아래 코드를 호출하세요.
-              </p>
-              <div className="bg-slate-900 rounded-lg p-3 border border-slate-700">
-                <pre className="text-xs text-slate-300 font-mono overflow-x-auto">{`// 전환 이벤트 전송 (예: 구매 완료)
-window.sellerport?.track('conversion', {
-  orderId: '주문번호',
-  amount: 50000,  // 주문 금액
-  productName: '상품명'
-});`}</pre>
-              </div>
             </div>
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          {mySites.map((site) => (
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {shoppingSites.map((site) => (
             <div
               key={site.id}
-              className={`bg-slate-800 border border-slate-700 rounded-xl p-5 ${site.status === 'coming_soon' ? 'opacity-60' : ''}`}
+              className="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col"
             >
-              <div className="flex flex-col items-center text-center">
-                {<site.logo className="w-12 h-12 mb-3" />}
+              <div className="flex flex-col items-center text-center flex-grow">
+                <Image src={siteLogos[site.id]} alt={site.name} width={48} height={48} className="rounded-lg mb-3" />
                 <h3 className="font-semibold text-white">{site.name}</h3>
-                <p className="text-xs text-slate-400 mb-4">{site.description}</p>
+                <p className="text-xs text-slate-400 mb-2">{site.description}</p>
+                {site.needsBridgeShop && (
+                  <span className="px-2 py-0.5 text-[10px] bg-purple-500/20 text-purple-400 rounded-full">브릿지샵 사용, 추적코드 설치 X</span>
+                )}
+              </div>
+              <div className="mt-3">
+                {site.status === 'available' ? (
+                  site.id === 'naver' ? (
+                    <NaverConnectDialog onSuccess={fetchMySites}>
+                      <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" size="sm">연동하기</Button>
+                    </NaverConnectDialog>
+                  ) : (
+                    <CustomSiteConnectDialog
+                      siteType={site.id as 'cafe24' | 'imweb' | 'godo' | 'makeshop' | 'custom'}
+                      siteName={site.name}
+                      siteDescription={`${site.name} 쇼핑몰을 연동하고 광고 전환을 추적하세요`}
+                      onSuccess={fetchMySites}
+                    >
+                      <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" size="sm">연동하기</Button>
+                    </CustomSiteConnectDialog>
+                  )
+                ) : (
+                  <Button className="w-full border-slate-600 text-slate-400" variant="outline" size="sm" disabled>
+                    준비 중
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 회원가입 추적 */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-4">
+          <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+          </svg>
+          <h2 className="text-lg font-semibold text-white">회원가입 추적</h2>
+          <button
+            onClick={() => setShowSignupCode(!showSignupCode)}
+            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors"
+          >
+            {showSignupCode ? '추적 코드 숨기기' : '추적 코드 설치'}
+          </button>
+        </div>
+        <p className="text-sm text-slate-400 mb-4">
+          회원가입 전환을 추적합니다. 광고를 통해 유입된 신규 회원을 측정할 수 있습니다.
+        </p>
+
+        {/* 회원가입 추적 코드 섹션 */}
+        {showSignupCode && (
+          <div className="mb-6 bg-gradient-to-br from-emerald-900/30 to-slate-800/40 border border-emerald-500/30 rounded-xl p-5 space-y-4">
+            {/* 기본 추적 코드 */}
+            <div className="bg-slate-900 rounded-lg p-4 border border-slate-700">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-emerald-400 font-medium">1. 기본 추적 코드 (head 태그에 삽입)</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCopySignupCode}
+                  className="h-7 text-xs border-slate-600 text-slate-300 hover:bg-slate-700"
+                >
+                  {copiedSignupCode ? (
+                    <>
+                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      복사됨!
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      복사
+                    </>
+                  )}
+                </Button>
+              </div>
+              <pre className="text-xs text-slate-300 overflow-x-auto whitespace-pre-wrap font-mono">
+                {getTrackingCode()}
+              </pre>
+            </div>
+
+            {/* 회원가입 이벤트 코드 */}
+            <div className="bg-slate-900 rounded-lg p-4 border border-emerald-500/30">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-emerald-400 font-medium">2. 회원가입 전환 코드 (필수)</span>
+                  <span className="px-1.5 py-0.5 text-[10px] bg-emerald-500/20 text-emerald-400 rounded">필수</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCopySignupEventCode}
+                  className="h-7 text-xs border-slate-600 text-slate-300 hover:bg-slate-700"
+                >
+                  {copiedSignupEventCode ? (
+                    <>
+                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      복사됨!
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      복사
+                    </>
+                  )}
+                </Button>
+              </div>
+              <pre className="text-xs text-slate-300 overflow-x-auto whitespace-pre-wrap font-mono">
+                {getSignupEventCode()}
+              </pre>
+              <p className="text-xs text-slate-500 mt-2">
+                회원가입 완료 페이지 또는 회원가입 성공 시점에 위 코드를 호출하세요.
+              </p>
+            </div>
+          </div>
+        )}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {signupSites.map((site) => (
+            <div
+              key={`signup-${site.id}`}
+              className="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col"
+            >
+              <div className="flex flex-col items-center text-center flex-grow">
+                <Image src={siteLogos[site.id]} alt={site.name} width={48} height={48} className="rounded-lg mb-3" />
+                <h3 className="font-semibold text-white">{site.name}</h3>
+                <p className="text-xs text-slate-400 mb-2">{site.description}</p>
+              </div>
+              <div className="mt-3">
                 {site.status === 'available' ? (
                   <CustomSiteConnectDialog
                     siteType={site.id as 'cafe24' | 'imweb' | 'godo' | 'makeshop' | 'custom'}
                     siteName={site.name}
-                    siteDescription={site.id === 'custom'
-                      ? '워드프레스, Wix 등 직접 제작한 웹사이트를 연동하세요'
-                      : `${site.name} 쇼핑몰을 연동하고 광고 전환을 추적하세요`}
+                    siteDescription={`${site.name}에서 회원가입 전환을 추적하세요`}
+                    conversionType="signup"
                     onSuccess={fetchMySites}
                   >
-                    <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white" size="sm">연동하기</Button>
+                    <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" size="sm">연동하기</Button>
+                  </CustomSiteConnectDialog>
+                ) : (
+                  <Button className="w-full border-slate-600 text-slate-400" variant="outline" size="sm" disabled>
+                    준비 중
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* DB 추적 */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-4">
+          <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+          </svg>
+          <h2 className="text-lg font-semibold text-white">DB 추적</h2>
+          <button
+            onClick={() => setShowDbCode(!showDbCode)}
+            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors"
+          >
+            {showDbCode ? '추적 코드 숨기기' : '추적 코드 설치'}
+          </button>
+        </div>
+        <p className="text-sm text-slate-400 mb-4">
+          상담신청, 문의 등 DB 수집 전환을 추적합니다. 리드 획득 효율을 측정할 수 있습니다.
+        </p>
+
+        {/* DB 추적 코드 섹션 */}
+        {showDbCode && (
+          <div className="mb-6 bg-gradient-to-br from-amber-900/30 to-slate-800/40 border border-amber-500/30 rounded-xl p-5 space-y-4">
+            {/* 기본 추적 코드 */}
+            <div className="bg-slate-900 rounded-lg p-4 border border-slate-700">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-amber-400 font-medium">1. 기본 추적 코드 (head 태그에 삽입)</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCopyDbCode}
+                  className="h-7 text-xs border-slate-600 text-slate-300 hover:bg-slate-700"
+                >
+                  {copiedDbCode ? (
+                    <>
+                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      복사됨!
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      복사
+                    </>
+                  )}
+                </Button>
+              </div>
+              <pre className="text-xs text-slate-300 overflow-x-auto whitespace-pre-wrap font-mono">
+                {getTrackingCode()}
+              </pre>
+            </div>
+
+            {/* DB 수집 이벤트 코드 */}
+            <div className="bg-slate-900 rounded-lg p-4 border border-amber-500/30">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-amber-400 font-medium">2. DB 수집 전환 코드 (필수)</span>
+                  <span className="px-1.5 py-0.5 text-[10px] bg-amber-500/20 text-amber-400 rounded">필수</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCopyDbEventCode}
+                  className="h-7 text-xs border-slate-600 text-slate-300 hover:bg-slate-700"
+                >
+                  {copiedDbEventCode ? (
+                    <>
+                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      복사됨!
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      복사
+                    </>
+                  )}
+                </Button>
+              </div>
+              <pre className="text-xs text-slate-300 overflow-x-auto whitespace-pre-wrap font-mono">
+                {getDbEventCode()}
+              </pre>
+              <p className="text-xs text-slate-500 mt-2">
+                상담신청/문의 폼 제출 완료 시점에 위 코드를 호출하세요.
+              </p>
+            </div>
+          </div>
+        )}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {dbSites.map((site) => (
+            <div
+              key={`db-${site.id}`}
+              className="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col"
+            >
+              <div className="flex flex-col items-center text-center flex-grow">
+                <Image src={siteLogos[site.id]} alt={site.name} width={48} height={48} className="rounded-lg mb-3" />
+                <h3 className="font-semibold text-white">{site.name}</h3>
+                <p className="text-xs text-slate-400 mb-2">{site.description}</p>
+              </div>
+              <div className="mt-3">
+                {site.status === 'available' ? (
+                  <CustomSiteConnectDialog
+                    siteType={site.id as 'cafe24' | 'imweb' | 'godo' | 'makeshop' | 'custom'}
+                    siteName={site.name}
+                    siteDescription={`${site.name}에서 DB 수집 전환을 추적하세요`}
+                    conversionType="db"
+                    onSuccess={fetchMySites}
+                  >
+                    <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" size="sm">연동하기</Button>
                   </CustomSiteConnectDialog>
                 ) : (
                   <Button className="w-full border-slate-600 text-slate-400" variant="outline" size="sm" disabled>

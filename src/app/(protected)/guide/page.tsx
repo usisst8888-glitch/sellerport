@@ -468,11 +468,141 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
         </p>
       </section>
 
-      {/* 유료 광고 채널 */}
+      {/* 자체 채널 */}
       <section>
         <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-          <span className="text-2xl">💰</span> 유료 광고 채널
+          <span className="text-2xl">📱</span> 자체 채널
         </h2>
+        <p className="text-slate-400 text-sm mb-4">
+          인스타그램, 유튜브, 블로그 등 내가 운영하는 채널을 등록하여 유입을 추적합니다.
+        </p>
+        <div className="space-y-3">
+          {/* Instagram */}
+          <ChannelGuideCard
+            id="instagram"
+            icon={
+              <svg viewBox="0 0 24 24" className="w-6 h-6">
+                <defs>
+                  <linearGradient id="instagram-gradient-self" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#FFDC80" />
+                    <stop offset="25%" stopColor="#FCAF45" />
+                    <stop offset="50%" stopColor="#F77737" />
+                    <stop offset="75%" stopColor="#F56040" />
+                    <stop offset="100%" stopColor="#C13584" />
+                  </linearGradient>
+                </defs>
+                <rect x="2" y="2" width="20" height="20" rx="5" fill="url(#instagram-gradient-self)"/>
+                <circle cx="12" cy="12" r="4" fill="none" stroke="white" strokeWidth="2"/>
+                <circle cx="17.5" cy="6.5" r="1.5" fill="white"/>
+              </svg>
+            }
+            title="인스타그램"
+            description="Instagram 비즈니스/크리에이터 계정 자동 연동"
+            isExpanded={expandedChannel === 'instagram'}
+            onToggle={() => toggleChannel('instagram')}
+            onConnect={() => handleConnect('instagram')}
+          >
+            <div className="space-y-4">
+              <div className="bg-emerald-500/10 rounded-lg p-4 border border-emerald-500/30">
+                <p className="text-emerald-400 font-medium mb-2">OAuth 연동 방식</p>
+                <p className="text-slate-300 text-sm">Instagram 계정으로 로그인하면 자동으로 연동됩니다.</p>
+              </div>
+              <div className="space-y-3">
+                <StepCard step={1} title="비즈니스/크리에이터 계정 전환" description="Instagram 앱에서 '프로필 > 설정 > 계정 > 프로페셔널 계정으로 전환'을 선택하세요." />
+                <StepCard step={2} title="셀러포트에서 연동 시작" description="광고 채널 메뉴에서 인스타그램 '연동하기' 버튼을 클릭하세요." />
+                <StepCard step={3} title="Instagram 로그인" description="Instagram 계정으로 로그인하고 권한을 승인하세요." />
+                <StepCard step={4} title="연동 완료" description="팔로워 수, 게시물/릴스/스토리 인사이트 등이 자동으로 수집됩니다." />
+              </div>
+              <div className="bg-amber-500/10 rounded-lg p-4 border border-amber-500/30">
+                <p className="text-amber-400 font-medium mb-2">필수 조건</p>
+                <ul className="text-slate-300 text-sm space-y-1">
+                  <li>• <strong className="text-amber-300">Instagram 비즈니스/크리에이터 계정</strong>이 필요합니다</li>
+                  <li>• 개인 계정은 인사이트 데이터를 제공하지 않습니다</li>
+                </ul>
+              </div>
+            </div>
+          </ChannelGuideCard>
+
+          {/* YouTube */}
+          <ChannelGuideCard
+            id="youtube"
+            icon={
+              <svg viewBox="0 0 24 24" className="w-6 h-6">
+                <path fill="#FF0000" d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+              </svg>
+            }
+            title="유튜브"
+            description="Google 계정 OAuth 연동으로 간편하게 연결"
+            isExpanded={expandedChannel === 'youtube'}
+            onToggle={() => toggleChannel('youtube')}
+            onConnect={() => handleConnect('youtube')}
+          >
+            <div className="space-y-4">
+              <div className="bg-emerald-500/10 rounded-lg p-4 border border-emerald-500/30">
+                <p className="text-emerald-400 font-medium mb-2">OAuth 연동 방식</p>
+                <p className="text-slate-300 text-sm">Google 계정으로 로그인하면 자동으로 연동됩니다.</p>
+              </div>
+              <div className="space-y-3">
+                <StepCard step={1} title="광고 채널 메뉴 접속" description="좌측 사이드바에서 '광고 채널'을 클릭하세요." />
+                <StepCard step={2} title="유튜브 선택" description="'유튜브' 카드의 연동하기 버튼을 클릭하세요." />
+                <StepCard step={3} title="Google 계정 로그인" description="팝업 창에서 YouTube 채널에 연결된 Google 계정으로 로그인하세요." />
+                <StepCard step={4} title="권한 승인" description="셀러포트가 YouTube 채널 데이터를 읽을 수 있도록 권한을 승인하세요." />
+                <StepCard step={5} title="연동 완료" description="조회수, 구독자, 시청시간 등 채널 데이터가 자동으로 수집됩니다." />
+              </div>
+              <div className="bg-blue-500/10 rounded-lg p-4 border border-blue-500/30">
+                <p className="text-blue-400 font-medium mb-2">수집되는 데이터</p>
+                <ul className="text-slate-300 text-sm space-y-1">
+                  <li>• 조회수, 구독자 수</li>
+                  <li>• 시청시간 분석</li>
+                  <li>• 참여율 데이터</li>
+                </ul>
+              </div>
+            </div>
+          </ChannelGuideCard>
+
+          {/* 네이버 블로그 */}
+          <ChannelGuideCard
+            id="naver-blog"
+            icon={
+              <svg viewBox="0 0 24 24" className="w-6 h-6" fill="#03C75A">
+                <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z"/>
+              </svg>
+            }
+            title="네이버 블로그"
+            description="블로그 정보 등록 (수동 입력)"
+            isExpanded={expandedChannel === 'naver-blog'}
+            onToggle={() => toggleChannel('naver-blog')}
+            onConnect={() => handleConnect('naver-blog')}
+          >
+            <div className="space-y-4">
+              <div className="bg-slate-700/50 rounded-lg p-4 border border-white/10">
+                <p className="text-slate-300 text-sm">네이버 블로그는 별도의 API가 없어 채널 정보만 등록됩니다. 추적 링크를 통한 유입 분석에 활용됩니다.</p>
+              </div>
+              <div className="space-y-3">
+                <StepCard step={1} title="네이버 블로그 접속" description="blog.naver.com에서 내 블로그로 이동하세요." />
+                <StepCard step={2} title="블로그 ID 확인" description="블로그 URL에서 블로그 ID를 확인하세요. (예: blog.naver.com/myblog)" />
+                <StepCard step={3} title="셀러포트에서 등록" description="광고 채널 메뉴에서 네이버 블로그를 선택하고, 블로그 별칭과 블로그 ID를 입력하세요." />
+              </div>
+              <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                <p className="text-slate-400 font-medium mb-2">입력 정보</p>
+                <ul className="text-slate-300 text-sm space-y-1">
+                  <li>• <strong className="text-white">블로그 별칭:</strong> 관리용 이름 (자유 입력)</li>
+                  <li>• <strong className="text-white">블로그 ID:</strong> 네이버 블로그 ID</li>
+                </ul>
+              </div>
+            </div>
+          </ChannelGuideCard>
+        </div>
+      </section>
+
+      {/* 유료 광고 */}
+      <section>
+        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <span className="text-2xl">💰</span> 유료 광고
+        </h2>
+        <p className="text-slate-400 text-sm mb-4">
+          유료 광고 플랫폼과 연동하여 광고비 대비 성과(ROAS)를 분석합니다.
+        </p>
         <div className="space-y-3">
           {/* Google Ads */}
           <ChannelGuideCard
@@ -712,180 +842,80 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
         </div>
       </section>
 
-      {/* 소셜/오가닉 채널 */}
+      {/* 기타 */}
       <section>
         <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-          <span className="text-2xl">📱</span> 소셜 / 오가닉 채널
+          <span className="text-2xl">📋</span> 기타
         </h2>
         <p className="text-slate-400 text-sm mb-4">
-          유료 광고가 아닌 소셜 채널의 성과를 추적합니다. 채널 정보를 등록하면 추적 링크별로 유입 경로를 분석할 수 있습니다.
+          인플루언서, 체험단 등 기타 마케팅 채널을 수동으로 등록하여 관리합니다.
         </p>
         <div className="space-y-3">
-          {/* YouTube */}
+          {/* 인플루언서 */}
           <ChannelGuideCard
-            id="youtube"
+            id="influencer"
             icon={
-              <svg viewBox="0 0 24 24" className="w-6 h-6">
-                <path fill="#FF0000" d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-              </svg>
+              <div className="w-6 h-6 bg-pink-500 rounded-lg flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
             }
-            title="YouTube 채널"
-            description="채널 정보 등록으로 유입 추적"
-            isExpanded={expandedChannel === 'youtube'}
-            onToggle={() => toggleChannel('youtube')}
-            onConnect={() => handleConnect('youtube')}
+            title="인플루언서"
+            description="인플루언서 채널 수동 등록"
+            isExpanded={expandedChannel === 'influencer'}
+            onToggle={() => toggleChannel('influencer')}
+            onConnect={() => handleConnect('influencer')}
           >
             <div className="space-y-4">
+              <div className="bg-slate-700/50 rounded-lg p-4 border border-white/10">
+                <p className="text-slate-300 text-sm">인플루언서 마케팅 채널을 등록하여 추적 링크별 성과를 분석합니다. 채널 이름과 설명을 입력하여 관리하세요.</p>
+              </div>
               <div className="space-y-3">
-                <StepCard step={1} title="YouTube 채널 접속" description="youtube.com에서 내 채널 페이지로 이동하세요." />
-                <StepCard step={2} title="채널 ID 확인" description="채널 URL에서 채널 ID를 확인하세요. (예: youtube.com/channel/UC...)" />
-                <StepCard step={3} title="셀러포트에서 연동" description="광고 채널 메뉴에서 YouTube를 선택하고, 채널 별칭과 채널 ID를 입력하세요." />
+                <StepCard step={1} title="광고 채널 메뉴 접속" description="좌측 사이드바에서 '광고 채널'을 클릭하세요." />
+                <StepCard step={2} title="기타 > 인플루언서 선택" description="기타 섹션에서 '인플루언서' 채널 추가 버튼을 클릭하세요." />
+                <StepCard step={3} title="채널 정보 입력" description="인플루언서 이름, 플랫폼, 팔로워 수 등 필요한 정보를 입력하세요." />
               </div>
               <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
                 <p className="text-slate-400 font-medium mb-2">입력 정보</p>
                 <ul className="text-slate-300 text-sm space-y-1">
-                  <li>• <strong className="text-white">채널 별칭:</strong> 관리용 이름 (자유 입력)</li>
-                  <li>• <strong className="text-white">채널 ID:</strong> UC로 시작하는 채널 ID</li>
-                  <li>• <strong className="text-white">채널 URL:</strong> 채널 주소 (선택)</li>
-                  <li>• <strong className="text-white">API Key:</strong> Google Cloud API Key (선택, 통계 조회용)</li>
+                  <li>• <strong className="text-white">채널 이름:</strong> 인플루언서 이름 또는 계정명</li>
+                  <li>• <strong className="text-white">설명:</strong> 플랫폼, 팔로워 수 등 추가 정보 (선택)</li>
                 </ul>
               </div>
             </div>
           </ChannelGuideCard>
 
-          {/* Instagram */}
+          {/* 체험단 */}
           <ChannelGuideCard
-            id="instagram"
+            id="experience"
             icon={
-              <svg viewBox="0 0 24 24" className="w-6 h-6">
-                <defs>
-                  <linearGradient id="instagram-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#FFDC80" />
-                    <stop offset="25%" stopColor="#FCAF45" />
-                    <stop offset="50%" stopColor="#F77737" />
-                    <stop offset="75%" stopColor="#F56040" />
-                    <stop offset="100%" stopColor="#C13584" />
-                  </linearGradient>
-                </defs>
-                <rect x="2" y="2" width="20" height="20" rx="5" fill="url(#instagram-gradient)"/>
-                <circle cx="12" cy="12" r="4" fill="none" stroke="white" strokeWidth="2"/>
-                <circle cx="17.5" cy="6.5" r="1.5" fill="white"/>
-              </svg>
+              <div className="w-6 h-6 bg-amber-500 rounded-lg flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
             }
-            title="Instagram"
-            description="계정 정보 등록으로 유입 추적"
-            isExpanded={expandedChannel === 'instagram'}
-            onToggle={() => toggleChannel('instagram')}
-            onConnect={() => handleConnect('instagram')}
+            title="체험단"
+            description="체험단 캠페인 수동 등록"
+            isExpanded={expandedChannel === 'experience'}
+            onToggle={() => toggleChannel('experience')}
+            onConnect={() => handleConnect('experience')}
           >
             <div className="space-y-4">
+              <div className="bg-slate-700/50 rounded-lg p-4 border border-white/10">
+                <p className="text-slate-300 text-sm">체험단/서포터즈 마케팅 채널을 등록하여 캠페인별 성과를 분석합니다.</p>
+              </div>
               <div className="space-y-3">
-                <StepCard step={1} title="Instagram 계정 확인" description="instagram.com에서 내 프로필 페이지로 이동하세요." />
-                <StepCard step={2} title="계정 ID 확인" description="프로필 URL에서 계정 ID(사용자명)를 확인하세요. (예: instagram.com/myaccount)" />
-                <StepCard step={3} title="셀러포트에서 연동" description="광고 채널 메뉴에서 인스타그램을 선택하고, 계정 별칭과 계정 ID를 입력하세요." />
+                <StepCard step={1} title="광고 채널 메뉴 접속" description="좌측 사이드바에서 '광고 채널'을 클릭하세요." />
+                <StepCard step={2} title="기타 > 체험단 선택" description="기타 섹션에서 '체험단' 채널 추가 버튼을 클릭하세요." />
+                <StepCard step={3} title="캠페인 정보 입력" description="캠페인 이름, 플랫폼, 참여자 수 등 필요한 정보를 입력하세요." />
               </div>
               <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
                 <p className="text-slate-400 font-medium mb-2">입력 정보</p>
                 <ul className="text-slate-300 text-sm space-y-1">
-                  <li>• <strong className="text-white">계정 별칭:</strong> 관리용 이름 (자유 입력)</li>
-                  <li>• <strong className="text-white">계정 ID:</strong> Instagram 사용자명 (@제외)</li>
-                  <li>• <strong className="text-white">프로필 URL:</strong> 프로필 주소 (선택)</li>
-                </ul>
-              </div>
-            </div>
-          </ChannelGuideCard>
-
-          {/* TikTok */}
-          <ChannelGuideCard
-            id="tiktok"
-            icon={
-              <svg viewBox="0 0 24 24" className="w-6 h-6">
-                <path fill="#25F4EE" d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 0115.54 3h-3.09v12.4a2.592 2.592 0 01-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 004.3 1.38V7.3s-1.88.09-3.24-1.48z"/>
-                <path fill="#FE2C55" d="M17.6 6.82s.51.5 0 0A4.278 4.278 0 0116.54 4h-3.09v12.4a2.592 2.592 0 01-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48v-3.16c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7v-5.29a7.35 7.35 0 004.3 1.38V8.3s-1.88.09-3.24-1.48z"/>
-                <path fill="white" d="M17.1 6.32s.51.5 0 0A4.278 4.278 0 0116.04 3.5h-3.09v12.4a2.592 2.592 0 01-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V10.16c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V10.51a7.35 7.35 0 004.3 1.38V8.8s-1.88.09-3.24-1.48z"/>
-              </svg>
-            }
-            title="TikTok"
-            description="계정 정보 등록으로 유입 추적"
-            isExpanded={expandedChannel === 'tiktok'}
-            onToggle={() => toggleChannel('tiktok')}
-            onConnect={() => handleConnect('tiktok')}
-          >
-            <div className="space-y-4">
-              <div className="space-y-3">
-                <StepCard step={1} title="TikTok 계정 확인" description="tiktok.com에서 내 프로필 페이지로 이동하세요." />
-                <StepCard step={2} title="계정 ID 확인" description="프로필 URL에서 계정 ID(사용자명)를 확인하세요. (예: tiktok.com/@myaccount)" />
-                <StepCard step={3} title="셀러포트에서 연동" description="광고 채널 메뉴에서 TikTok을 선택하고, 계정 별칭과 계정 ID를 입력하세요." />
-              </div>
-              <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-                <p className="text-slate-400 font-medium mb-2">입력 정보</p>
-                <ul className="text-slate-300 text-sm space-y-1">
-                  <li>• <strong className="text-white">계정 별칭:</strong> 관리용 이름 (자유 입력)</li>
-                  <li>• <strong className="text-white">계정 ID:</strong> TikTok 사용자명 (@제외)</li>
-                  <li>• <strong className="text-white">프로필 URL:</strong> 프로필 주소 (선택)</li>
-                </ul>
-              </div>
-            </div>
-          </ChannelGuideCard>
-
-          {/* 네이버 블로그 */}
-          <ChannelGuideCard
-            id="naver-blog"
-            icon={
-              <svg viewBox="0 0 24 24" className="w-6 h-6" fill="#03C75A">
-                <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z"/>
-              </svg>
-            }
-            title="네이버 블로그"
-            description="블로그 정보 등록으로 유입 추적"
-            isExpanded={expandedChannel === 'naver-blog'}
-            onToggle={() => toggleChannel('naver-blog')}
-            onConnect={() => handleConnect('naver-blog')}
-          >
-            <div className="space-y-4">
-              <div className="space-y-3">
-                <StepCard step={1} title="네이버 블로그 접속" description="blog.naver.com에서 내 블로그로 이동하세요." />
-                <StepCard step={2} title="블로그 ID 확인" description="블로그 URL에서 블로그 ID를 확인하세요. (예: blog.naver.com/myblog)" />
-                <StepCard step={3} title="셀러포트에서 연동" description="광고 채널 메뉴에서 네이버 블로그를 선택하고, 블로그 별칭과 블로그 ID를 입력하세요." />
-              </div>
-              <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-                <p className="text-slate-400 font-medium mb-2">입력 정보</p>
-                <ul className="text-slate-300 text-sm space-y-1">
-                  <li>• <strong className="text-white">블로그 별칭:</strong> 관리용 이름 (자유 입력)</li>
-                  <li>• <strong className="text-white">블로그 ID:</strong> 네이버 블로그 ID</li>
-                  <li>• <strong className="text-white">블로그 URL:</strong> 블로그 주소 (선택)</li>
-                  <li>• <strong className="text-white">Client ID / Secret:</strong> 네이버 API (선택, 통계 조회용)</li>
-                </ul>
-              </div>
-            </div>
-          </ChannelGuideCard>
-
-          {/* Threads */}
-          <ChannelGuideCard
-            id="threads"
-            icon={
-              <svg viewBox="0 0 24 24" className="w-6 h-6" fill="white">
-                <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.59 12c.025 3.086.718 5.496 2.057 7.164 1.432 1.781 3.632 2.695 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.96-.065-1.182.408-2.256 1.332-3.023.88-.73 2.132-1.13 3.628-1.154.902-.015 1.728.08 2.5.28-.034-.792-.144-1.483-.34-2.05-.222-.647-.543-1.108-.972-1.392-.503-.331-1.187-.497-2.03-.497-.626 0-1.253.088-1.811.366-.49.243-.875.612-1.15 1.096l-1.833-1.002c.446-.783 1.063-1.39 1.84-1.81.896-.484 1.922-.73 3.05-.73 1.205 0 2.237.256 3.07.763.758.46 1.325 1.107 1.694 1.926.384.852.578 1.947.578 3.26v.239c0 .076-.003.152-.004.229.816.393 1.464.911 1.929 1.543.628.854.994 1.9 1.086 3.102.052.669.009 1.407-.148 2.175-.338 1.66-1.212 3.047-2.6 4.128-1.57 1.221-3.59 1.865-6.012 1.913zm-.074-8.663c-.922.016-1.659.196-2.133.521-.423.29-.634.662-.61 1.08.027.475.244.863.649 1.153.474.34 1.107.512 1.883.512l.21-.006c1.002-.05 1.76-.398 2.256-1.036.41-.528.673-1.262.769-2.185-.692-.148-1.4-.203-2.164-.203-.261 0-.535.007-.817.022-.014.047-.028.094-.043.142z"/>
-              </svg>
-            }
-            title="Threads"
-            description="계정 정보 등록으로 유입 추적"
-            isExpanded={expandedChannel === 'threads'}
-            onToggle={() => toggleChannel('threads')}
-            onConnect={() => handleConnect('threads')}
-          >
-            <div className="space-y-4">
-              <div className="space-y-3">
-                <StepCard step={1} title="Threads 계정 확인" description="threads.net에서 내 프로필 페이지로 이동하세요." />
-                <StepCard step={2} title="계정 ID 확인" description="프로필 URL에서 계정 ID(사용자명)를 확인하세요. (예: threads.net/@myaccount)" />
-                <StepCard step={3} title="셀러포트에서 연동" description="광고 채널 메뉴에서 Threads를 선택하고, 계정 별칭과 계정 ID를 입력하세요." />
-              </div>
-              <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-                <p className="text-slate-400 font-medium mb-2">입력 정보</p>
-                <ul className="text-slate-300 text-sm space-y-1">
-                  <li>• <strong className="text-white">계정 별칭:</strong> 관리용 이름 (자유 입력)</li>
-                  <li>• <strong className="text-white">계정 ID:</strong> Threads 사용자명 (@제외)</li>
-                  <li>• <strong className="text-white">프로필 URL:</strong> 프로필 주소 (선택)</li>
+                  <li>• <strong className="text-white">채널 이름:</strong> 체험단 캠페인 이름</li>
+                  <li>• <strong className="text-white">설명:</strong> 플랫폼, 참여자 수 등 추가 정보 (선택)</li>
                 </ul>
               </div>
             </div>
@@ -900,9 +930,9 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
             <span className="text-xl">💡</span> 연동 팁
           </h3>
           <ul className="space-y-2 text-slate-300 text-sm">
-            <li>• <strong className="text-white">OAuth 연동 (Google, Meta):</strong> 간편하게 계정 로그인만 하면 자동 연동됩니다.</li>
-            <li>• <strong className="text-white">API 연동:</strong> 각 플랫폼에서 API 키를 발급받아야 합니다. 발급 과정이 복잡할 수 있으니 위 가이드를 따라하세요.</li>
-            <li>• <strong className="text-white">소셜 채널:</strong> 광고비가 발생하지 않는 채널입니다. 추적 링크를 통한 유입 분석에 사용됩니다.</li>
+            <li>• <strong className="text-white">자체 채널:</strong> 인스타그램, 유튜브는 OAuth 연동으로 자동 데이터 수집이 가능합니다.</li>
+            <li>• <strong className="text-white">유료 광고:</strong> 각 플랫폼에서 API 키를 발급받아 연동하면 광고비와 성과가 자동으로 수집됩니다.</li>
+            <li>• <strong className="text-white">기타 채널:</strong> 인플루언서, 체험단 등은 수동 등록 후 추적 링크로 성과를 분석합니다.</li>
             <li>• <strong className="text-white">데이터 동기화:</strong> 연동 후 데이터는 매일 자동으로 수집됩니다. 첫 동기화는 최대 24시간이 소요될 수 있습니다.</li>
           </ul>
         </div>

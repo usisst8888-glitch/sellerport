@@ -1,14 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import {
   ModalContainer,
   ModalHeader,
   ModalContent,
   ModalFooter,
-  ModalInput,
-  ModalError,
 } from './common-modal'
 
 interface InstagramConnectDialogProps {
@@ -36,6 +33,8 @@ export function InstagramConnectDialog({
   onOpenChange
 }: InstagramConnectDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen
   const setOpen = (value: boolean) => {
     if (onOpenChange) {
@@ -44,83 +43,16 @@ export function InstagramConnectDialog({
       setInternalOpen(value)
     }
   }
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
 
-  const [accountName, setAccountName] = useState('')
-  const [username, setUsername] = useState('')
-  const [businessAccountId, setBusinessAccountId] = useState('')
-  const [accessToken, setAccessToken] = useState('')
-
-  const handleConnect = async () => {
-    if (!accountName.trim() || !username.trim()) {
-      setError('계정 이름과 사용자명을 입력해주세요')
-      return
-    }
-
+  const handleConnect = () => {
     setLoading(true)
-    setError('')
-
-    try {
-      const supabase = createClient()
-
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        setError('로그인이 필요합니다')
-        setLoading(false)
-        return
-      }
-
-      const { error: insertError } = await supabase
-        .from('ad_channels')
-        .insert({
-          user_id: user.id,
-          channel_type: 'instagram',
-          channel_name: accountName.trim(),
-          account_id: username.trim().replace('@', ''),
-          access_token: accessToken.trim() || null,
-          metadata: {
-            business_account_id: businessAccountId.trim() || null,
-            category: 'organic',
-          },
-          status: 'pending_verification',
-          is_manual: false,
-        })
-
-      if (insertError) {
-        if (insertError.code === '23505') {
-          setError('이미 연동된 Instagram 계정입니다')
-        } else {
-          setError('연동 중 오류가 발생했습니다')
-        }
-        setLoading(false)
-        return
-      }
-
-      setOpen(false)
-      resetForm()
-      onSuccess?.()
-
-    } catch (err) {
-      console.error('Instagram connect error:', err)
-      setError('연동 중 오류가 발생했습니다')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const resetForm = () => {
-    setAccountName('')
-    setUsername('')
-    setBusinessAccountId('')
-    setAccessToken('')
-    setError('')
+    // Instagram OAuth 페이지로 리다이렉트
+    window.location.href = '/api/auth/instagram'
   }
 
   const handleClose = () => {
     if (!loading) {
       setOpen(false)
-      resetForm()
     }
   }
 
@@ -142,59 +74,34 @@ export function InstagramConnectDialog({
 
         <ModalContent>
           <div className="space-y-4">
-            <ModalError message={error} />
-
-            <div className="space-y-2 mb-4">
+            {/* 수집되는 데이터 */}
+            <div className="space-y-2">
               <div className="flex items-center gap-2 text-xs text-slate-400">
                 <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                Instagram 팔로워, 도달 데이터 추적
+                팔로워 수, 팔로잉 수 자동 수집
               </div>
               <div className="flex items-center gap-2 text-xs text-slate-400">
                 <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                게시물별 인게이지먼트 분석
+                게시물/릴스/스토리 인사이트 (도달, 노출, 참여)
               </div>
               <div className="flex items-center gap-2 text-xs text-slate-400">
                 <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                자연 유입 콘텐츠 성과 분석
+                프로필 조회수 및 웹사이트 클릭 수
               </div>
             </div>
 
-            <ModalInput
-              label="계정 별칭"
-              value={accountName}
-              onChange={setAccountName}
-              placeholder="예: 내 인스타그램 계정"
-              required
-            />
-
-            <ModalInput
-              label="Instagram 사용자명"
-              value={username}
-              onChange={setUsername}
-              placeholder="예: @myaccount"
-              required
-            />
-
-            <ModalInput
-              label="비즈니스 계정 ID"
-              value={businessAccountId}
-              onChange={setBusinessAccountId}
-              placeholder="예: 17841400000000000 (선택)"
-            />
-
-            <ModalInput
-              label="Access Token"
-              value={accessToken}
-              onChange={setAccessToken}
-              placeholder="Instagram Graph API Access Token (선택)"
-              type="password"
-            />
+            {/* 주의사항 */}
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+              <p className="text-xs text-amber-300">
+                <strong>Instagram 비즈니스/크리에이터 계정</strong>이 필요합니다. 개인 계정은 인사이트 데이터를 제공하지 않습니다.
+              </p>
+            </div>
           </div>
         </ModalContent>
 
@@ -202,7 +109,6 @@ export function InstagramConnectDialog({
           onCancel={handleClose}
           onSubmit={handleConnect}
           loading={loading}
-          disabled={!accountName.trim() || !username.trim()}
           guideId="instagram"
         />
       </ModalContainer>

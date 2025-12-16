@@ -48,6 +48,36 @@ interface Product {
   } | null
 }
 
+// 채널 타입 한글 라벨 매핑
+const channelTypeLabels: Record<string, string> = {
+  instagram: '인스타그램',
+  youtube: '유튜브',
+  naver_blog: '네이버 블로그',
+  meta: 'Meta 광고',
+  google: 'Google Ads',
+  google_ads: 'Google Ads',
+  naver_search: '네이버 검색광고',
+  naver_gfa: '네이버 GFA',
+  kakao: '카카오모먼트',
+  tiktok: 'TikTok',
+  tiktok_ads: 'TikTok Ads',
+  karrot: '당근 비즈니스',
+  toss: '토스',
+  dable: '데이블',
+  influencer: '인플루언서',
+  experience: '체험단',
+  blog: '블로그',
+  cafe: '카페/커뮤니티',
+  email: '이메일/뉴스레터',
+  sms: 'SMS/알림톡',
+  offline: '오프라인 광고',
+  etc: '기타',
+}
+
+const getChannelLabel = (channelType: string): string => {
+  return channelTypeLabels[channelType] || channelType
+}
+
 interface MySite {
   id: string
   site_type: string
@@ -92,20 +122,13 @@ export default function ConversionsPage() {
     targetRoasYellow: 150 // 노란불 기준 ROAS (%)
   })
 
-  // API 연동 광고 채널 목록
-  const [apiChannels, setApiChannels] = useState<{
+  // 모든 광고 채널 목록 (API + 수동 통합)
+  const [allChannels, setAllChannels] = useState<{
     id: string
     channel_type: string
     channel_name: string
     status: string
-  }[]>([])
-
-  // 수동 광고 채널 목록
-  const [manualChannels, setManualChannels] = useState<{
-    id: string
-    channel_type: string
-    channel_name: string
-    status: string
+    is_manual: boolean
   }[]>([])
 
   // 광고비 수정 모달
@@ -213,32 +236,17 @@ export default function ConversionsPage() {
     try {
       const supabase = createClient()
 
-      // API 연동 채널 조회 (is_manual = false)
-      const { data: apiData, error: apiError } = await supabase
+      // 모든 광고 채널 조회 (API + 수동 통합)
+      const { data: channelsData, error: channelsError } = await supabase
         .from('ad_channels')
-        .select('id, channel_type, channel_name, status')
+        .select('id, channel_type, channel_name, status, is_manual')
         .eq('status', 'connected')
-        .eq('is_manual', false)
         .order('created_at', { ascending: false })
 
-      if (apiError) {
-        console.error('Failed to fetch API channels:', apiError)
+      if (channelsError) {
+        console.error('Failed to fetch channels:', channelsError)
       } else {
-        setApiChannels(apiData || [])
-      }
-
-      // 수동 채널 조회 (is_manual = true)
-      const { data: manualData, error: manualError } = await supabase
-        .from('ad_channels')
-        .select('id, channel_type, channel_name, status')
-        .eq('status', 'connected')
-        .eq('is_manual', true)
-        .order('created_at', { ascending: false })
-
-      if (manualError) {
-        console.error('Failed to fetch manual channels:', manualError)
-      } else {
-        setManualChannels(manualData || [])
+        setAllChannels(channelsData || [])
       }
     } catch (error) {
       console.error('Failed to fetch ad channels:', error)
@@ -960,155 +968,59 @@ export default function ConversionsPage() {
               {/* 광고 채널 선택 */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">광고 채널 선택 *</label>
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  {/* API 연동 채널 버튼 */}
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, utmMedium: 'paid', adSpend: 0, adChannelId: '' })}
-                    className={`p-4 rounded-xl border-2 text-left transition-all ${
-                      formData.utmMedium === 'paid'
-                        ? 'border-blue-500 bg-blue-500/10'
-                        : 'border-white/10 bg-slate-900/50 hover:border-white/20'
-                    }`}
+                {allChannels.length > 0 ? (
+                  <Select
+                    value={formData.adChannelId}
+                    onChange={(e) => {
+                      const selectedChannel = allChannels.find(ch => ch.id === e.target.value)
+                      if (selectedChannel) {
+                        setFormData({
+                          ...formData,
+                          adChannelId: e.target.value,
+                          utmSource: selectedChannel.channel_type,
+                          utmMedium: selectedChannel.is_manual ? 'direct' : 'paid'
+                        })
+                      } else {
+                        setFormData({
+                          ...formData,
+                          adChannelId: '',
+                          utmSource: '',
+                          utmMedium: 'paid'
+                        })
+                      }
+                    }}
                   >
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                        formData.utmMedium === 'paid' ? 'border-blue-500' : 'border-slate-500'
-                      }`}>
-                        {formData.utmMedium === 'paid' && (
-                          <div className="w-2 h-2 rounded-full bg-blue-500" />
-                        )}
-                      </div>
-                      <span className="text-white font-medium">API 연동 채널</span>
-                    </div>
+                    <option value="">광고 채널을 선택하세요</option>
+                    {allChannels.map(channel => (
+                      <option key={channel.id} value={channel.id}>
+                        {channel.channel_name} ({getChannelLabel(channel.channel_type)})
+                      </option>
+                    ))}
+                  </Select>
+                ) : (
+                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                    <p className="text-sm text-amber-400 mb-2">등록된 광고 채널이 없습니다</p>
                     <p className="text-xs text-slate-400">
-                      광고비가 자동으로 연동되는 채널
+                      <a href="/ad-channels" className="text-blue-400 hover:underline">광고 채널 관리</a>에서 채널을 추가하세요.
                     </p>
-                  </button>
-
-                  {/* 수동 채널 버튼 */}
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, utmMedium: 'direct', adSpend: 0, adChannelId: '', utmSource: 'blog' })}
-                    className={`p-4 rounded-xl border-2 text-left transition-all ${
-                      formData.utmMedium === 'direct'
-                        ? 'border-emerald-500 bg-emerald-500/10'
-                        : 'border-white/10 bg-slate-900/50 hover:border-white/20'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                        formData.utmMedium === 'direct' ? 'border-emerald-500' : 'border-slate-500'
-                      }`}>
-                        {formData.utmMedium === 'direct' && (
-                          <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                        )}
-                      </div>
-                      <span className="text-white font-medium">수동 채널</span>
-                    </div>
-                    <p className="text-xs text-slate-400">
-                      블로그, SNS, 인플루언서 등 직접 관리하는 채널
-                    </p>
-                  </button>
-                </div>
-
-                {/* API 연동 채널 선택 시 - 드롭다운 */}
-                {formData.utmMedium === 'paid' && (
-                  <div className="mt-3">
-                    {apiChannels.length > 0 ? (
-                      <Select
-                        value={formData.adChannelId}
-                        onChange={(e) => {
-                          const selectedChannel = apiChannels.find(ch => ch.id === e.target.value)
-                          setFormData({
-                            ...formData,
-                            adChannelId: e.target.value,
-                            utmSource: selectedChannel ? selectedChannel.channel_type : formData.utmSource
-                          })
-                        }}
-                      >
-                        <option value="">연동된 광고 채널을 선택하세요</option>
-                        {apiChannels.map(channel => (
-                          <option key={channel.id} value={channel.id}>
-                            {channel.channel_name} ({
-                              channel.channel_type === 'meta' ? 'Meta' :
-                              channel.channel_type === 'google' ? 'Google Ads' :
-                              channel.channel_type === 'naver_search' ? '네이버 검색광고' :
-                              channel.channel_type === 'naver_gfa' ? '네이버 GFA' :
-                              channel.channel_type === 'kakao' ? '카카오모먼트' :
-                              channel.channel_type === 'karrot' ? '당근 비즈니스' :
-                              channel.channel_type === 'toss' ? '토스' :
-                              channel.channel_type === 'tiktok' ? 'TikTok' :
-                              channel.channel_type === 'dable' ? '데이블' :
-                              channel.channel_type
-                            })
-                          </option>
-                        ))}
-                      </Select>
-                    ) : (
-                      <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                        <p className="text-sm text-amber-400 mb-2">연동된 광고 채널이 없습니다</p>
-                        <p className="text-xs text-slate-400">
-                          <a href="/ad-channels" className="text-blue-400 hover:underline">광고 채널 연동</a>에서 광고 계정을 연동하세요.
-                        </p>
-                      </div>
-                    )}
-                    {formData.adChannelId && (
-                      <p className="text-xs text-blue-400 mt-2">
-                        ✓ 선택한 채널에서 자동으로 광고비가 연동됩니다
-                      </p>
-                    )}
                   </div>
                 )}
-
-                {/* 수동 채널 선택 시 - 드롭다운 */}
-                {formData.utmMedium === 'direct' && (
-                  <div className="mt-3">
-                    {manualChannels.length > 0 ? (
-                      <Select
-                        value={formData.adChannelId}
-                        onChange={(e) => {
-                          const selectedChannel = manualChannels.find(ch => ch.id === e.target.value)
-                          setFormData({
-                            ...formData,
-                            adChannelId: e.target.value,
-                            utmSource: selectedChannel ? selectedChannel.channel_type : formData.utmSource
-                          })
-                        }}
-                      >
-                        <option value="">수동 채널을 선택하세요</option>
-                        {manualChannels.map(channel => (
-                          <option key={channel.id} value={channel.id}>
-                            {channel.channel_name} ({
-                              channel.channel_type === 'blog' ? '블로그' :
-                              channel.channel_type === 'instagram' ? '인스타그램' :
-                              channel.channel_type === 'youtube' ? '유튜브' :
-                              channel.channel_type === 'cafe' ? '카페/커뮤니티' :
-                              channel.channel_type === 'influencer' ? '인플루언서/체험단' :
-                              channel.channel_type === 'email' ? '이메일/뉴스레터' :
-                              channel.channel_type === 'sms' ? 'SMS/알림톡' :
-                              channel.channel_type === 'offline' ? '오프라인 광고' :
-                              channel.channel_type === 'etc' ? '기타' :
-                              channel.channel_type
-                            })
-                          </option>
-                        ))}
-                      </Select>
-                    ) : (
-                      <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                        <p className="text-sm text-amber-400 mb-2">등록된 수동 채널이 없습니다</p>
-                        <p className="text-xs text-slate-400">
-                          <a href="/ad-channels" className="text-blue-400 hover:underline">광고 채널 관리</a>에서 수동 채널을 추가하세요.
-                        </p>
-                      </div>
-                    )}
-                    {formData.adChannelId && (
+                {formData.adChannelId && (() => {
+                  const selectedChannel = allChannels.find(ch => ch.id === formData.adChannelId)
+                  if (selectedChannel?.is_manual) {
+                    return (
                       <p className="text-xs text-emerald-400 mt-2">
                         ✓ 선택한 채널에서 광고비를 수동으로 입력할 수 있습니다
                       </p>
-                    )}
-                  </div>
-                )}
+                    )
+                  } else {
+                    return (
+                      <p className="text-xs text-blue-400 mt-2">
+                        ✓ 선택한 채널에서 자동으로 광고비가 연동됩니다
+                      </p>
+                    )
+                  }
+                })()}
               </div>
 
               <div>

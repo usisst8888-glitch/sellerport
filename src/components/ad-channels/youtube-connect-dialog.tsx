@@ -1,14 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import {
   ModalContainer,
   ModalHeader,
   ModalContent,
   ModalFooter,
-  ModalInput,
-  ModalError,
 } from './common-modal'
 
 interface YouTubeConnectDialogProps {
@@ -31,6 +28,8 @@ export function YouTubeConnectDialog({
   onOpenChange
 }: YouTubeConnectDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen
   const setOpen = (value: boolean) => {
     if (onOpenChange) {
@@ -39,83 +38,16 @@ export function YouTubeConnectDialog({
       setInternalOpen(value)
     }
   }
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
 
-  const [accountName, setAccountName] = useState('')
-  const [channelId, setChannelId] = useState('')
-  const [channelUrl, setChannelUrl] = useState('')
-  const [apiKey, setApiKey] = useState('')
-
-  const handleConnect = async () => {
-    if (!accountName.trim() || !channelId.trim()) {
-      setError('채널 이름과 채널 ID를 입력해주세요')
-      return
-    }
-
+  const handleConnect = () => {
     setLoading(true)
-    setError('')
-
-    try {
-      const supabase = createClient()
-
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        setError('로그인이 필요합니다')
-        setLoading(false)
-        return
-      }
-
-      const { error: insertError } = await supabase
-        .from('ad_channels')
-        .insert({
-          user_id: user.id,
-          channel_type: 'youtube',
-          channel_name: accountName.trim(),
-          account_id: channelId.trim(),
-          access_token: apiKey.trim() || null,
-          metadata: {
-            channel_url: channelUrl.trim() || null,
-            category: 'organic',
-          },
-          status: 'pending_verification',
-          is_manual: false,
-        })
-
-      if (insertError) {
-        if (insertError.code === '23505') {
-          setError('이미 연동된 YouTube 채널입니다')
-        } else {
-          setError('연동 중 오류가 발생했습니다')
-        }
-        setLoading(false)
-        return
-      }
-
-      setOpen(false)
-      resetForm()
-      onSuccess?.()
-
-    } catch (err) {
-      console.error('YouTube connect error:', err)
-      setError('연동 중 오류가 발생했습니다')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const resetForm = () => {
-    setAccountName('')
-    setChannelId('')
-    setChannelUrl('')
-    setApiKey('')
-    setError('')
+    // YouTube OAuth 페이지로 리다이렉트
+    window.location.href = '/api/auth/youtube'
   }
 
   const handleClose = () => {
     if (!loading) {
       setOpen(false)
-      resetForm()
     }
   }
 
@@ -137,9 +69,8 @@ export function YouTubeConnectDialog({
 
         <ModalContent>
           <div className="space-y-4">
-            <ModalError message={error} />
-
-            <div className="space-y-2 mb-4">
+            {/* 수집되는 데이터 */}
+            <div className="space-y-2">
               <div className="flex items-center gap-2 text-xs text-slate-400">
                 <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -160,36 +91,12 @@ export function YouTubeConnectDialog({
               </div>
             </div>
 
-            <ModalInput
-              label="채널 별칭"
-              value={accountName}
-              onChange={setAccountName}
-              placeholder="예: 내 유튜브 채널"
-              required
-            />
-
-            <ModalInput
-              label="채널 ID"
-              value={channelId}
-              onChange={setChannelId}
-              placeholder="예: UC1234567890abcdef"
-              required
-            />
-
-            <ModalInput
-              label="채널 URL"
-              value={channelUrl}
-              onChange={setChannelUrl}
-              placeholder="예: https://youtube.com/@mychannel (선택)"
-            />
-
-            <ModalInput
-              label="API Key"
-              value={apiKey}
-              onChange={setApiKey}
-              placeholder="Google Cloud API Key (선택)"
-              type="password"
-            />
+            {/* 안내 */}
+            <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+              <p className="text-xs text-blue-300">
+                Google 계정으로 로그인하여 YouTube 채널을 연동합니다. 채널 정보와 분석 데이터에 대한 읽기 권한이 필요합니다.
+              </p>
+            </div>
           </div>
         </ModalContent>
 
@@ -197,7 +104,6 @@ export function YouTubeConnectDialog({
           onCancel={handleClose}
           onSubmit={handleConnect}
           loading={loading}
-          disabled={!accountName.trim() || !channelId.trim()}
           guideId="youtube"
         />
       </ModalContainer>

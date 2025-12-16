@@ -8,6 +8,7 @@ interface CustomSiteConnectDialogProps {
   siteType: 'cafe24' | 'imweb' | 'godo' | 'makeshop' | 'custom'
   siteName: string
   siteDescription: string
+  conversionType?: 'shopping' | 'signup' | 'db' // 전환 목적
   onSuccess?: () => void
 }
 
@@ -74,6 +75,7 @@ export function CustomSiteConnectDialog({
   siteType,
   siteName: propSiteName,
   siteDescription,
+  conversionType = 'shopping',
   onSuccess
 }: CustomSiteConnectDialogProps) {
   const [open, setOpen] = useState(false)
@@ -86,6 +88,7 @@ export function CustomSiteConnectDialog({
   const [createdSiteId, setCreatedSiteId] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [copiedScript, setCopiedScript] = useState(false)
+  const [copiedEventCode, setCopiedEventCode] = useState(false)
 
   const config = siteConfigs[siteType]
 
@@ -174,6 +177,58 @@ export function CustomSiteConnectDialog({
     navigator.clipboard.writeText(getTrackingScript())
     setCopiedScript(true)
     setTimeout(() => setCopiedScript(false), 2000)
+  }
+
+  // 전환 목적별 이벤트 코드 생성
+  const getEventCode = () => {
+    switch (conversionType) {
+      case 'signup':
+        return `// 회원가입 완료 시 호출
+window.sellerport?.track('signup', {
+  userId: '신규회원ID',      // 선택: 회원 고유 ID
+  email: 'user@email.com'   // 선택: 회원 이메일
+});`
+      case 'db':
+        return `// DB 수집(상담신청/문의) 완료 시 호출
+window.sellerport?.track('lead', {
+  formId: '폼ID',           // 선택: 폼 구분용 ID
+  formName: '상담신청'       // 선택: 폼 이름
+});`
+      default: // shopping
+        return `// 구매 완료 시 호출
+window.sellerport?.track('conversion', {
+  orderId: '주문번호',       // 필수: 주문 고유번호
+  amount: 50000             // 필수: 결제금액
+});`
+    }
+  }
+
+  const getEventCodeLabel = () => {
+    switch (conversionType) {
+      case 'signup':
+        return '회원가입 전환 추적 코드'
+      case 'db':
+        return 'DB 수집 전환 추적 코드'
+      default:
+        return '구매 전환 추적 코드'
+    }
+  }
+
+  const getEventCodeDescription = () => {
+    switch (conversionType) {
+      case 'signup':
+        return '회원가입 완료 페이지 또는 회원가입 성공 시점에 아래 코드를 호출하세요'
+      case 'db':
+        return '상담신청/문의 폼 제출 완료 시점에 아래 코드를 호출하세요'
+      default:
+        return '주문 완료 페이지에 아래 코드를 추가하면 구매 전환을 추적할 수 있습니다'
+    }
+  }
+
+  const handleCopyEventCode = () => {
+    navigator.clipboard.writeText(getEventCode())
+    setCopiedEventCode(true)
+    setTimeout(() => setCopiedEventCode(false), 2000)
   }
 
   const handleComplete = async () => {
@@ -333,15 +388,26 @@ export function CustomSiteConnectDialog({
                     </p>
                   </div>
 
-                  {/* 전환 추적 안내 */}
-                  <div className="p-3 rounded-xl bg-slate-900/50">
-                    <p className="text-xs text-slate-400 font-medium mb-2">구매 전환 추적 (선택)</p>
-                    <p className="text-xs text-slate-500 mb-2">
-                      주문 완료 페이지에 아래 코드를 추가하면 구매 전환을 추적할 수 있습니다:
+                  {/* 이벤트 전환 추적 코드 */}
+                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-medium text-amber-400">{getEventCodeLabel()} (필수)</p>
+                      <button
+                        type="button"
+                        onClick={handleCopyEventCode}
+                        className="px-3 py-1 text-xs rounded-lg border border-amber-500/30 text-amber-300 hover:bg-amber-500/10 transition-colors"
+                      >
+                        {copiedEventCode ? '복사됨 ✓' : '복사하기'}
+                      </button>
+                    </div>
+                    <p className="text-xs text-amber-300/80 mb-3">
+                      {getEventCodeDescription()}
                     </p>
-                    <code className="text-xs bg-slate-800 px-2 py-1 rounded block text-blue-400">
-                      {`window.sellerport?.track('conversion', { orderId: '주문번호', amount: 50000 });`}
-                    </code>
+                    <div className="p-3 bg-slate-950 rounded-lg overflow-x-auto border border-white/5">
+                      <pre className="text-xs text-blue-400 whitespace-pre-wrap font-mono">
+                        {getEventCode()}
+                      </pre>
+                    </div>
                   </div>
                 </div>
 
