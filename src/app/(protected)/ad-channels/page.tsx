@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import { GoogleAdsConnectDialog } from '@/components/ad-channels/google-ads-connect-dialog'
@@ -393,6 +394,8 @@ const adChannels: AdChannelConfig[] = [
 export default function AdChannelsPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const fromQuickStart = searchParams.get('from') === 'quick-start'
+
   const [connectedChannels, setConnectedChannels] = useState<AdChannel[]>([])
   const [manualChannels, setManualChannels] = useState<AdChannel[]>([])
   const [loading, setLoading] = useState(true)
@@ -637,6 +640,34 @@ export default function AdChannelsPage() {
 
   return (
     <div className="space-y-8">
+      {/* 빠른 시작 안내 배너 */}
+      {fromQuickStart && connectedChannels.length > 0 && (
+        <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-xl p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-medium text-white">광고 채널 연결 완료!</p>
+                <p className="text-sm text-slate-300">다음 단계로 넘어가세요</p>
+              </div>
+            </div>
+            <Link
+              href="/quick-start"
+              className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+            >
+              빠른 시작으로 돌아가기
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* 메시지 표시 */}
       {message && (
         <div className={`p-4 rounded-xl border ${

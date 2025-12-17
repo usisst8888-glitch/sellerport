@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { Select } from '@/components/ui/select'
 import { createClient } from '@/lib/supabase/client'
 
@@ -99,11 +101,15 @@ function getSignalLight(
 }
 
 export default function ConversionsPage() {
+  const searchParams = useSearchParams()
+  const fromQuickStart = searchParams.get('from') === 'quick-start'
+  const openModal = searchParams.get('openModal') === 'true'
+
   const [trackingLinks, setTrackingLinks] = useState<TrackingLink[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [mySites, setMySites] = useState<MySite[]>([])
   const [loading, setLoading] = useState(true)
-  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(openModal)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -498,6 +504,34 @@ export default function ConversionsPage() {
           새 추적 링크 발급
         </button>
       </div>
+
+      {/* 빠른 시작 안내 배너 */}
+      {fromQuickStart && trackingLinks.length > 0 && (
+        <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-xl p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-medium text-white">추적 링크 생성 완료!</p>
+                <p className="text-sm text-slate-300">다음 단계로 넘어가세요</p>
+              </div>
+            </div>
+            <Link
+              href="/quick-start"
+              className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+            >
+              빠른 시작으로 돌아가기
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* 메시지 표시 */}
       {message && (

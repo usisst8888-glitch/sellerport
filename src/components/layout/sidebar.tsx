@@ -25,6 +25,16 @@ const menuItems: MenuItem[] = [
     badge: '🚦',
   },
   {
+    title: '빠른 시작',
+    href: '/quick-start',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    ),
+    badge: '가이드',
+  },
+  {
     title: '내 사이트 연동',
     href: '/my-sites',
     icon: (
@@ -214,13 +224,12 @@ export function Sidebar() {
                     "ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full",
                     item.badge === '분석핵심'
                       ? 'bg-red-500 text-white'
-                      : ''
+                      : item.badge === '가이드'
+                        ? 'bg-green-500 text-white'
+                        : ''
                   )}>
                     {item.badge}
                   </span>
-                )}
-                {isActive && (
-                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white/80" />
                 )}
               </Link>
             )

@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { NaverConnectDialog } from '@/components/my-sites/naver-connect-dialog'
 import { Cafe24ConnectDialog } from '@/components/my-sites/cafe24-connect-dialog'
+import { ImwebConnectDialog } from '@/components/my-sites/imweb-connect-dialog'
 import { CustomSiteConnectDialog } from '@/components/my-sites/custom-site-connect-dialog'
 import { createClient } from '@/lib/supabase/client'
 
@@ -30,8 +33,6 @@ const siteLogos: Record<string, string> = {
   naver: '/site_logo/smartstore.png',
   cafe24: '/site_logo/cafe24.png',
   imweb: '/site_logo/imweb.png',
-  godo: '/site_logo/godomall.png',
-  makeshop: '/site_logo/makeshop.png',
   custom: '/site_logo/own_site.png',
 }
 
@@ -59,16 +60,9 @@ const shoppingSites = [
     needsBridgeShop: false,
   },
   {
-    id: 'godo',
-    name: '고도몰',
-    description: '쇼핑몰 솔루션',
-    status: 'available',
-    needsBridgeShop: false,
-  },
-  {
-    id: 'makeshop',
-    name: '메이크샵',
-    description: '쇼핑몰 솔루션',
+    id: 'custom',
+    name: '자체 제작 쇼핑몰',
+    description: '직접 개발한 쇼핑몰',
     status: 'available',
     needsBridgeShop: false,
   },
@@ -107,6 +101,9 @@ const dbSites = [
 ]
 
 export default function MySitesPage() {
+  const searchParams = useSearchParams()
+  const fromQuickStart = searchParams.get('from') === 'quick-start'
+
   const [connectedSites, setConnectedSites] = useState<MySite[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingStates, setLoadingStates] = useState<LoadingState>({})
@@ -356,6 +353,34 @@ window.sellerport?.track('lead', {
         </div>
       </div>
 
+      {/* 빠른 시작 안내 배너 */}
+      {fromQuickStart && connectedSites.length > 0 && (
+        <div className="mb-6 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-xl p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-medium text-white">사이트 연동 완료!</p>
+                <p className="text-sm text-slate-300">다음 단계로 넘어가세요</p>
+              </div>
+            </div>
+            <Link
+              href="/quick-start"
+              className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+            >
+              빠른 시작으로 돌아가기
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* 메시지 표시 */}
       {message && (
         <div className={`mb-6 p-4 rounded-xl border ${
@@ -583,9 +608,13 @@ window.sellerport?.track('lead', {
                     >
                       연동하기
                     </Button>
+                  ) : site.id === 'imweb' ? (
+                    <ImwebConnectDialog onSuccess={fetchMySites}>
+                      <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" size="sm">연동하기</Button>
+                    </ImwebConnectDialog>
                   ) : (
                     <CustomSiteConnectDialog
-                      siteType={site.id as 'imweb' | 'godo' | 'makeshop' | 'custom'}
+                      siteType={site.id as 'custom'}
                       siteName={site.name}
                       siteDescription={`${site.name} 쇼핑몰을 연동하고 광고 전환을 추적하세요`}
                       onSuccess={fetchMySites}
@@ -709,15 +738,21 @@ window.sellerport?.track('lead', {
               </div>
               <div className="mt-3">
                 {site.status === 'available' ? (
-                  <CustomSiteConnectDialog
-                    siteType={site.id as 'cafe24' | 'imweb' | 'godo' | 'makeshop' | 'custom'}
-                    siteName={site.name}
-                    siteDescription={`${site.name}에서 회원가입 전환을 추적하세요`}
-                    conversionType="signup"
-                    onSuccess={fetchMySites}
-                  >
-                    <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" size="sm">연동하기</Button>
-                  </CustomSiteConnectDialog>
+                  site.id === 'imweb' ? (
+                    <ImwebConnectDialog onSuccess={fetchMySites}>
+                      <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" size="sm">연동하기</Button>
+                    </ImwebConnectDialog>
+                  ) : (
+                    <CustomSiteConnectDialog
+                      siteType={site.id as 'custom'}
+                      siteName={site.name}
+                      siteDescription={`${site.name}에서 회원가입 전환을 추적하세요`}
+                      conversionType="signup"
+                      onSuccess={fetchMySites}
+                    >
+                      <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" size="sm">연동하기</Button>
+                    </CustomSiteConnectDialog>
+                  )
                 ) : (
                   <Button className="w-full border-slate-600 text-slate-400" variant="outline" size="sm" disabled>
                     준비 중
@@ -834,15 +869,21 @@ window.sellerport?.track('lead', {
               </div>
               <div className="mt-3">
                 {site.status === 'available' ? (
-                  <CustomSiteConnectDialog
-                    siteType={site.id as 'cafe24' | 'imweb' | 'godo' | 'makeshop' | 'custom'}
-                    siteName={site.name}
-                    siteDescription={`${site.name}에서 DB 수집 전환을 추적하세요`}
-                    conversionType="db"
-                    onSuccess={fetchMySites}
-                  >
-                    <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" size="sm">연동하기</Button>
-                  </CustomSiteConnectDialog>
+                  site.id === 'imweb' ? (
+                    <ImwebConnectDialog onSuccess={fetchMySites}>
+                      <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" size="sm">연동하기</Button>
+                    </ImwebConnectDialog>
+                  ) : (
+                    <CustomSiteConnectDialog
+                      siteType={site.id as 'custom'}
+                      siteName={site.name}
+                      siteDescription={`${site.name}에서 DB 수집 전환을 추적하세요`}
+                      conversionType="db"
+                      onSuccess={fetchMySites}
+                    >
+                      <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" size="sm">연동하기</Button>
+                    </CustomSiteConnectDialog>
+                  )
                 ) : (
                   <Button className="w-full border-slate-600 text-slate-400" variant="outline" size="sm" disabled>
                     준비 중
