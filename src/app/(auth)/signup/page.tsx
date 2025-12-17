@@ -488,118 +488,91 @@ export default function SignupPage() {
               </div>
 
               {/* 이용약관 동의 (필수) */}
-              <label className="flex items-start gap-3 cursor-pointer group">
-                <div
-                  className="relative flex items-center justify-center mt-0.5"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <input
-                    type="checkbox"
-                    checked={agreeTerms}
-                    onChange={(e) => setAgreeTerms(e.target.checked)}
-                    className="sr-only"
-                  />
-                  <div
-                    onClick={() => setAgreeTerms(!agreeTerms)}
-                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors cursor-pointer ${
+              <div className="flex items-start gap-3">
+                <button
+                  type="button"
+                  onClick={() => setAgreeTerms(!agreeTerms)}
+                  className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
                     agreeTerms
                       ? 'bg-blue-600 border-blue-600'
-                      : 'border-slate-500 group-hover:border-slate-400'
-                  }`}>
-                    {agreeTerms && (
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </div>
-                </div>
+                      : 'border-slate-500 hover:border-slate-400'
+                  }`}
+                >
+                  {agreeTerms && (
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
                 <span className="text-sm text-slate-300">
                   <span className="text-red-400">[필수]</span>{' '}
                   <button
                     type="button"
-                    onClick={(e) => { e.preventDefault(); setModalOpen('terms'); }}
+                    onClick={() => setModalOpen('terms')}
                     className="text-blue-400 hover:underline"
                   >
                     이용약관
                   </button>에 동의합니다
                 </span>
-              </label>
+              </div>
 
               {/* 개인정보 수집·이용 동의 (필수) */}
-              <label className="flex items-start gap-3 cursor-pointer group">
-                <div
-                  className="relative flex items-center justify-center mt-0.5"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <input
-                    type="checkbox"
-                    checked={agreePrivacy}
-                    onChange={(e) => setAgreePrivacy(e.target.checked)}
-                    className="sr-only"
-                  />
-                  <div
-                    onClick={() => setAgreePrivacy(!agreePrivacy)}
-                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors cursor-pointer ${
+              <div className="flex items-start gap-3">
+                <button
+                  type="button"
+                  onClick={() => setAgreePrivacy(!agreePrivacy)}
+                  className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
                     agreePrivacy
                       ? 'bg-blue-600 border-blue-600'
-                      : 'border-slate-500 group-hover:border-slate-400'
-                  }`}>
-                    {agreePrivacy && (
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </div>
-                </div>
+                      : 'border-slate-500 hover:border-slate-400'
+                  }`}
+                >
+                  {agreePrivacy && (
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
                 <span className="text-sm text-slate-300">
                   <span className="text-red-400">[필수]</span>{' '}
                   <button
                     type="button"
-                    onClick={(e) => { e.preventDefault(); setModalOpen('privacy'); }}
+                    onClick={() => setModalOpen('privacy')}
                     className="text-blue-400 hover:underline"
                   >
                     개인정보 수집·이용
                   </button>에 동의합니다
                 </span>
-              </label>
+              </div>
 
               {/* 마케팅 정보 수신 동의 (선택) */}
-              <label className="flex items-start gap-3 cursor-pointer group">
-                <div
-                  className="relative flex items-center justify-center mt-0.5"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <input
-                    type="checkbox"
-                    checked={agreeMarketing}
-                    onChange={(e) => setAgreeMarketing(e.target.checked)}
-                    className="sr-only"
-                  />
-                  <div
-                    onClick={() => setAgreeMarketing(!agreeMarketing)}
-                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors cursor-pointer ${
+              <div className="flex items-start gap-3">
+                <button
+                  type="button"
+                  onClick={() => setAgreeMarketing(!agreeMarketing)}
+                  className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
                     agreeMarketing
                       ? 'bg-blue-600 border-blue-600'
-                      : 'border-slate-500 group-hover:border-slate-400'
-                  }`}>
-                    {agreeMarketing && (
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </div>
-                </div>
+                      : 'border-slate-500 hover:border-slate-400'
+                  }`}
+                >
+                  {agreeMarketing && (
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
                 <span className="text-sm text-slate-300">
                   <span className="text-slate-500">[선택]</span>{' '}
                   <button
                     type="button"
-                    onClick={(e) => { e.preventDefault(); setModalOpen('marketing'); }}
+                    onClick={() => setModalOpen('marketing')}
                     className="text-blue-400 hover:underline"
                   >
                     마케팅 정보 수신
                   </button>에 동의합니다
                 </span>
-              </label>
+              </div>
             </div>
 
             {message && (
