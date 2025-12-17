@@ -1149,7 +1149,7 @@ export default function Home() {
                   <p className="text-xs text-slate-500 mt-1">알림톡 미포함</p>
                 </div>
                 <ul className="space-y-2 mb-6">
-                  {['추적 링크 5개', '기본 전환 추적', '신호등 시스템', '실시간 대시보드', '디자이너 연결'].map((feature, i) => (
+                  {['추적 링크 3개', '기본 전환 추적', '신호등 시스템', '실시간 대시보드'].map((feature, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm">
                       <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
