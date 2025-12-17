@@ -74,37 +74,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 최근 1분 내 요청 횟수 확인 (스팸 방지)
-    const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString()
-    const { data: recentRequests } = await supabase
-      .from('phone_verifications')
-      .select('id')
-      .eq('phone', normalizedPhone)
-      .gte('created_at', oneMinuteAgo)
-
-    if (recentRequests && recentRequests.length >= 1) {
-      return NextResponse.json(
-        { error: '1분 후에 다시 시도해주세요' },
-        { status: 429 }
-      )
-    }
-
-    // 하루 최대 5회 제한
-    const todayStart = new Date()
-    todayStart.setHours(0, 0, 0, 0)
-    const { data: todayRequests } = await supabase
-      .from('phone_verifications')
-      .select('id')
-      .eq('phone', normalizedPhone)
-      .gte('created_at', todayStart.toISOString())
-
-    if (todayRequests && todayRequests.length >= 5) {
-      return NextResponse.json(
-        { error: '일일 인증 횟수를 초과했습니다. 내일 다시 시도해주세요' },
-        { status: 429 }
-      )
-    }
-
     // 인증번호 생성
     const code = generateCode(normalizedPhone)
     const expiresAt = new Date(Date.now() + 3 * 60 * 1000) // 3분 후 만료
