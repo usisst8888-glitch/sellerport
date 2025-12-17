@@ -60,10 +60,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '회원 목록 조회에 실패했습니다' }, { status: 500 })
     }
 
+    // auth.users에서 display_name 가져오기
+    const userIds = users?.map(u => u.id) || []
+    const authUsersMap: Record<string, { display_name?: string }> = {}
+
+    if (userIds.length > 0) {
+      // Supabase Admin API로 auth users 조회
+      const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers()
+      if (authUsers?.users) {
+        authUsers.users.forEach(authUser => {
+          if (userIds.includes(authUser.id)) {
+            authUsersMap[authUser.id] = {
+              display_name: authUser.user_metadata?.display_name || ''
+            }
+          }
+        })
+      }
+    }
+
     // 응답 데이터 변환
     const formattedUsers = users?.map(profile => ({
       id: profile.id,
       email: profile.email,
+      displayName: profile.display_name || authUsersMap[profile.id]?.display_name || '',
       businessName: profile.business_name,
       businessNumber: profile.business_number,
       ownerName: profile.owner_name,

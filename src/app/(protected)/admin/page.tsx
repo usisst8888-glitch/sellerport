@@ -7,6 +7,7 @@ import { Select } from '@/components/ui/select'
 interface User {
   id: string
   email: string
+  displayName: string | null
   businessName: string | null
   businessNumber: string | null
   ownerName: string | null
@@ -246,7 +247,7 @@ export default function AdminPage() {
                 <tr key={user.id} className="hover:bg-slate-700/50 transition-colors">
                   <td className="px-4 py-4">
                     <div>
-                      <p className="text-sm font-medium text-white">{user.businessName || user.ownerName || '미입력'}</p>
+                      <p className="text-sm font-medium text-white">{user.displayName || user.businessName || user.ownerName || '미입력'}</p>
                       <p className="text-xs text-slate-500">{user.email}</p>
                       {user.phone && <p className="text-xs text-slate-500">{user.phone}</p>}
                     </div>
