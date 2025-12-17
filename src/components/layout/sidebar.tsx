@@ -34,16 +34,6 @@ const menuItems: MenuItem[] = [
     ),
   },
   {
-    title: '광고 채널 연동',
-    href: '/ad-channels',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-      </svg>
-    ),
-  },
-  {
     title: '전환 추적 관리',
     href: '/conversions',
     icon: (
@@ -52,6 +42,16 @@ const menuItems: MenuItem[] = [
       </svg>
     ),
     badge: '분석핵심',
+  },
+  {
+    title: '광고 채널 연동',
+    href: '/ad-channels',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+      </svg>
+    ),
   },
   // 수익 계산 메뉴 - 정식 오픈 후 활성화 예정
   // {
@@ -63,15 +63,16 @@ const menuItems: MenuItem[] = [
   //     </svg>
   //   ),
   // },
-  {
-    title: '상품 관리',
-    href: '/products',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-      </svg>
-    ),
-  },
+  // 상품 관리 - 현재 사용 안 함 (추후 활성화 예정)
+  // {
+  //   title: '상품 관리',
+  //   href: '/products',
+  //   icon: (
+  //     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  //       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+  //     </svg>
+  //   ),
+  // },
   {
     title: '알림 관리',
     href: '/alerts',

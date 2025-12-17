@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { Select } from '@/components/ui/select'
 import { createClient } from '@/lib/supabase/client'
 
@@ -965,62 +966,53 @@ export default function ConversionsPage() {
                 </p>
               </div>
 
-              {/* 광고 채널 선택 */}
+              {/* 유입 경로 선택 */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">광고 채널 선택 *</label>
-                {allChannels.length > 0 ? (
-                  <Select
-                    value={formData.adChannelId}
-                    onChange={(e) => {
-                      const selectedChannel = allChannels.find(ch => ch.id === e.target.value)
-                      if (selectedChannel) {
-                        setFormData({
-                          ...formData,
-                          adChannelId: e.target.value,
-                          utmSource: selectedChannel.channel_type,
-                          utmMedium: selectedChannel.is_manual ? 'direct' : 'paid'
-                        })
-                      } else {
-                        setFormData({
-                          ...formData,
-                          adChannelId: '',
-                          utmSource: '',
-                          utmMedium: 'paid'
-                        })
-                      }
-                    }}
-                  >
-                    <option value="">광고 채널을 선택하세요</option>
-                    {allChannels.map(channel => (
-                      <option key={channel.id} value={channel.id}>
-                        {channel.channel_name} ({getChannelLabel(channel.channel_type)})
-                      </option>
-                    ))}
-                  </Select>
-                ) : (
-                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                    <p className="text-sm text-amber-400 mb-2">등록된 광고 채널이 없습니다</p>
-                    <p className="text-xs text-slate-400">
-                      <a href="/ad-channels" className="text-blue-400 hover:underline">광고 채널 관리</a>에서 채널을 추가하세요.
-                    </p>
-                  </div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">유입 경로 선택 *</label>
+                <p className="text-xs text-slate-500 mb-3">이 추적 링크를 어디서 사용할 예정인가요?</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {[
+                    { value: 'instagram', label: '인스타그램', icon: '/channel_logo/insta.png' },
+                    { value: 'youtube', label: '유튜브', icon: '/channel_logo/youtube.png' },
+                    { value: 'blog', label: '블로그', icon: '/channel_logo/naver_blog.png' },
+                    { value: 'meta', label: '메타 광고', icon: '/channel_logo/meta.png' },
+                    { value: 'google', label: '구글 광고', icon: '/channel_logo/google_ads.png' },
+                    { value: 'naver', label: '네이버 광고', icon: '/channel_logo/naver_search.png' },
+                    { value: 'tiktok', label: '틱톡', icon: '/channel_logo/tiktok.png' },
+                    { value: 'influencer', label: '인플루언서', icon: '/channel_logo/influencer.png' },
+                    { value: 'thread', label: '스레드', icon: '/channel_logo/thread.png' },
+                    { value: 'experience', label: '체험단', icon: '/channel_logo/experience.png' },
+                    { value: 'toss', label: '토스', icon: '/channel_logo/toss.png' },
+                    { value: 'etc', label: '기타', icon: null },
+                  ].map((source) => (
+                    <button
+                      key={source.value}
+                      type="button"
+                      onClick={() => setFormData({
+                        ...formData,
+                        utmSource: source.value,
+                        utmMedium: ['meta', 'google', 'naver', 'tiktok', 'toss'].includes(source.value) ? 'paid' : 'organic'
+                      })}
+                      className={`p-3 rounded-xl border text-left transition-all flex items-center gap-2 ${
+                        formData.utmSource === source.value
+                          ? 'border-blue-500 bg-blue-500/10'
+                          : 'border-white/10 bg-slate-900/50 hover:border-white/20'
+                      }`}
+                    >
+                      {source.icon ? (
+                        <Image src={source.icon} alt={source.label} width={24} height={24} className="rounded" />
+                      ) : (
+                        <span className="w-6 h-6 flex items-center justify-center text-slate-400 text-lg">+</span>
+                      )}
+                      <span className="text-sm text-white">{source.label}</span>
+                    </button>
+                  ))}
+                </div>
+                {formData.utmSource && ['meta', 'google', 'naver', 'tiktok', 'toss'].includes(formData.utmSource) && (
+                  <p className="text-xs text-blue-400 mt-3">
+                    광고 채널을 연동하면 광고비가 자동으로 수집되어 ROAS를 확인할 수 있어요
+                  </p>
                 )}
-                {formData.adChannelId && (() => {
-                  const selectedChannel = allChannels.find(ch => ch.id === formData.adChannelId)
-                  if (selectedChannel?.is_manual) {
-                    return (
-                      <p className="text-xs text-emerald-400 mt-2">
-                        ✓ 선택한 채널에서 광고비를 수동으로 입력할 수 있습니다
-                      </p>
-                    )
-                  } else {
-                    return (
-                      <p className="text-xs text-blue-400 mt-2">
-                        ✓ 선택한 채널에서 자동으로 광고비가 연동됩니다
-                      </p>
-                    )
-                  }
-                })()}
               </div>
 
               <div>
@@ -1034,23 +1026,6 @@ export default function ConversionsPage() {
                 />
               </div>
 
-              {/* 광고비 - 직접 광고 선택 시에만 표시 */}
-              {formData.utmMedium === 'direct' && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">광고비 (선택)</label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      placeholder="0"
-                      value={formData.adSpend || ''}
-                      onChange={(e) => setFormData({ ...formData, adSpend: Number(e.target.value) })}
-                      className="w-full px-4 py-2.5 pr-10 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">원</span>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1">이 채널에 투입한 비용이 있다면 입력하세요 (ROAS 계산에 사용)</p>
-                </div>
-              )}
 
               {/* ROAS 기준 설정 */}
               <div className="p-4 rounded-xl bg-slate-900/30 border border-white/5">
