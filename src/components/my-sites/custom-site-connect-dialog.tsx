@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { DialogFooter } from './dialog-footer'
 
 interface CustomSiteConnectDialogProps {
   children: React.ReactNode
@@ -232,15 +233,7 @@ window.sellerport?.track('conversion', {
   }
 
   const handleComplete = async () => {
-    // 상태를 connected로 업데이트
-    if (createdSiteId) {
-      const supabase = createClient()
-      await supabase
-        .from('my_sites')
-        .update({ status: 'connected' })
-        .eq('id', createdSiteId)
-    }
-
+    // pending_script 상태 유지 - 동기화 버튼으로 추적 코드 확인 후 connected로 변경됨
     setOpen(false)
     resetForm()
     onSuccess?.()
@@ -333,25 +326,15 @@ window.sellerport?.track('conversion', {
                   </div>
                 </div>
 
-                <div className="p-6 border-t border-white/5 flex gap-3 justify-end flex-shrink-0">
-                  <button
-                    onClick={() => {
-                      setOpen(false)
-                      resetForm()
-                    }}
-                    className="px-4 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-                  >
-                    취소
-                  </button>
-                  <button
-                    onClick={handleConnect}
-                    disabled={loading || !siteName.trim() || !siteUrl.trim()}
-                    className="px-4 py-2 rounded-xl text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: config.color }}
-                  >
-                    {loading ? '처리 중...' : '다음'}
-                  </button>
-                </div>
+                <DialogFooter
+                  onCancel={() => {
+                    setOpen(false)
+                    resetForm()
+                  }}
+                  onSubmit={handleConnect}
+                  loading={loading}
+                  disabled={!siteName.trim() || !siteUrl.trim()}
+                />
               </>
             ) : (
               <>
@@ -411,21 +394,10 @@ window.sellerport?.track('conversion', {
                   </div>
                 </div>
 
-                <div className="p-6 border-t border-white/5 flex gap-3 justify-end flex-shrink-0">
-                  <button
-                    onClick={() => setStep('form')}
-                    className="px-4 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-                  >
-                    이전
-                  </button>
-                  <button
-                    onClick={handleComplete}
-                    className="px-4 py-2 rounded-xl text-white font-medium transition-colors"
-                    style={{ backgroundColor: config.color }}
-                  >
-                    완료
-                  </button>
-                </div>
+                <DialogFooter
+                  onCancel={() => setStep('form')}
+                  onSubmit={handleComplete}
+                />
               </>
             )}
           </div>

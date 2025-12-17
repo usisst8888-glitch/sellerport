@@ -42,13 +42,6 @@ export async function GET(
       return NextResponse.json({ error: '상품을 찾을 수 없습니다' }, { status: 404 })
     }
 
-    // 상품의 캠페인 목록 조회
-    const { data: campaigns } = await supabase
-      .from('campaigns')
-      .select('id, name, platform, status, spent, revenue, roas')
-      .eq('product_id', id)
-      .order('created_at', { ascending: false })
-
     // 상품의 최근 주문 조회 (최근 10건)
     const { data: recentOrders } = await supabase
       .from('orders')
@@ -67,7 +60,6 @@ export async function GET(
       data: {
         ...product,
         margin,
-        campaigns: campaigns || [],
         recentOrders: recentOrders || []
       }
     })

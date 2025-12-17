@@ -12,7 +12,7 @@ interface User {
   businessNumber: string | null
   ownerName: string | null
   phone: string | null
-  userType: 'seller' | 'agency' | 'admin' | 'manager'
+  userType: 'seller' | 'agency' | 'designer' | 'influencer' | 'manager' | 'admin'
   approvalStatus: 'pending' | 'approved' | 'rejected'
   businessLicenseUrl: string | null
   approvedAt: string | null
@@ -22,10 +22,12 @@ interface User {
 
 // 회원 유형 라벨
 const USER_TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  seller: { label: '일반 셀러', color: 'text-blue-400 bg-blue-500/20' },
+  seller: { label: '셀러', color: 'text-blue-400 bg-blue-500/20' },
   agency: { label: '대행사', color: 'text-purple-400 bg-purple-500/20' },
-  admin: { label: '관리자', color: 'text-red-400 bg-red-500/20' },
-  manager: { label: '매니저', color: 'text-orange-400 bg-orange-500/20' }
+  designer: { label: '디자이너', color: 'text-pink-400 bg-pink-500/20' },
+  influencer: { label: '인플루언서', color: 'text-cyan-400 bg-cyan-500/20' },
+  manager: { label: '매니저', color: 'text-orange-400 bg-orange-500/20' },
+  admin: { label: '관리자', color: 'text-red-400 bg-red-500/20' }
 }
 
 // 승인 상태 라벨
@@ -316,8 +318,10 @@ export default function AdminPage() {
                         disabled={processing}
                         className="px-2 py-1 text-xs rounded-lg"
                       >
-                        <option value="seller">일반 셀러</option>
+                        <option value="seller">셀러</option>
                         <option value="agency">대행사</option>
+                        <option value="designer">디자이너</option>
+                        <option value="influencer">인플루언서</option>
                         <option value="manager">매니저</option>
                         <option value="admin">관리자</option>
                       </Select>

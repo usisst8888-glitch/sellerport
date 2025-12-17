@@ -181,22 +181,31 @@ export default function SignupPage() {
       return
     }
 
-    // 프로필에 저장 (upsert로 확실하게)
+    // 프로필에 추가 정보 저장 (트리거로 기본 프로필 생성 후 업데이트)
     if (data.user) {
-      // 잠시 대기 후 upsert (트리거가 프로필 생성할 시간 확보)
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // 잠시 대기 후 업데이트 (트리거가 프로필 생성할 시간 확보)
+      await new Promise(resolve => setTimeout(resolve, 1000))
 
-      await supabase
+      const now = new Date().toISOString()
+      const { error: profileError } = await supabase
         .from('profiles')
-        .upsert({
-          id: data.user.id,
-          email: email,
-          display_name: displayName,
+        .update({
           user_type: userType,
           phone: phone.replace(/[^0-9]/g, ''),
           phone_verified: true,
-          marketing_agreed: agreeMarketing
-        }, { onConflict: 'id' })
+          terms_agreed: agreeTerms,
+          terms_agreed_at: agreeTerms ? now : null,
+          privacy_agreed: agreePrivacy,
+          privacy_agreed_at: agreePrivacy ? now : null,
+          marketing_agreed: agreeMarketing,
+          marketing_agreed_at: agreeMarketing ? now : null
+        })
+        .eq('id', data.user.id)
+
+      if (profileError) {
+        console.error('Profile update error:', profileError)
+        // 프로필 업데이트 실패해도 회원가입은 성공으로 처리 (트리거가 기본 프로필 생성)
+      }
     }
 
     // 전환 추적 (셀러포트 자체 추적 시스템)

@@ -122,6 +122,51 @@ export async function POST(request: NextRequest) {
 
         for (const order of orders) {
           try {
+            // 추적 링크 매칭 시도
+            let trackingLinkId: string | null = null
+
+            // 해당 상품에 연결된 추적 링크 찾기
+            const { data: productWithLink } = await supabase
+              .from('products')
+              .select('id')
+              .eq('my_site_id', siteId)
+              .eq('external_product_id', order.originProductNo?.toString())
+              .single()
+
+            if (productWithLink) {
+              // 해당 상품에 연결된 최근 클릭 추적 링크 조회
+              const { data: trackingLink } = await supabase
+                .from('tracking_links')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('product_id', productWithLink.id)
+                .eq('status', 'active')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single()
+
+              if (trackingLink) {
+                trackingLinkId = trackingLink.id
+              }
+            }
+
+            // 상품별 매칭이 안 되면 최근 클릭 기록으로 매칭
+            if (!trackingLinkId) {
+              const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+              const { data: recentClick } = await supabase
+                .from('tracking_link_clicks')
+                .select('tracking_link_id')
+                .eq('user_id', user.id)
+                .gte('clicked_at', sevenDaysAgo)
+                .order('clicked_at', { ascending: false })
+                .limit(1)
+                .single()
+
+              if (recentClick) {
+                trackingLinkId = recentClick.tracking_link_id
+              }
+            }
+
             await supabase
               .from('orders')
               .upsert({
@@ -138,10 +183,30 @@ export async function POST(request: NextRequest) {
                 status: order.productOrderStatus,
                 order_date: order.orderDate,
                 inflow_path: order.inflowPathType || null,
+                tracking_link_id: trackingLinkId,
                 synced_at: new Date().toISOString()
               }, {
                 onConflict: 'my_site_id,external_order_id,product_order_id'
               })
+
+            // 추적 링크가 매칭된 경우 tracking_links의 전환/매출 업데이트
+            if (trackingLinkId) {
+              const { data: currentLink } = await supabase
+                .from('tracking_links')
+                .select('conversions, revenue')
+                .eq('id', trackingLinkId)
+                .single()
+
+              if (currentLink) {
+                await supabase
+                  .from('tracking_links')
+                  .update({
+                    conversions: (currentLink.conversions || 0) + 1,
+                    revenue: (currentLink.revenue || 0) + order.totalPaymentAmount
+                  })
+                  .eq('id', trackingLinkId)
+              }
+            }
 
             // 정산 조회 대상 추가 (구매확정된 주문만)
             if (['PURCHASE_DECIDED', 'DELIVERED', 'PURCHASE_DECISION_REQUEST'].includes(order.productOrderStatus)) {

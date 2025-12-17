@@ -164,6 +164,15 @@ export async function POST(request: NextRequest) {
         .eq('click_id', finalClickId)
     }
 
+    // orders 테이블에 tracking_link_id 저장 (주문이 있는 경우)
+    // 주문 ID로 orders 테이블 조회 후 tracking_link_id 업데이트
+    if (orderId) {
+      await supabase
+        .from('orders')
+        .update({ tracking_link_id: finalTrackingLinkId })
+        .eq('external_order_id', orderId)
+    }
+
     // Meta CAPI Purchase 이벤트 전송
     let metaSent = false
     let metaResult: { events_received?: number; fbtrace_id?: string } = {}

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { DialogFooter } from './dialog-footer'
 
 interface NaverConnectDialogProps {
   children: React.ReactNode
@@ -135,7 +136,7 @@ export function NaverConnectDialog({ children, onSuccess }: NaverConnectDialogPr
                   placeholder="예: 내 스마트스토어"
                   value={storeName}
                   onChange={(e) => setStoreName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-green-500 focus:outline-none transition-colors"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
                 />
                 <p className="text-xs text-slate-500 mt-1">셀러포트에서 구분하기 위한 이름입니다</p>
               </div>
@@ -147,7 +148,7 @@ export function NaverConnectDialog({ children, onSuccess }: NaverConnectDialogPr
                   placeholder="예: tripsim"
                   value={storeId}
                   onChange={(e) => setStoreId(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-green-500 focus:outline-none transition-colors"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
                 />
                 <p className="text-xs text-slate-500 mt-1">
                   스마트스토어 URL에서 확인: smartstore.naver.com/<strong className="text-slate-300">스토어ID</strong>/products/...
@@ -161,7 +162,7 @@ export function NaverConnectDialog({ children, onSuccess }: NaverConnectDialogPr
                   placeholder="예: 5f0XZPkXRbvHEcaxEWKKg9"
                   value={clientId}
                   onChange={(e) => setClientId(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-green-500 focus:outline-none transition-colors"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
                 />
               </div>
 
@@ -172,7 +173,7 @@ export function NaverConnectDialog({ children, onSuccess }: NaverConnectDialogPr
                   placeholder="발급받은 Secret 입력"
                   value={clientSecret}
                   onChange={(e) => setClientSecret(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-green-500 focus:outline-none transition-colors"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
                 />
                 <p className="text-xs text-slate-500 mt-1">입력한 정보는 암호화되어 안전하게 저장됩니다</p>
               </div>
@@ -194,39 +195,15 @@ export function NaverConnectDialog({ children, onSuccess }: NaverConnectDialogPr
               </div>
             </div>
 
-            <div className="p-6 border-t border-white/5 flex gap-3 justify-end flex-shrink-0">
-              <button
-                onClick={() => {
-                  setOpen(false)
-                  resetForm()
-                }}
-                className="px-4 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleConnect}
-                disabled={loading || !storeName.trim() || !storeId.trim() || !clientId.trim() || !clientSecret.trim()}
-                className="px-4 py-2 rounded-xl bg-[#03C75A] hover:bg-[#02b351] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-              >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    연동 중...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z" fill="currentColor"/>
-                    </svg>
-                    연동하기
-                  </>
-                )}
-              </button>
-            </div>
+            <DialogFooter
+              onCancel={() => {
+                setOpen(false)
+                resetForm()
+              }}
+              onSubmit={handleConnect}
+              loading={loading}
+              disabled={!storeName.trim() || !storeId.trim() || !clientId.trim() || !clientSecret.trim()}
+            />
           </div>
         </div>
       )}

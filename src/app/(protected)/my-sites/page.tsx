@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { NaverConnectDialog } from '@/components/my-sites/naver-connect-dialog'
+import { Cafe24ConnectDialog } from '@/components/my-sites/cafe24-connect-dialog'
 import { CustomSiteConnectDialog } from '@/components/my-sites/custom-site-connect-dialog'
 import { createClient } from '@/lib/supabase/client'
 
@@ -119,6 +120,7 @@ export default function MySitesPage() {
   const [copiedDbCode, setCopiedDbCode] = useState(false)
   const [copiedSignupEventCode, setCopiedSignupEventCode] = useState(false)
   const [copiedDbEventCode, setCopiedDbEventCode] = useState(false)
+  const [showCafe24Dialog, setShowCafe24Dialog] = useState(false)
 
   const fetchMySites = async () => {
     const supabase = createClient()
@@ -250,8 +252,23 @@ window.sellerport?.track('lead', {
     setLoadingStates(prev => ({ ...prev, [siteId]: { ...prev[siteId], syncing: true } }))
     setMessage(null)
 
+    // 해당 사이트 정보 가져오기
+    const site = connectedSites.find(s => s.id === siteId)
+    const shoppingSiteTypes = ['naver', 'cafe24', 'imweb', 'godo', 'makeshop']
+    const isShoppingSite = site?.site_type && shoppingSiteTypes.includes(site.site_type)
+
     try {
-      const response = await fetch('/api/naver/sync', {
+      // 사이트 타입별 동기화 API 선택
+      let apiUrl = '/api/sites/verify'
+      if (site?.site_type === 'naver') {
+        apiUrl = '/api/naver/sync'
+      } else if (site?.site_type === 'cafe24') {
+        apiUrl = '/api/cafe24/sync'
+      } else if (isShoppingSite) {
+        apiUrl = '/api/naver/sync' // 기타 쇼핑몰은 네이버 API 사용 (임시)
+      }
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ siteId, syncType: 'all' })
@@ -260,10 +277,29 @@ window.sellerport?.track('lead', {
       const result = await response.json()
 
       if (result.success) {
-        setMessage({
-          type: 'success',
-          text: `동기화 완료: 상품 ${result.results.products.synced}개, 주문 ${result.results.orders.synced}개`
-        })
+        // 사이트 타입에 따라 메시지 다르게 표시
+        if (isShoppingSite && result.results?.products && result.results?.orders) {
+          // 쇼핑 추적: 상품/주문 개수 표시
+          setMessage({
+            type: 'success',
+            text: `동기화 완료: 상품 ${result.results.products.synced}개, 주문 ${result.results.orders.synced}개`
+          })
+        } else if (!isShoppingSite) {
+          // 회원가입/DB 추적: 추적 코드 검증 결과 표시
+          if (result.verified) {
+            setMessage({
+              type: 'success',
+              text: '추적 코드가 정상적으로 설치되어 있습니다'
+            })
+          } else {
+            setMessage({
+              type: 'error',
+              text: result.message || '추적 코드가 감지되지 않았습니다. 설치를 확인해주세요.'
+            })
+          }
+        } else {
+          setMessage({ type: 'success', text: '동기화 완료' })
+        }
         fetchMySites()
       } else {
         setMessage({ type: 'error', text: result.error })
@@ -297,8 +333,9 @@ window.sellerport?.track('lead', {
         return <span className="px-2 py-1 text-xs font-medium bg-yellow-500/20 text-yellow-400 rounded-full">만료됨</span>
       case 'pending_verification':
         return <span className="px-2 py-1 text-xs font-medium bg-amber-500/20 text-amber-400 rounded-full">검증 필요</span>
+      case 'pending_script':
       default:
-        return <span className="px-2 py-1 text-xs font-medium bg-slate-600 text-slate-300 rounded-full">대기중</span>
+        return <span className="px-2 py-1 text-xs font-medium bg-orange-500/20 text-orange-400 rounded-full">연동중</span>
     }
   }
 
@@ -400,7 +437,7 @@ window.sellerport?.track('lead', {
                           size="sm"
                           className="bg-blue-600 hover:bg-blue-500 text-white font-medium"
                           onClick={() => handleSync(site.id)}
-                          disabled={loadingStates[site.id]?.syncing || site.status !== 'connected'}
+                          disabled={loadingStates[site.id]?.syncing || !['connected', 'pending_script'].includes(site.status)}
                         >
                           {loadingStates[site.id]?.syncing ? (
                             <>
@@ -538,9 +575,17 @@ window.sellerport?.track('lead', {
                     <NaverConnectDialog onSuccess={fetchMySites}>
                       <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" size="sm">연동하기</Button>
                     </NaverConnectDialog>
+                  ) : site.id === 'cafe24' ? (
+                    <Button
+                      className="w-full bg-blue-600 hover:bg-blue-500 text-white"
+                      size="sm"
+                      onClick={() => setShowCafe24Dialog(true)}
+                    >
+                      연동하기
+                    </Button>
                   ) : (
                     <CustomSiteConnectDialog
-                      siteType={site.id as 'cafe24' | 'imweb' | 'godo' | 'makeshop' | 'custom'}
+                      siteType={site.id as 'imweb' | 'godo' | 'makeshop' | 'custom'}
                       siteName={site.name}
                       siteDescription={`${site.name} 쇼핑몰을 연동하고 광고 전환을 추적하세요`}
                       onSuccess={fetchMySites}
@@ -825,6 +870,16 @@ window.sellerport?.track('lead', {
           </div>
         </div>
       </div>
+
+      {/* 카페24 연동 다이얼로그 */}
+      <Cafe24ConnectDialog
+        isOpen={showCafe24Dialog}
+        onClose={() => setShowCafe24Dialog(false)}
+        onSuccess={() => {
+          setShowCafe24Dialog(false)
+          fetchMySites()
+        }}
+      />
     </div>
   )
 }
