@@ -18,6 +18,10 @@ interface MySite {
   status: string
   last_sync_at: string | null
   created_at: string
+  metadata?: {
+    conversion_type?: string
+    phone_number?: string
+  } | null
 }
 
 // 로딩 상태 타입
@@ -34,6 +38,7 @@ const siteLogos: Record<string, string> = {
   cafe24: '/site_logo/cafe24.png',
   imweb: '/site_logo/imweb.png',
   custom: '/site_logo/own_site.png',
+  call: '/site_logo/own_site.png', // 전화 추적
 }
 
 // 쇼핑 추적 사이트
@@ -374,6 +379,16 @@ window.sellerport?.track('lead', {
   }
 
   const getSiteLogo = (type: string) => {
+    // 전화 추적은 전화 아이콘 표시
+    if (type === 'call') {
+      return (
+        <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
+          <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+          </svg>
+        </div>
+      )
+    }
     const logoPath = siteLogos[type]
     if (logoPath) {
       return <Image src={logoPath} alt={type} width={32} height={32} className="rounded-lg" />
@@ -463,55 +478,63 @@ window.sellerport?.track('lead', {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      {getSiteLogo(site.site_type)}
+                      {getSiteLogo(site.metadata?.conversion_type === 'call' ? 'call' : site.site_type)}
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="font-medium text-white">{site.site_name}</h3>
                           {getStatusBadge(site.status)}
                         </div>
                         <p className="text-sm text-slate-400">
-                          {site.last_sync_at
-                            ? `마지막 동기화: ${new Date(site.last_sync_at).toLocaleString('ko-KR')}`
-                            : '아직 동기화되지 않음'}
+                          {(site.site_type === 'call' || site.metadata?.conversion_type === 'call')
+                            ? '전화 추적'
+                            : site.last_sync_at
+                              ? `마지막 동기화: ${new Date(site.last_sync_at).toLocaleString('ko-KR')}`
+                              : '아직 동기화되지 않음'}
                         </p>
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      {site.status === 'pending_verification' ? (
-                        <Button
-                          size="sm"
-                          className="bg-amber-500 hover:bg-amber-400 text-black font-medium"
-                          onClick={() => handleVerify(site.id)}
-                          disabled={loadingStates[site.id]?.verifying}
-                        >
-                          {loadingStates[site.id]?.verifying ? (
-                            <>
-                              <svg className="animate-spin -ml-1 mr-2 h-3 w-3" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                              검증 중...
-                            </>
-                          ) : '검증하기'}
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          className="bg-blue-600 hover:bg-blue-500 text-white font-medium"
-                          onClick={() => handleSync(site.id)}
-                          disabled={loadingStates[site.id]?.syncing || !['connected', 'pending_script'].includes(site.status)}
-                        >
-                          {loadingStates[site.id]?.syncing ? (
-                            <>
-                              <svg className="animate-spin -ml-1 mr-2 h-3 w-3" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                              동기화 중...
-                            </>
-                          ) : '동기화'}
-                        </Button>
-                      )}
+                      {/* 전화 추적은 동기화 불필요 */}
+                      {(() => {
+                        const isCallTracking = site.site_type === 'call' ||
+                          (site.metadata && typeof site.metadata === 'object' && 'conversion_type' in site.metadata && site.metadata.conversion_type === 'call')
+                        if (isCallTracking) return null
+                        return site.status === 'pending_verification' ? (
+                          <Button
+                            size="sm"
+                            className="bg-amber-500 hover:bg-amber-400 text-black font-medium"
+                            onClick={() => handleVerify(site.id)}
+                            disabled={loadingStates[site.id]?.verifying}
+                          >
+                            {loadingStates[site.id]?.verifying ? (
+                              <>
+                                <svg className="animate-spin -ml-1 mr-2 h-3 w-3" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                검증 중...
+                              </>
+                            ) : '검증하기'}
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-500 text-white font-medium"
+                            onClick={() => handleSync(site.id)}
+                            disabled={loadingStates[site.id]?.syncing || !['connected', 'pending_script'].includes(site.status)}
+                          >
+                            {loadingStates[site.id]?.syncing ? (
+                              <>
+                                <svg className="animate-spin -ml-1 mr-2 h-3 w-3" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                동기화 중...
+                              </>
+                            ) : '동기화'}
+                          </Button>
+                        )
+                      })()}
                       <Button
                         variant="outline"
                         size="sm"
