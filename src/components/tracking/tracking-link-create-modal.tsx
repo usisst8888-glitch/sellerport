@@ -176,7 +176,6 @@ export function TrackingLinkCreateModal({ isOpen, onClose, onSuccess }: Tracking
       const result = await response.json()
 
       if (result.success) {
-        setMessage({ type: 'success', text: '추적 링크가 발급되었습니다' })
         setFormData({
           siteId: '',
           productId: '',
@@ -189,6 +188,7 @@ export function TrackingLinkCreateModal({ isOpen, onClose, onSuccess }: Tracking
           targetRoasYellow: 150
         })
         onSuccess?.()
+        onClose()
       } else {
         setMessage({ type: 'error', text: result.error || '추적 링크 발급에 실패했습니다' })
       }

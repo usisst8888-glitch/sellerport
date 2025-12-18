@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { isbot } from 'isbot'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -47,6 +48,9 @@ export async function GET(
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
                request.headers.get('x-real-ip') ||
                'unknown'
+
+    // 봇/크롤러 감지 (isbot 라이브러리 사용)
+    const isBotRequest = isbot(userAgent)
 
     // 기존 쿠키
     const cookies = request.cookies
@@ -108,8 +112,14 @@ export async function GET(
       }
     }
 
-    // 클릭 기록 (비동기)
+    // 클릭 기록 (비동기) - 봇이 아닌 경우에만 기록
     const recordClick = async () => {
+      // 봇/크롤러 요청은 클릭으로 기록하지 않음
+      if (isBotRequest) {
+        console.log('Bot request detected, skipping click record:', userAgent.slice(0, 100))
+        return
+      }
+
       try {
         // 유효 클릭 체크 (같은 IP + User Agent가 1시간 내 클릭한 적 있는지)
         const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
