@@ -125,7 +125,7 @@ export function NaverConnectDialog({ children, onSuccess }: NaverConnectDialogPr
                   </li>
                   <li>스마트스토어 판매자 계정으로 로그인</li>
                   <li>애플리케이션 등록 → Client ID/Secret 발급</li>
-                  <li>API 호출 IP에 <code className="bg-green-500/20 px-1 rounded text-green-300">34.50.46.70</code> 등록</li>
+                  <li>API 호출 IP에 <code className="bg-green-500/20 px-1 rounded text-green-300">34.64.115.226</code> 등록</li>
                 </ol>
               </div>
 
