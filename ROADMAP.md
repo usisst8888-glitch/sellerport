@@ -1,6 +1,6 @@
 # 셀러포트 (SellerPort) 개발 로드맵
 
-> **마지막 업데이트:** 2025-12-18 (카페24 앱스토어 OAuth 설치 흐름 구현)
+> **마지막 업데이트:** 2025-12-18 (추적 링크 이름 필드 통합 - name 컬럼 제거)
 
 ## 프로젝트 개요
 
@@ -390,7 +390,30 @@ influencer_stats (인플루언서 효율 DB)
 
 ---
 
-## 최근 변경 사항 (2025-12-16)
+## 최근 변경 사항 (2025-12-18)
+
+### 추적 링크 이름 필드 통합
+
+추적 링크 생성 모달에서 중복되던 "추적 링크 이름" 필드를 하나로 통합했습니다.
+
+#### 변경 사항
+
+1. **DB 마이그레이션** (`042_remove_tracking_links_name.sql`)
+   - `tracking_links` 테이블에서 `name` 컬럼 제거
+   - `utm_campaign` 컬럼을 추적 링크 이름으로 사용
+
+2. **API 수정**
+   - `POST /api/tracking-links` - `name` 파라미터 제거
+   - `PATCH /api/tracking-links/[id]` - `name` 대신 `utm_campaign` 업데이트
+
+3. **프론트엔드 수정**
+   - `TrackingLinkCreateModal` - 중복된 "추적 링크 이름" 입력 필드 하나로 통합
+   - `conversions/page.tsx` - `link.name` → `link.utm_campaign`으로 변경
+   - 인터페이스에서 `name` 속성 제거
+
+---
+
+## 이전 변경 사항 (2025-12-16)
 
 ### 광고 채널 관리 메뉴 제거
 

@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { productId, utmSource, utmMedium, utmCampaign, targetUrl, name, adSpend, targetRoasGreen, targetRoasYellow } = body
+    const { productId, utmSource, utmMedium, utmCampaign, targetUrl, adSpend, targetRoasGreen, targetRoasYellow } = body
 
     if (!utmSource || !utmMedium || !utmCampaign || !targetUrl) {
       return NextResponse.json({ error: '필수 항목이 누락되었습니다' }, { status: 400 })
@@ -163,7 +163,6 @@ export async function POST(request: NextRequest) {
         id: trackingLinkId,
         user_id: user.id,
         product_id: productId || null,
-        name: name || `${utmSource} - ${utmCampaign}`,
         utm_source: utmSource,
         utm_medium: utmMedium,
         utm_campaign: utmCampaign,

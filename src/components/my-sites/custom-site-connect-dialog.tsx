@@ -1,22 +1,25 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { DialogFooter } from './dialog-footer'
 
 interface CustomSiteConnectDialogProps {
-  children: React.ReactNode
+  children?: React.ReactNode
   siteType: 'cafe24' | 'imweb' | 'godo' | 'makeshop' | 'custom'
   siteName: string
   siteDescription: string
-  conversionType?: 'shopping' | 'signup' | 'db' // 전환 목적
+  conversionType?: 'shopping' | 'signup' | 'db' | 'call' // 전환 목적
   onSuccess?: () => void
+  isOpen?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 const siteConfigs = {
   cafe24: {
     name: '카페24',
-    color: '#1A1A1A',
+    logo: '/site_logo/cafe24.png',
     urlPlaceholder: 'mystore.cafe24.com',
     urlHint: '카페24 쇼핑몰 도메인을 입력하세요',
     guideSteps: [
@@ -27,7 +30,7 @@ const siteConfigs = {
   },
   imweb: {
     name: '아임웹',
-    color: '#6366F1',
+    logo: '/site_logo/imweb.png',
     urlPlaceholder: 'mystore.imweb.me',
     urlHint: '아임웹 쇼핑몰 도메인을 입력하세요',
     guideSteps: [
@@ -38,7 +41,7 @@ const siteConfigs = {
   },
   godo: {
     name: '고도몰',
-    color: '#FF6B35',
+    logo: '/site_logo/godo.png',
     urlPlaceholder: 'mystore.godomall.com',
     urlHint: '고도몰 쇼핑몰 도메인을 입력하세요',
     guideSteps: [
@@ -49,7 +52,7 @@ const siteConfigs = {
   },
   makeshop: {
     name: '메이크샵',
-    color: '#E91E63',
+    logo: '/site_logo/makeshop.png',
     urlPlaceholder: 'mystore.makeshop.co.kr',
     urlHint: '메이크샵 쇼핑몰 도메인을 입력하세요',
     guideSteps: [
@@ -59,8 +62,8 @@ const siteConfigs = {
     ],
   },
   custom: {
-    name: '일반 웹사이트',
-    color: '#10B981',
+    name: '일반 웹사이트/블로그',
+    logo: '/site_logo/own_site.png',
     urlPlaceholder: 'example.com',
     urlHint: '웹사이트 주소를 입력하세요 (예: mysite.com)',
     guideSteps: [
@@ -77,15 +80,28 @@ export function CustomSiteConnectDialog({
   siteName: propSiteName,
   siteDescription,
   conversionType = 'shopping',
-  onSuccess
+  onSuccess,
+  isOpen: externalIsOpen,
+  onOpenChange
 }: CustomSiteConnectDialogProps) {
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+
+  // 외부에서 제어하는 경우 externalIsOpen 사용, 아니면 내부 상태 사용
+  const open = externalIsOpen !== undefined ? externalIsOpen : internalOpen
+  const setOpen = (value: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(value)
+    } else {
+      setInternalOpen(value)
+    }
+  }
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [step, setStep] = useState<'form' | 'script'>('form')
 
   const [siteName, setSiteName] = useState('')
   const [siteUrl, setSiteUrl] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
   const [createdSiteId, setCreatedSiteId] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [copiedScript, setCopiedScript] = useState(false)
@@ -93,16 +109,47 @@ export function CustomSiteConnectDialog({
 
   const config = siteConfigs[siteType]
 
+  // 전화번호 포맷팅 (숫자만 추출 후 하이픈 추가)
+  const formatPhoneNumber = (value: string) => {
+    const numbers = value.replace(/[^\d]/g, '')
+    if (numbers.length <= 3) return numbers
+    if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`
+  }
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhoneNumber(e.target.value)
+    setPhoneNumber(formatted)
+  }
+
   const handleConnect = async () => {
-    if (!siteName.trim() || !siteUrl.trim()) {
-      setError('모든 필드를 입력해주세요')
-      return
+    const isCallTracking = conversionType === 'call'
+
+    if (isCallTracking) {
+      if (!siteName.trim() || !phoneNumber.trim()) {
+        setError('모든 필드를 입력해주세요')
+        return
+      }
+      // 전화번호 형식 검증 (최소 9자리 숫자)
+      const phoneDigits = phoneNumber.replace(/[^\d]/g, '')
+      if (phoneDigits.length < 9) {
+        setError('올바른 전화번호를 입력해주세요')
+        return
+      }
+    } else {
+      if (!siteName.trim() || !siteUrl.trim()) {
+        setError('모든 필드를 입력해주세요')
+        return
+      }
     }
 
-    // URL 형식 검증
-    let formattedUrl = siteUrl.trim()
-    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
-      formattedUrl = 'https://' + formattedUrl
+    // URL 형식 검증 (전화 추적이 아닌 경우에만)
+    let formattedUrl = ''
+    if (!isCallTracking) {
+      formattedUrl = siteUrl.trim()
+      if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+        formattedUrl = 'https://' + formattedUrl
+      }
     }
 
     setLoading(true)
@@ -122,14 +169,16 @@ export function CustomSiteConnectDialog({
       setUserId(user.id)
 
       // 사이트 정보 저장
+      const isCallTracking = conversionType === 'call'
       const { data, error: insertError } = await supabase
         .from('my_sites')
         .insert({
           user_id: user.id,
-          site_type: siteType,
+          site_type: isCallTracking ? 'call' : siteType, // 전화 추적은 'call' 타입으로 저장
           site_name: siteName.trim(),
-          store_id: formattedUrl,
-          status: 'pending_script', // 스크립트 설치 대기
+          store_id: isCallTracking ? phoneNumber.replace(/[^\d]/g, '') : formattedUrl, // 전화 추적 시 전화번호 저장
+          status: isCallTracking ? 'connected' : 'pending_script', // 전화 추적은 스크립트 불필요
+          metadata: isCallTracking ? { phone_number: phoneNumber, conversion_type: 'call' } : { conversion_type: conversionType },
         })
         .select()
         .single()
@@ -144,9 +193,16 @@ export function CustomSiteConnectDialog({
         return
       }
 
-      // 스크립트 안내 단계로 이동
+      // 전화 추적의 경우 바로 완료, 그 외에는 스크립트 안내 단계로 이동
       setCreatedSiteId(data.id)
-      setStep('script')
+      if (conversionType === 'call') {
+        // 전화 추적은 스크립트 설치가 필요없으므로 바로 완료
+        setOpen(false)
+        resetForm()
+        onSuccess?.()
+      } else {
+        setStep('script')
+      }
 
     } catch (err) {
       console.error('Site connect error:', err)
@@ -242,6 +298,7 @@ window.sellerport?.track('conversion', {
   const resetForm = () => {
     setSiteName('')
     setSiteUrl('')
+    setPhoneNumber('')
     setError('')
     setStep('form')
     setCreatedSiteId(null)
@@ -250,26 +307,31 @@ window.sellerport?.track('conversion', {
 
   return (
     <>
-      <div onClick={() => setOpen(true)}>
-        {children}
-      </div>
+      {children && (
+        <div onClick={() => setOpen(true)}>
+          {children}
+        </div>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl bg-slate-800 border border-white/10 shadow-2xl">
             <div className="p-6 border-b border-white/5 flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-bold"
-                  style={{ backgroundColor: config.color }}
-                >
-                  {config.name.charAt(0)}
+              <div className="flex items-center gap-3">
+                <Image
+                  src={config.logo}
+                  alt={config.name}
+                  width={40}
+                  height={40}
+                  className="rounded-lg"
+                />
+                <div>
+                  <h3 className="text-lg font-semibold text-white">{propSiteName} 연동</h3>
+                  <p className="text-sm text-slate-400">
+                    {step === 'form' ? siteDescription : '추적 스크립트를 사이트에 설치하세요'}
+                  </p>
                 </div>
-                <h3 className="text-lg font-semibold text-white">{propSiteName} 연동</h3>
               </div>
-              <p className="text-sm text-slate-400 mt-1">
-                {step === 'form' ? siteDescription : '추적 스크립트를 사이트에 설치하세요'}
-              </p>
             </div>
 
             {step === 'form' ? (
@@ -297,17 +359,31 @@ window.sellerport?.track('conversion', {
                     <p className="text-xs text-slate-500 mt-1">셀러포트에서 구분하기 위한 이름입니다</p>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">사이트 주소 *</label>
-                    <input
-                      type="text"
-                      placeholder={config.urlPlaceholder}
-                      value={siteUrl}
-                      onChange={(e) => setSiteUrl(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
-                    />
-                    <p className="text-xs text-slate-500 mt-1">{config.urlHint}</p>
-                  </div>
+                  {conversionType === 'call' ? (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">전화번호 *</label>
+                      <input
+                        type="tel"
+                        placeholder="010-1234-5678"
+                        value={phoneNumber}
+                        onChange={handlePhoneChange}
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
+                      />
+                      <p className="text-xs text-slate-500 mt-1">전환 추적에 사용할 전화번호를 입력하세요</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">사이트 주소 *</label>
+                      <input
+                        type="text"
+                        placeholder={config.urlPlaceholder}
+                        value={siteUrl}
+                        onChange={(e) => setSiteUrl(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
+                      />
+                      <p className="text-xs text-slate-500 mt-1">{config.urlHint}</p>
+                    </div>
+                  )}
 
                   {error && (
                     <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20">
@@ -333,7 +409,18 @@ window.sellerport?.track('conversion', {
                   }}
                   onSubmit={handleConnect}
                   loading={loading}
-                  disabled={!siteName.trim() || !siteUrl.trim()}
+                  disabled={!siteName.trim() || (conversionType === 'call' ? !phoneNumber.trim() : !siteUrl.trim())}
+                  guideUrl={`/guide?tab=mysites&expand=${
+                    siteType === 'custom'
+                      ? conversionType === 'db'
+                        ? 'custom-db'
+                        : conversionType === 'signup'
+                        ? 'custom-signup'
+                        : conversionType === 'call'
+                        ? 'custom-call'
+                        : 'custom-shopping'
+                      : siteType
+                  }`}
                 />
               </>
             ) : (
@@ -397,6 +484,8 @@ window.sellerport?.track('conversion', {
                 <DialogFooter
                   onCancel={() => setStep('form')}
                   onSubmit={handleComplete}
+                  cancelText="뒤로"
+                  submitText="완료"
                 />
               </>
             )}

@@ -28,6 +28,10 @@ interface MySite {
   site_name: string
   store_id?: string | null
   status: string
+  metadata?: {
+    phone_number?: string
+    conversion_type?: 'shopping' | 'signup' | 'db' | 'call'
+  } | null
 }
 
 interface TrackingLinkCreateModalProps {
@@ -49,7 +53,6 @@ export function TrackingLinkCreateModal({ isOpen, onClose, onSuccess }: Tracking
     utmMedium: 'paid',
     utmCampaign: '',
     targetUrl: '',
-    name: '',
     adSpend: 0,
     targetRoasGreen: 300,
     targetRoasYellow: 150
@@ -80,8 +83,7 @@ export function TrackingLinkCreateModal({ isOpen, onClose, onSuccess }: Tracking
       setFormData({
         ...formData,
         productId,
-        targetUrl: url,
-        name: formData.name || selectedProduct.name
+        targetUrl: url
       })
     } else {
       setFormData({ ...formData, productId: '', targetUrl: '' })
@@ -165,7 +167,6 @@ export function TrackingLinkCreateModal({ isOpen, onClose, onSuccess }: Tracking
           utmMedium: formData.utmMedium,
           utmCampaign: formData.utmCampaign,
           targetUrl: formData.targetUrl,
-          name: formData.name || `${formData.utmSource} - ${formData.utmCampaign}`,
           adSpend: formData.adSpend || 0,
           targetRoasGreen: formData.targetRoasGreen,
           targetRoasYellow: formData.targetRoasYellow
@@ -183,7 +184,6 @@ export function TrackingLinkCreateModal({ isOpen, onClose, onSuccess }: Tracking
           utmMedium: 'paid',
           utmCampaign: '',
           targetUrl: '',
-          name: '',
           adSpend: 0,
           targetRoasGreen: 300,
           targetRoasYellow: 150
@@ -243,7 +243,16 @@ export function TrackingLinkCreateModal({ isOpen, onClose, onSuccess }: Tracking
                   <button
                     key={site.id}
                     type="button"
-                    onClick={() => setFormData({ ...formData, siteId: site.id, productId: '', targetUrl: '' })}
+                    onClick={() => {
+                      const isCallTracking = site.site_type === 'call'
+                      const phoneNumber = site.store_id
+                      setFormData({
+                        ...formData,
+                        siteId: site.id,
+                        productId: '',
+                        targetUrl: isCallTracking && phoneNumber ? `tel:${phoneNumber.replace(/[^\d]/g, '')}` : ''
+                      })
+                    }}
                     className={`p-4 rounded-xl border-2 text-left transition-all ${
                       formData.siteId === site.id
                         ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/10'
@@ -252,10 +261,15 @@ export function TrackingLinkCreateModal({ isOpen, onClose, onSuccess }: Tracking
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        site.site_type === 'call' ? 'bg-green-500/20' :
                         site.site_type === 'naver' ? 'bg-green-500/20' :
                         site.site_type === 'coupang' ? 'bg-red-500/20' : 'bg-slate-500/20'
                       }`}>
-                        {site.site_type === 'naver' ? (
+                        {site.site_type === 'call' ? (
+                          <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
+                        ) : site.site_type === 'naver' ? (
                           <svg className="w-5 h-5 text-green-400" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z"/>
                           </svg>
@@ -274,8 +288,10 @@ export function TrackingLinkCreateModal({ isOpen, onClose, onSuccess }: Tracking
                           {site.site_name}
                         </p>
                         <p className="text-xs text-slate-400">
-                          {site.site_type === 'naver' ? '스마트스토어' :
-                           site.site_type === 'coupang' ? '쿠팡 마켓플레이스' : site.site_type}
+                          {site.site_type === 'call' ? '전화 추적' :
+                           site.site_type === 'naver' ? '스마트스토어' :
+                           site.site_type === 'coupang' ? '쿠팡 마켓플레이스' :
+                           site.site_type === 'custom' ? '일반 웹사이트' : site.site_type}
                         </p>
                       </div>
                       {formData.siteId === site.id && (
@@ -299,8 +315,8 @@ export function TrackingLinkCreateModal({ isOpen, onClose, onSuccess }: Tracking
             )}
           </div>
 
-          {/* 상품 선택 */}
-          {formData.siteId && (
+          {/* 상품 선택 - 전화 추적이 아닌 경우에만 표시 */}
+          {formData.siteId && mySites.find(s => s.id === formData.siteId)?.site_type !== 'call' && (
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 추적할 상품 선택 *
@@ -358,33 +374,70 @@ export function TrackingLinkCreateModal({ isOpen, onClose, onSuccess }: Tracking
             </div>
           )}
 
+          {/* 추적 링크 이름 */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">추적 링크 이름 (선택)</label>
+            <label className="block text-sm font-medium text-slate-300 mb-2">추적 링크 이름 *</label>
             <input
               type="text"
-              placeholder="예: 네이버 겨울 세일"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="예: 인스타_겨울세일_2024"
+              value={formData.utmCampaign}
+              onChange={(e) => setFormData({ ...formData, utmCampaign: e.target.value })}
               className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
             />
+            <p className="text-xs text-slate-500 mt-1">추적 링크를 구분할 수 있는 이름을 입력하세요</p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              목적지 URL *
-              {formData.productId && <span className="text-xs text-blue-400 ml-2">(자동 설정됨)</span>}
-            </label>
-            <input
-              type="url"
-              placeholder="https://smartstore.naver.com/mystore/products/1234567890"
-              value={formData.targetUrl}
-              onChange={(e) => setFormData({ ...formData, targetUrl: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
-            />
-            <p className="text-xs text-slate-500 mt-1">
-              {formData.productId ? '상품 선택 시 자동으로 설정됩니다. 직접 수정도 가능합니다.' : '클릭 시 이동할 상품 페이지 URL'}
-            </p>
-          </div>
+          {(() => {
+            const selectedSite = mySites.find(s => s.id === formData.siteId)
+            const isCallTracking = selectedSite?.site_type === 'call'
+
+            if (isCallTracking) {
+              // 전화 추적: 연결 전화번호 표시
+              const phoneNumber = selectedSite?.store_id || ''
+              const formattedPhone = phoneNumber.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')
+              return (
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    연결 전화번호
+                    <span className="text-xs text-green-400 ml-2">(자동 설정됨)</span>
+                  </label>
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+                    <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-lg font-semibold text-white">{formattedPhone || '전화번호 없음'}</p>
+                      <p className="text-xs text-green-400">추적 링크 클릭 시 이 번호로 전화 연결됩니다</p>
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+
+            // 일반 사이트: 목적지 URL
+            return (
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  목적지 URL *
+                  {formData.productId && <span className="text-xs text-blue-400 ml-2">(자동 설정됨)</span>}
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://smartstore.naver.com/mystore/products/1234567890"
+                  value={formData.targetUrl}
+                  onChange={(e) => setFormData({ ...formData, targetUrl: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  {formData.productId
+                    ? '상품 선택 시 자동으로 설정됩니다. 직접 수정도 가능합니다.'
+                    : '클릭 시 이동할 상품 페이지 URL'}
+                </p>
+              </div>
+            )
+          })()}
 
           {/* 유입 경로 선택 */}
           <div>
@@ -433,17 +486,6 @@ export function TrackingLinkCreateModal({ isOpen, onClose, onSuccess }: Tracking
                 광고 채널을 연동하면 광고비가 자동으로 수집되어 ROAS를 확인할 수 있어요
               </p>
             )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">추적 링크 이름 *</label>
-            <input
-              type="text"
-              placeholder="예: winter_sale_2024"
-              value={formData.utmCampaign}
-              onChange={(e) => setFormData({ ...formData, utmCampaign: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
-            />
           </div>
 
           {/* ROAS 기준 설정 */}

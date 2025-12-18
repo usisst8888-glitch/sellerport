@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 
-type TabId = 'overview' | 'tracking' | 'adchannels' | 'dashboard' | 'profit' | 'alerts' | 'faq'
+type TabId = 'overview' | 'mysites' | 'tracking' | 'adchannels' | 'dashboard' | 'profit' | 'alerts' | 'faq'
 
 interface Tab {
   id: TabId
@@ -18,6 +18,15 @@ const tabs: Tab[] = [
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    ),
+  },
+  {
+    id: 'mysites',
+    title: '내 사이트 연동',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
       </svg>
     ),
   },
@@ -86,7 +95,7 @@ export default function GuidePage() {
     const tab = searchParams.get('tab')
     const channel = searchParams.get('channel')
 
-    if (tab && ['overview', 'tracking', 'adchannels', 'dashboard', 'profit', 'alerts', 'faq'].includes(tab)) {
+    if (tab && ['overview', 'mysites', 'tracking', 'adchannels', 'dashboard', 'profit', 'alerts', 'faq'].includes(tab)) {
       setActiveTab(tab as TabId)
     }
 
@@ -129,6 +138,7 @@ export default function GuidePage() {
         {/* 컨텐츠 */}
         <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-6 md:p-8">
           {activeTab === 'overview' && <OverviewContent />}
+          {activeTab === 'mysites' && <MySitesContent />}
           {activeTab === 'tracking' && <TrackingContent />}
           {activeTab === 'adchannels' && <AdChannelsContent initialChannel={initialChannel} />}
           {activeTab === 'dashboard' && <DashboardContent />}
@@ -137,6 +147,431 @@ export default function GuidePage() {
           {activeTab === 'faq' && <FAQContent />}
         </div>
       </div>
+    </div>
+  )
+}
+
+function MySitesContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const expandParam = searchParams.get('expand')
+  const [expandedSite, setExpandedSite] = useState<string | null>(null)
+
+  // URL 파라미터로 드롭다운 자동 펼치기
+  useEffect(() => {
+    if (expandParam) {
+      setExpandedSite(expandParam)
+    }
+  }, [expandParam])
+
+  const toggleSite = (siteId: string) => {
+    setExpandedSite(expandedSite === siteId ? null : siteId)
+  }
+
+  const handleConnect = (siteId: string) => {
+    router.push(`/my-sites?connect=${siteId}`)
+  }
+
+  return (
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-xl font-bold text-white mb-4">내 사이트 연동이란?</h2>
+        <p className="text-slate-300 leading-relaxed">
+          셀러포트에서 전환(구매, 회원가입, DB수집)을 추적하려면 먼저 <span className="text-blue-400 font-semibold">내 사이트</span>를 연동해야 합니다.
+          쇼핑몰, 웹사이트, 블로그 등 고객이 전환하는 사이트를 등록하면, 해당 사이트에서 발생하는 모든 전환을 추적할 수 있습니다.
+        </p>
+      </section>
+
+      {/* 쇼핑 추적 */}
+      <section>
+        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <span className="text-2xl">🛒</span> 쇼핑 추적
+        </h2>
+        <p className="text-slate-400 text-sm mb-4">
+          쇼핑몰에서 발생하는 주문/결제 전환을 추적합니다.
+        </p>
+        <div className="space-y-3">
+          {/* 네이버 스마트스토어 */}
+          <SiteGuideCard
+            id="naver"
+            icon={<img src="/site_logo/smartstore.png" alt="네이버 스마트스토어" className="w-6 h-6 rounded" />}
+            title="네이버 스마트스토어"
+            description="커머스 API 연동"
+            isExpanded={expandedSite === 'naver'}
+            onToggle={() => toggleSite('naver')}
+            onConnect={() => handleConnect('naver')}
+          >
+            <div className="space-y-4">
+              <div className="bg-green-500/10 rounded-lg p-4 border border-green-500/30">
+                <p className="text-green-400 font-medium mb-2">API 연동 방식</p>
+                <p className="text-slate-300 text-sm">네이버 커머스API센터에서 발급받은 Client ID/Secret을 입력하면 연동됩니다.</p>
+              </div>
+              <div className="space-y-3">
+                <StepCard step={1} title="네이버 커머스API센터 접속" description="apicenter.commerce.naver.com에 접속하여 스마트스토어 판매자 계정으로 로그인하세요." />
+                <StepCard step={2} title="애플리케이션 등록" description="새 애플리케이션을 등록하고 Client ID와 Client Secret을 발급받으세요." />
+                <StepCard step={3} title="API 호출 IP 등록" description="API 호출 IP에 34.64.115.226을 등록하세요." />
+                <StepCard step={4} title="셀러포트에서 연동" description="내 사이트 → 네이버 스마트스토어 연동하기를 클릭하고 발급받은 정보를 입력하세요." />
+              </div>
+              <div className="bg-slate-700/50 rounded-lg p-4 border border-white/10">
+                <p className="text-slate-300 font-medium mb-2">필요한 API 권한</p>
+                <ul className="text-slate-400 text-sm space-y-1">
+                  <li>• 주문 정보 조회</li>
+                  <li>• 상품 정보 조회</li>
+                  <li>• 정산 정보 조회</li>
+                </ul>
+              </div>
+            </div>
+          </SiteGuideCard>
+
+          {/* 카페24 */}
+          <SiteGuideCard
+            id="cafe24"
+            icon={<img src="/site_logo/cafe24.png" alt="카페24" className="w-6 h-6 rounded" />}
+            title="카페24"
+            description="앱스토어 설치"
+            isExpanded={expandedSite === 'cafe24'}
+            onToggle={() => toggleSite('cafe24')}
+            onConnect={() => handleConnect('cafe24')}
+          >
+            <div className="space-y-4">
+              <div className="bg-blue-500/10 rounded-lg p-4 border border-blue-500/30">
+                <p className="text-blue-400 font-medium mb-2">앱스토어 설치 방식</p>
+                <p className="text-slate-300 text-sm">카페24 앱스토어에서 셀러포트 앱을 설치하면 자동으로 연동됩니다.</p>
+              </div>
+              <div className="space-y-3">
+                <StepCard step={1} title="카페24 앱스토어 접속" description="카페24 앱스토어(store.cafe24.com)에 접속하세요." />
+                <StepCard step={2} title="셀러포트 검색" description="검색창에 '셀러포트'를 검색하세요." />
+                <StepCard step={3} title="앱 설치" description="앱 설치 버튼을 클릭하고 권한을 승인하세요." />
+                <StepCard step={4} title="셀러포트 연결" description="설치 완료 후 셀러포트에 회원가입/로그인하여 쇼핑몰을 연결하세요." />
+              </div>
+              <div className="bg-amber-500/10 rounded-lg p-4 border border-amber-500/30">
+                <p className="text-amber-400 font-medium mb-2">참고사항</p>
+                <p className="text-slate-300 text-sm">카페24는 앱스토어를 통해서만 연동할 수 있습니다. 직접 API 키를 입력하는 방식은 지원하지 않습니다.</p>
+              </div>
+            </div>
+          </SiteGuideCard>
+
+          {/* 아임웹 */}
+          <SiteGuideCard
+            id="imweb"
+            icon={<img src="/site_logo/imweb.png" alt="아임웹" className="w-6 h-6 rounded" />}
+            title="아임웹"
+            description="OAuth 2.0 연동"
+            isExpanded={expandedSite === 'imweb'}
+            onToggle={() => toggleSite('imweb')}
+            onConnect={() => handleConnect('imweb')}
+          >
+            <div className="space-y-4">
+              <div className="bg-indigo-500/10 rounded-lg p-4 border border-indigo-500/30">
+                <p className="text-indigo-400 font-medium mb-2">OAuth 연동 방식</p>
+                <p className="text-slate-300 text-sm">아임웹 계정으로 로그인하면 자동으로 연동됩니다.</p>
+              </div>
+              <div className="space-y-3">
+                <StepCard step={1} title="셀러포트에서 연동 시작" description="내 사이트 → 아임웹 연동하기를 클릭하세요." />
+                <StepCard step={2} title="아임웹 로그인" description="팝업 창에서 아임웹 계정으로 로그인하세요." />
+                <StepCard step={3} title="권한 승인" description="셀러포트가 쇼핑몰 데이터를 읽을 수 있도록 권한을 승인하세요." />
+                <StepCard step={4} title="연동 완료" description="주문, 상품 데이터가 자동으로 수집됩니다." />
+              </div>
+              <div className="bg-slate-700/50 rounded-lg p-4 border border-white/10">
+                <p className="text-slate-300 font-medium mb-2">지원 기능</p>
+                <p className="text-slate-400 text-sm">아임웹은 쇼핑 추적, 회원가입 추적, DB 추적 모두 지원합니다.</p>
+              </div>
+            </div>
+          </SiteGuideCard>
+
+          {/* 자체 제작 쇼핑몰 - 쇼핑 */}
+          <SiteGuideCard
+            id="custom-shopping"
+            icon={<img src="/site_logo/own_site.png" alt="자체 제작 쇼핑몰" className="w-6 h-6 rounded" />}
+            title="자체 제작 쇼핑몰"
+            description="추적 스크립트 설치"
+            isExpanded={expandedSite === 'custom-shopping'}
+            onToggle={() => toggleSite('custom-shopping')}
+            onConnect={() => handleConnect('custom')}
+          >
+            <div className="space-y-4">
+              <div className="bg-emerald-500/10 rounded-lg p-4 border border-emerald-500/30">
+                <p className="text-emerald-400 font-medium mb-2">스크립트 설치 방식</p>
+                <p className="text-slate-300 text-sm">사이트에 추적 스크립트를 설치하고, 전환 발생 시 이벤트 코드를 호출합니다.</p>
+              </div>
+              <div className="space-y-3">
+                <StepCard step={1} title="사이트 등록" description="내 사이트 → 자체 제작 쇼핑몰 연동하기를 클릭하고 사이트 정보를 입력하세요." />
+                <StepCard step={2} title="추적 스크립트 설치" description="발급된 추적 스크립트를 사이트의 <head> 태그에 삽입하세요." />
+                <StepCard step={3} title="전환 이벤트 코드 설치" description="구매 완료 페이지에 전환 이벤트 코드를 삽입하세요." />
+                <StepCard step={4} title="연동 확인" description="테스트 주문으로 전환이 정상 수집되는지 확인하세요." />
+              </div>
+              <div className="bg-slate-900/70 rounded-lg p-4 border border-white/10">
+                <p className="text-slate-400 text-sm mb-2">전환 이벤트 코드 예시:</p>
+                <pre className="text-xs text-emerald-300 overflow-x-auto whitespace-pre-wrap">
+{`sellerport('track', 'Purchase', {
+  value: 50000,  // 주문 금액
+  order_id: 'ORDER_123'  // 주문 번호
+});`}
+                </pre>
+              </div>
+            </div>
+          </SiteGuideCard>
+        </div>
+      </section>
+
+      {/* 회원가입 추적 */}
+      <section>
+        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <span className="text-2xl">👤</span> 회원가입 추적
+        </h2>
+        <p className="text-slate-400 text-sm mb-4">
+          회원가입 전환을 추적합니다. 광고를 통해 유입된 신규 회원을 측정할 수 있습니다.
+        </p>
+        <div className="space-y-3">
+          {/* 아임웹 - 회원가입 */}
+          <SiteGuideCard
+            id="imweb-signup"
+            icon={<img src="/site_logo/imweb.png" alt="아임웹" className="w-6 h-6 rounded" />}
+            title="아임웹"
+            description="회원가입 폼 추적"
+            isExpanded={expandedSite === 'imweb-signup'}
+            onToggle={() => toggleSite('imweb-signup')}
+            onConnect={() => handleConnect('imweb')}
+          >
+            <div className="space-y-4">
+              <div className="bg-indigo-500/10 rounded-lg p-4 border border-indigo-500/30">
+                <p className="text-indigo-400 font-medium mb-2">OAuth 연동 방식</p>
+                <p className="text-slate-300 text-sm">아임웹 연동 시 회원가입 전환도 자동으로 추적됩니다.</p>
+              </div>
+              <div className="space-y-3">
+                <StepCard step={1} title="아임웹 쇼핑 추적 연동" description="위의 쇼핑 추적에서 아임웹을 먼저 연동하세요." />
+                <StepCard step={2} title="회원가입 추적 활성화" description="연동 완료 후 회원가입 전환이 자동으로 추적됩니다." />
+              </div>
+            </div>
+          </SiteGuideCard>
+
+          {/* 일반 웹사이트/블로그 - 회원가입 */}
+          <SiteGuideCard
+            id="custom-signup"
+            icon={<img src="/site_logo/own_site.png" alt="일반 웹사이트" className="w-6 h-6 rounded" />}
+            title="일반 웹사이트/블로그"
+            description="회원가입 폼 추적"
+            isExpanded={expandedSite === 'custom-signup'}
+            onToggle={() => toggleSite('custom-signup')}
+            onConnect={() => handleConnect('custom')}
+          >
+            <div className="space-y-4">
+              <div className="bg-emerald-500/10 rounded-lg p-4 border border-emerald-500/30">
+                <p className="text-emerald-400 font-medium mb-2">스크립트 설치 방식</p>
+                <p className="text-slate-300 text-sm">회원가입 완료 시 전환 이벤트 코드를 호출합니다.</p>
+              </div>
+              <div className="space-y-3">
+                <StepCard step={1} title="사이트 등록" description="내 사이트 → 일반 웹사이트/블로그 연동하기를 클릭하고 사이트 정보를 입력하세요." />
+                <StepCard step={2} title="추적 스크립트 설치" description="발급된 추적 스크립트를 사이트의 <head> 태그에 삽입하세요." />
+                <StepCard step={3} title="회원가입 전환 이벤트 코드 설치" description="회원가입 완료 페이지 또는 성공 시점에 전환 이벤트 코드를 호출하세요." />
+              </div>
+              <div className="bg-slate-900/70 rounded-lg p-4 border border-white/10">
+                <p className="text-slate-400 text-sm mb-2">회원가입 전환 이벤트 코드 예시:</p>
+                <pre className="text-xs text-emerald-300 overflow-x-auto whitespace-pre-wrap">
+{`window.sellerport?.track('signup', {
+  userId: '신규회원ID',      // 선택: 회원 고유 ID
+  email: 'user@email.com'   // 선택: 회원 이메일
+});`}
+                </pre>
+              </div>
+            </div>
+          </SiteGuideCard>
+        </div>
+      </section>
+
+      {/* DB 추적 */}
+      <section>
+        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <span className="text-2xl">📋</span> DB 추적
+        </h2>
+        <p className="text-slate-400 text-sm mb-4">
+          상담신청, 문의, 전화상담 등 DB 수집 전환을 추적합니다. 리드 획득 효율을 측정할 수 있습니다.
+        </p>
+        <div className="space-y-3">
+          {/* 아임웹 - DB */}
+          <SiteGuideCard
+            id="imweb-db"
+            icon={<img src="/site_logo/imweb.png" alt="아임웹" className="w-6 h-6 rounded" />}
+            title="아임웹"
+            description="DB 수집 폼 추적"
+            isExpanded={expandedSite === 'imweb-db'}
+            onToggle={() => toggleSite('imweb-db')}
+            onConnect={() => handleConnect('imweb')}
+          >
+            <div className="space-y-4">
+              <div className="bg-indigo-500/10 rounded-lg p-4 border border-indigo-500/30">
+                <p className="text-indigo-400 font-medium mb-2">OAuth 연동 방식</p>
+                <p className="text-slate-300 text-sm">아임웹 연동 시 폼 제출 전환도 자동으로 추적됩니다.</p>
+              </div>
+              <div className="space-y-3">
+                <StepCard step={1} title="아임웹 쇼핑 추적 연동" description="위의 쇼핑 추적에서 아임웹을 먼저 연동하세요." />
+                <StepCard step={2} title="DB 추적 활성화" description="연동 완료 후 폼 제출 전환이 자동으로 추적됩니다." />
+              </div>
+            </div>
+          </SiteGuideCard>
+
+          {/* 일반 웹사이트/블로그 - DB */}
+          <SiteGuideCard
+            id="custom-db"
+            icon={<img src="/site_logo/own_site.png" alt="일반 웹사이트" className="w-6 h-6 rounded" />}
+            title="일반 웹사이트/블로그"
+            description="상담신청, 문의, 전화상담 추적"
+            isExpanded={expandedSite === 'custom-db'}
+            onToggle={() => toggleSite('custom-db')}
+            onConnect={() => handleConnect('custom')}
+          >
+            <div className="space-y-4">
+              <div className="bg-amber-500/10 rounded-lg p-4 border border-amber-500/30">
+                <p className="text-amber-400 font-medium mb-2">스크립트 설치 방식</p>
+                <p className="text-slate-300 text-sm">상담신청/문의 폼 제출 시 전환 이벤트 코드를 호출합니다.</p>
+              </div>
+              <div className="space-y-3">
+                <StepCard step={1} title="사이트 등록" description="내 사이트 → 일반 웹사이트/블로그 연동하기를 클릭하고 사이트 정보를 입력하세요." />
+                <StepCard step={2} title="추적 스크립트 설치" description="발급된 추적 스크립트를 사이트의 <head> 태그에 삽입하세요." />
+                <StepCard step={3} title="DB 전환 이벤트 코드 설치" description="상담신청/문의 폼 제출 완료 시점에 전환 이벤트 코드를 호출하세요." />
+              </div>
+              <div className="bg-slate-900/70 rounded-lg p-4 border border-white/10">
+                <p className="text-slate-400 text-sm mb-2">DB 전환 이벤트 코드 예시:</p>
+                <pre className="text-xs text-amber-300 overflow-x-auto whitespace-pre-wrap">
+{`window.sellerport?.track('lead', {
+  formId: '폼ID',           // 선택: 폼 구분용 ID
+  formName: '상담신청'       // 선택: 폼 이름
+});`}
+                </pre>
+              </div>
+            </div>
+          </SiteGuideCard>
+        </div>
+      </section>
+
+      {/* 전화 추적 */}
+      <section>
+        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+          </svg>
+          전화 추적
+          <span className="px-2 py-0.5 text-[10px] bg-green-500/20 text-green-400 rounded-full font-medium">추적 링크</span>
+        </h2>
+        <p className="text-sm text-slate-400 mb-4">추적 링크를 통해 광고별 전화 전환을 추적합니다.</p>
+        <div className="space-y-4">
+          {/* 일반 웹사이트/블로그 - 전화 */}
+          <SiteGuideCard
+            id="custom-call"
+            icon={<img src="/site_logo/own_site.png" alt="일반 웹사이트" className="w-6 h-6 rounded" />}
+            title="일반 웹사이트/블로그"
+            description="추적 링크 생성"
+            isExpanded={expandedSite === 'custom-call'}
+            onToggle={() => toggleSite('custom-call')}
+            onConnect={() => handleConnect('custom')}
+          >
+            <div className="space-y-4">
+              <div className="bg-green-500/10 rounded-lg p-4 border border-green-500/30">
+                <p className="text-green-400 font-medium mb-2">추적 링크 방식</p>
+                <p className="text-slate-300 text-sm">광고에 추적 링크를 사용하면 고객이 어떤 광고를 통해 전화했는지 정확히 추적합니다.</p>
+              </div>
+              <div className="space-y-3">
+                <StepCard step={1} title="추적 링크 생성" description="내 사이트 → 전화 추적에서 추적 링크 생성을 클릭하세요." />
+                <StepCard step={2} title="광고에 추적 링크 사용" description="네이버 광고, 카카오 광고 등에 생성된 추적 링크를 사용하세요." />
+                <StepCard step={3} title="자동 리다이렉트" description="고객이 링크 클릭 시 광고 정보가 저장되고 도착 페이지로 이동합니다." />
+                <StepCard step={4} title="전화 전환 추적" description="고객이 전화번호를 클릭하면 해당 광고의 전환으로 기록됩니다." />
+              </div>
+              <div className="bg-slate-900/70 rounded-lg p-4 border border-white/10">
+                <p className="text-slate-400 text-sm mb-2">추적 링크 장점:</p>
+                <ul className="text-xs text-green-300 space-y-1 list-disc list-inside">
+                  <li>추가 비용 없음 (050 번호 비용 X)</li>
+                  <li>광고별 전화 전환 정확히 추적</li>
+                  <li>UTM 파라미터로 상세 분석 가능</li>
+                  <li>네이버 블로그 등 스크립트 설치 불가 사이트에서도 사용 가능</li>
+                </ul>
+              </div>
+            </div>
+          </SiteGuideCard>
+        </div>
+      </section>
+
+      {/* 자주 묻는 질문 */}
+      <section>
+        <h2 className="text-xl font-bold text-white mb-4">자주 묻는 질문</h2>
+        <div className="space-y-4">
+          <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700">
+            <h4 className="font-medium text-white mb-2">Q. 사이트를 여러 개 연동할 수 있나요?</h4>
+            <p className="text-sm text-slate-400">네, 플랜에 따라 여러 사이트를 연동할 수 있습니다. 무료 플랜은 1개, 유료 플랜은 무제한 사이트를 연동할 수 있습니다.</p>
+          </div>
+          <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700">
+            <h4 className="font-medium text-white mb-2">Q. 스크립트 설치 없이도 전환 추적이 가능한가요?</h4>
+            <p className="text-sm text-slate-400">네이버 스마트스토어, 카페24, 아임웹은 API 연동으로 스크립트 설치 없이 주문을 자동 수집합니다. 일반 웹사이트는 스크립트 설치가 필요합니다.</p>
+          </div>
+          <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700">
+            <h4 className="font-medium text-white mb-2">Q. 연동 후 데이터가 바로 수집되나요?</h4>
+            <p className="text-sm text-slate-400">연동 완료 후 발생하는 주문/전환부터 수집됩니다. 과거 데이터는 플랫폼에 따라 일부 수집될 수 있습니다.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+// 사이트 가이드 카드 컴포넌트
+function SiteGuideCard({
+  id,
+  icon,
+  title,
+  description,
+  isExpanded,
+  onToggle,
+  onConnect,
+  children
+}: {
+  id: string
+  icon: React.ReactNode
+  title: string
+  description: string
+  isExpanded: boolean
+  onToggle: () => void
+  onConnect?: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <div id={`site-${id}`} className={`bg-slate-900/50 rounded-xl border overflow-hidden transition-colors ${isExpanded ? 'border-blue-500/50' : 'border-slate-700/50'}`}>
+      <button
+        onClick={onToggle}
+        className="w-full p-4 flex items-center justify-between hover:bg-slate-800/50 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center">
+            {icon}
+          </div>
+          <div className="text-left">
+            <h3 className="text-white font-medium">{title}</h3>
+            <p className="text-slate-400 text-sm">{description}</p>
+          </div>
+        </div>
+        <svg
+          className={`w-5 h-5 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {isExpanded && (
+        <div className="p-4 pt-0 border-t border-slate-700/50">
+          <div className="pt-4">{children}</div>
+          {onConnect && (
+            <button
+              onClick={onConnect}
+              className="mt-4 w-full px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              이 사이트 연동하러 가기
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

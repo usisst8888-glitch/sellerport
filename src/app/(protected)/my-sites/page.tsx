@@ -78,7 +78,7 @@ const signupSites = [
   },
   {
     id: 'custom',
-    name: '일반 웹사이트',
+    name: '일반 웹사이트/블로그',
     description: '자체 제작 사이트',
     status: 'available',
   },
@@ -94,8 +94,18 @@ const dbSites = [
   },
   {
     id: 'custom',
-    name: '일반 웹사이트',
+    name: '일반 웹사이트/블로그',
     description: '자체 제작 사이트',
+    status: 'available',
+  },
+]
+
+// 전화 추적 사이트
+const callSites = [
+  {
+    id: 'custom',
+    name: '일반 웹사이트/블로그',
+    description: '전화 전환 추적',
     status: 'available',
   },
 ]
@@ -103,6 +113,7 @@ const dbSites = [
 export default function MySitesPage() {
   const searchParams = useSearchParams()
   const fromQuickStart = searchParams.get('from') === 'quick-start'
+  const connectParam = searchParams.get('connect')
 
   const [connectedSites, setConnectedSites] = useState<MySite[]>([])
   const [loading, setLoading] = useState(true)
@@ -118,6 +129,11 @@ export default function MySitesPage() {
   const [copiedSignupEventCode, setCopiedSignupEventCode] = useState(false)
   const [copiedDbEventCode, setCopiedDbEventCode] = useState(false)
   const [showCafe24Dialog, setShowCafe24Dialog] = useState(false)
+
+  // URL 파라미터로 열리는 다이얼로그 상태
+  const [showNaverDialog, setShowNaverDialog] = useState(false)
+  const [showImwebDialog, setShowImwebDialog] = useState(false)
+  const [showCustomDialog, setShowCustomDialog] = useState(false)
 
   const fetchMySites = async () => {
     const supabase = createClient()
@@ -140,6 +156,27 @@ export default function MySitesPage() {
   useEffect(() => {
     fetchMySites()
   }, [])
+
+  // URL 파라미터로 다이얼로그 자동 열기
+  useEffect(() => {
+    if (connectParam) {
+      switch (connectParam) {
+        case 'naver':
+          setShowNaverDialog(true)
+          break
+        case 'cafe24':
+          setShowCafe24Dialog(true)
+          break
+        case 'imweb':
+          setShowImwebDialog(true)
+          break
+        case 'custom':
+        case 'custom-shopping':
+          setShowCustomDialog(true)
+          break
+      }
+    }
+  }, [connectParam])
 
   // 메시지 3초 후 자동 제거
   useEffect(() => {
@@ -597,7 +634,11 @@ window.sellerport?.track('lead', {
               <div className="mt-3">
                 {site.status === 'available' ? (
                   site.id === 'naver' ? (
-                    <NaverConnectDialog onSuccess={fetchMySites}>
+                    <NaverConnectDialog
+                      onSuccess={fetchMySites}
+                      isOpen={showNaverDialog}
+                      onOpenChange={setShowNaverDialog}
+                    >
                       <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" size="sm">연동하기</Button>
                     </NaverConnectDialog>
                   ) : site.id === 'cafe24' ? (
@@ -609,7 +650,11 @@ window.sellerport?.track('lead', {
                       연동하기
                     </Button>
                   ) : site.id === 'imweb' ? (
-                    <ImwebConnectDialog onSuccess={fetchMySites}>
+                    <ImwebConnectDialog
+                      onSuccess={fetchMySites}
+                      isOpen={showImwebDialog}
+                      onOpenChange={setShowImwebDialog}
+                    >
                       <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" size="sm">연동하기</Button>
                     </ImwebConnectDialog>
                   ) : (
@@ -618,6 +663,8 @@ window.sellerport?.track('lead', {
                       siteName={site.name}
                       siteDescription={`${site.name} 쇼핑몰을 연동하고 광고 전환을 추적하세요`}
                       onSuccess={fetchMySites}
+                      isOpen={showCustomDialog}
+                      onOpenChange={setShowCustomDialog}
                     >
                       <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" size="sm">연동하기</Button>
                     </CustomSiteConnectDialog>
@@ -739,7 +786,7 @@ window.sellerport?.track('lead', {
               <div className="mt-3">
                 {site.status === 'available' ? (
                   site.id === 'imweb' ? (
-                    <ImwebConnectDialog onSuccess={fetchMySites}>
+                    <ImwebConnectDialog onSuccess={fetchMySites} guideExpandId="imweb-signup">
                       <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" size="sm">연동하기</Button>
                     </ImwebConnectDialog>
                   ) : (
@@ -779,7 +826,7 @@ window.sellerport?.track('lead', {
           </button>
         </div>
         <p className="text-sm text-slate-400 mb-4">
-          상담신청, 문의 등 DB 수집 전환을 추적합니다. 리드 획득 효율을 측정할 수 있습니다.
+          상담신청, 문의, 전화상담 등 DB 수집 전환을 추적합니다. 리드 획득 효율을 측정할 수 있습니다.
         </p>
 
         {/* DB 추적 코드 섹션 */}
@@ -870,7 +917,7 @@ window.sellerport?.track('lead', {
               <div className="mt-3">
                 {site.status === 'available' ? (
                   site.id === 'imweb' ? (
-                    <ImwebConnectDialog onSuccess={fetchMySites}>
+                    <ImwebConnectDialog onSuccess={fetchMySites} guideExpandId="imweb-db">
                       <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" size="sm">연동하기</Button>
                     </ImwebConnectDialog>
                   ) : (
@@ -884,6 +931,52 @@ window.sellerport?.track('lead', {
                       <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" size="sm">연동하기</Button>
                     </CustomSiteConnectDialog>
                   )
+                ) : (
+                  <Button className="w-full border-slate-600 text-slate-400" variant="outline" size="sm" disabled>
+                    준비 중
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 전화 추적 */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-4">
+          <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+          </svg>
+          <h2 className="text-lg font-semibold text-white">전화 추적</h2>
+          <span className="px-2 py-0.5 text-[10px] bg-green-500/20 text-green-400 rounded-full font-medium">추적 링크</span>
+        </div>
+        <p className="text-sm text-slate-400 mb-4">
+          추적 링크를 통해 광고별 전화 전환을 추적합니다. 어떤 광고에서 전화가 왔는지 정확히 파악할 수 있습니다.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {callSites.map((site) => (
+            <div
+              key={`call-${site.id}`}
+              className="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col"
+            >
+              <div className="flex flex-col items-center text-center flex-grow">
+                <Image src={siteLogos[site.id]} alt={site.name} width={48} height={48} className="rounded-lg mb-3" />
+                <h3 className="font-semibold text-white">{site.name}</h3>
+                <p className="text-xs text-slate-400 mb-2">{site.description}</p>
+              </div>
+              <div className="mt-3">
+                {site.status === 'available' ? (
+                  <CustomSiteConnectDialog
+                    siteType={site.id as 'custom'}
+                    siteName={site.name}
+                    siteDescription={`${site.name}에서 전화 전환을 추적하세요`}
+                    conversionType="call"
+                    onSuccess={fetchMySites}
+                  >
+                    <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" size="sm">연동하기</Button>
+                  </CustomSiteConnectDialog>
                 ) : (
                   <Button className="w-full border-slate-600 text-slate-400" variant="outline" size="sm" disabled>
                     준비 중

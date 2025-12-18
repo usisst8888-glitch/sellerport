@@ -1,16 +1,29 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { DialogFooter } from './dialog-footer'
 
 interface NaverConnectDialogProps {
-  children: React.ReactNode
+  children?: React.ReactNode
   onSuccess?: () => void
+  isOpen?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
-export function NaverConnectDialog({ children, onSuccess }: NaverConnectDialogProps) {
-  const [open, setOpen] = useState(false)
+export function NaverConnectDialog({ children, onSuccess, isOpen, onOpenChange }: NaverConnectDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
+
+  // 외부에서 제어하는 경우 isOpen 사용, 아니면 내부 상태 사용
+  const open = isOpen !== undefined ? isOpen : internalOpen
+  const setOpen = (value: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(value)
+    } else {
+      setInternalOpen(value)
+    }
+  }
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -88,23 +101,29 @@ export function NaverConnectDialog({ children, onSuccess }: NaverConnectDialogPr
 
   return (
     <>
-      <div onClick={() => setOpen(true)}>
-        {children}
-      </div>
+      {children && (
+        <div onClick={() => setOpen(true)}>
+          {children}
+        </div>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl bg-slate-800 border border-white/10 shadow-2xl">
             <div className="p-6 border-b border-white/5 flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z" fill="#03C75A"/>
-                </svg>
-                <h3 className="text-lg font-semibold text-white">네이버 스마트스토어 연동</h3>
+              <div className="flex items-center gap-3">
+                <Image
+                  src="/site_logo/smartstore.png"
+                  alt="네이버 스마트스토어"
+                  width={40}
+                  height={40}
+                  className="rounded-lg"
+                />
+                <div>
+                  <h3 className="text-lg font-semibold text-white">네이버 스마트스토어 연동</h3>
+                  <p className="text-sm text-slate-400">네이버 커머스API센터에서 발급받은 인증 정보를 입력하세요</p>
+                </div>
               </div>
-              <p className="text-sm text-slate-400 mt-1">
-                네이버 커머스API센터에서 발급받은 인증 정보를 입력하세요
-              </p>
             </div>
 
             <div className="p-6 space-y-4 overflow-y-auto flex-1">
@@ -188,9 +207,9 @@ export function NaverConnectDialog({ children, onSuccess }: NaverConnectDialogPr
               <div className="p-3 rounded-xl bg-slate-900/50">
                 <p className="text-xs text-slate-400 font-medium mb-2">필요한 API 권한</p>
                 <ul className="text-xs text-slate-500 space-y-1">
-                  <li>- 주문 정보 조회 (정기배송 주문 포함)</li>
+                  <li>- 주문 정보 조회</li>
                   <li>- 상품 정보 조회</li>
-                  <li>- 고객 정보 조회 (구독자 관리용)</li>
+                  <li>- 정산 정보 조회</li>
                 </ul>
               </div>
             </div>
@@ -203,6 +222,7 @@ export function NaverConnectDialog({ children, onSuccess }: NaverConnectDialogPr
               onSubmit={handleConnect}
               loading={loading}
               disabled={!storeName.trim() || !storeId.trim() || !clientId.trim() || !clientSecret.trim()}
+              guideUrl="/guide?tab=mysites&expand=naver"
             />
           </div>
         </div>

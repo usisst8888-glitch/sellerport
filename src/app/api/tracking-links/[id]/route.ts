@@ -65,10 +65,10 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { name, status, targetUrl, adSpend, productId, targetRoasGreen, targetRoasYellow } = body
+    const { utm_campaign, status, targetUrl, adSpend, productId, targetRoasGreen, targetRoasYellow } = body
 
     const updateData: Record<string, unknown> = {}
-    if (name !== undefined) updateData.name = name
+    if (utm_campaign !== undefined) updateData.utm_campaign = utm_campaign
     if (status !== undefined) updateData.status = status
     if (targetUrl !== undefined) updateData.target_url = targetUrl
     if (adSpend !== undefined) updateData.ad_spend = adSpend

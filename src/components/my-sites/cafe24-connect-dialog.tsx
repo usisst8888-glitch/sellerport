@@ -124,6 +124,7 @@ export function Cafe24ConnectDialog({ isOpen, onClose, onSuccess }: Cafe24Connec
           onSubmit={handleConnect}
           loading={loading}
           disabled={!mallId.trim()}
+          guideUrl="/guide?tab=mysites&expand=cafe24"
         />
       </div>
     </div>

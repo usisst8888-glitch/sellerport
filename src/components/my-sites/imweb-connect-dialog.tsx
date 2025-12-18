@@ -4,13 +4,26 @@ import { useState } from 'react'
 import Image from 'next/image'
 
 interface ImwebConnectDialogProps {
-  children: React.ReactNode
+  children?: React.ReactNode
   onSuccess?: () => void
+  isOpen?: boolean
+  onOpenChange?: (open: boolean) => void
+  guideExpandId?: string  // 가이드 드롭다운 ID (기본값: 'imweb')
 }
 
-export function ImwebConnectDialog({ children, onSuccess }: ImwebConnectDialogProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export function ImwebConnectDialog({ children, onSuccess, isOpen: externalIsOpen, onOpenChange, guideExpandId = 'imweb' }: ImwebConnectDialogProps) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  // 외부에서 제어하는 경우 externalIsOpen 사용, 아니면 내부 상태 사용
+  const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen
+  const setIsOpen = (value: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(value)
+    } else {
+      setInternalIsOpen(value)
+    }
+  }
 
   const handleConnect = async () => {
     setLoading(true)
@@ -20,7 +33,9 @@ export function ImwebConnectDialog({ children, onSuccess }: ImwebConnectDialogPr
 
   return (
     <>
-      <div onClick={() => setIsOpen(true)}>{children}</div>
+      {children && (
+        <div onClick={() => setIsOpen(true)}>{children}</div>
+      )}
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
@@ -107,39 +122,52 @@ export function ImwebConnectDialog({ children, onSuccess }: ImwebConnectDialogPr
                   </span>
                 </p>
               </div>
-            </div>
+
+              </div>
 
             {/* 푸터 */}
-            <div className="p-6 border-t border-white/5 flex gap-3">
+            <div className="p-6 border-t border-white/5">
               <button
-                onClick={() => setIsOpen(false)}
-                disabled={loading}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-slate-300 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                type="button"
+                onClick={() => window.open(`/guide?tab=mysites&expand=${guideExpandId}`, '_blank')}
+                className="w-full mb-3 px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors flex items-center justify-center gap-2"
               >
-                취소
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                연동 방법 자세히 보기
               </button>
-              <button
-                onClick={handleConnect}
-                disabled={loading}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    <span>연결 중...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                    </svg>
-                    <span>아임웹으로 연동하기</span>
-                  </>
-                )}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setIsOpen(false)}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-slate-300 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleConnect}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      <span>연결 중...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      </svg>
+                      <span>아임웹으로 연동하기</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
