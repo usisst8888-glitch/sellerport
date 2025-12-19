@@ -60,6 +60,27 @@ export interface NaverStatRecord {
   cpc?: number          // CPC
 }
 
+// 키워드별 통계 (스마트스토어 전환 포함)
+export interface NaverKeywordStatRecord {
+  campaignId: string
+  campaignName?: string
+  adgroupId: string
+  adgroupName?: string
+  keywordId: string
+  keyword: string       // 키워드 텍스트
+  statDt: string        // YYYY-MM-DD
+  impCnt: number        // 노출수
+  clkCnt: number        // 클릭수
+  salesAmt: number      // 광고비 (원)
+  ccnt: number          // 전환수 (스마트스토어 자동 연동)
+  convAmt: number       // 전환 매출액
+  crto: number          // 전환율 (%)
+  ror: number           // ROAS (%)
+  avgRnk: number        // 평균 게재 순위
+  ctr: number           // CTR (%)
+  cpc: number           // CPC (원)
+}
+
 export interface NaverBizMoney {
   customerId: number
   budget: number
@@ -171,38 +192,105 @@ export class NaverSearchAdsAPI {
   }
 
   /**
-   * 일별 통계 조회
-   * @param dateStart 시작일 (YYYY-MM-DD)
-   * @param dateEnd 종료일 (YYYY-MM-DD)
-   * @param ids 캠페인/광고그룹/키워드 ID 목록
-   * @param fields 조회할 필드 목록
-   * @param timeIncrement 시간 단위 (allDays: 전체, 1: 일별)
+   * 마스터 리포트 생성 요청
+   * 네이버 검색광고 API에서 통계를 조회하려면 Report API를 사용해야 함
+   * @param reportType 리포트 타입 (AD, AD_DETAIL, KEYWORD, etc.)
+   * @param dateStart 시작일 (YYYYMMDD)
+   * @param dateEnd 종료일 (YYYYMMDD)
    */
-  async getStats(
+  async createReport(
+    reportType: 'AD' | 'AD_DETAIL' | 'KEYWORD' | 'AD_CONVERSION' | 'AD_EXTENSION',
     dateStart: string,
-    dateEnd: string,
-    ids: string[],
-    fields: string[] = ['impCnt', 'clkCnt', 'salesAmt', 'ctr', 'cpc'],
-    timeIncrement: 'allDays' | '1' = '1'
-  ): Promise<{ data: NaverStatRecord[] }> {
-    const path = '/stats'
+    dateEnd: string
+  ): Promise<{ reportJobId: string }> {
+    const path = '/ncc/reports'
+
+    // 날짜 형식 변환 (YYYY-MM-DD -> YYYYMMDD)
+    const statDt = dateStart.replace(/-/g, '')
+    const endDt = dateEnd.replace(/-/g, '')
 
     const body = {
-      id: ids,
-      fields,
-      timeRange: {
-        since: dateStart,
-        until: dateEnd,
-      },
-      datePreset: 'custom',
-      timeIncrement,
+      reportTp: reportType,
+      statDt,
+      endDt,
     }
 
-    return this.request<{ data: NaverStatRecord[] }>('POST', path, body)
+    return this.request<{ reportJobId: string }>('POST', path, body)
   }
 
   /**
-   * 캠페인별 일별 통계 조회 (간편 메서드)
+   * 리포트 상태 확인
+   */
+  async getReportStatus(reportJobId: string): Promise<{
+    status: 'REGIST' | 'RUNNING' | 'BUILT' | 'ERROR'
+    reportJobId: string
+    downloadUrl?: string
+  }> {
+    const path = `/ncc/reports/${reportJobId}`
+    return this.request('GET', path)
+  }
+
+  /**
+   * 리포트 다운로드 (TSV 형식)
+   */
+  async downloadReport(downloadUrl: string): Promise<NaverStatRecord[]> {
+    const response = await fetch(downloadUrl)
+    if (!response.ok) {
+      throw new NaverSearchAdsError('리포트 다운로드 실패', response.status)
+    }
+
+    const text = await response.text()
+    return this.parseReportTsv(text)
+  }
+
+  /**
+   * TSV 리포트 파싱
+   */
+  private parseReportTsv(tsv: string): NaverStatRecord[] {
+    const lines = tsv.trim().split('\n')
+    if (lines.length < 2) return []
+
+    const headers = lines[0].split('\t')
+    const records: NaverStatRecord[] = []
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split('\t')
+      const record: Record<string, string | number> = {}
+
+      headers.forEach((header, index) => {
+        const value = values[index] || ''
+        // 숫자 필드 변환
+        if (['impCnt', 'clkCnt', 'salesAmt', 'ccnt', 'viewCnt'].includes(header)) {
+          record[header] = parseInt(value) || 0
+        } else if (['ctr', 'cpc', 'crto', 'ror', 'cpConv', 'avgRnk'].includes(header)) {
+          record[header] = parseFloat(value) || 0
+        } else {
+          record[header] = value
+        }
+      })
+
+      // 캠페인 ID와 날짜가 있는 경우만 추가
+      if (record.nccCampaignId || record.campaignId) {
+        records.push({
+          campaignId: (record.nccCampaignId || record.campaignId) as string,
+          statDt: (record.statDt || record.date) as string,
+          impCnt: (record.impCnt || 0) as number,
+          clkCnt: (record.clkCnt || 0) as number,
+          salesAmt: (record.salesAmt || record.cost || 0) as number,
+          ccnt: (record.ccnt || 0) as number,
+          ctr: (record.ctr || 0) as number,
+          cpc: (record.cpc || 0) as number,
+          avgRnk: (record.avgRnk || 0) as number,
+        })
+      }
+    }
+
+    return records
+  }
+
+  /**
+   * 캠페인별 일별 통계 조회 (Report API 사용)
+   * Report API 흐름: 생성 요청 -> 상태 확인 (BUILT까지 대기) -> 다운로드
    */
   async getCampaignStats(
     campaignIds: string[],
@@ -213,15 +301,84 @@ export class NaverSearchAdsAPI {
       return []
     }
 
-    const result = await this.getStats(
-      dateStart,
-      dateEnd,
-      campaignIds,
-      ['impCnt', 'clkCnt', 'salesAmt', 'ctr', 'cpc', 'avgRnk'],
-      '1'
-    )
+    try {
+      // 1. 리포트 생성 요청
+      const { reportJobId } = await this.createReport('AD', dateStart, dateEnd)
 
-    return result.data || []
+      // 2. 리포트 빌드 완료까지 대기 (최대 30초)
+      let status = 'REGIST'
+      let downloadUrl = ''
+      let attempts = 0
+      const maxAttempts = 15
+
+      while (status !== 'BUILT' && status !== 'ERROR' && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 2000)) // 2초 대기
+        const reportStatus = await this.getReportStatus(reportJobId)
+        status = reportStatus.status
+        if (reportStatus.downloadUrl) {
+          downloadUrl = reportStatus.downloadUrl
+        }
+        attempts++
+      }
+
+      if (status === 'ERROR') {
+        throw new NaverSearchAdsError('리포트 생성 실패', 500)
+      }
+
+      if (!downloadUrl) {
+        throw new NaverSearchAdsError('리포트 다운로드 URL을 찾을 수 없습니다', 500)
+      }
+
+      // 3. 리포트 다운로드 및 파싱
+      const records = await this.downloadReport(downloadUrl)
+
+      // 4. 요청된 캠페인 ID에 해당하는 데이터만 필터링
+      const campaignIdSet = new Set(campaignIds)
+      return records.filter(r => campaignIdSet.has(r.campaignId))
+
+    } catch (error) {
+      // Report API 실패 시 대체 방법 시도 (Stat API)
+      console.warn('Report API failed, trying Stat API:', error)
+      return this.getCampaignStatsLegacy(campaignIds, dateStart, dateEnd)
+    }
+  }
+
+  /**
+   * 캠페인별 통계 조회 (레거시 Stat API - 백업용)
+   */
+  private async getCampaignStatsLegacy(
+    campaignIds: string[],
+    dateStart: string,
+    dateEnd: string
+  ): Promise<NaverStatRecord[]> {
+    const path = '/stats'
+
+    // 각 캠페인별로 개별 요청
+    const allStats: NaverStatRecord[] = []
+
+    for (const campaignId of campaignIds) {
+      try {
+        const body = {
+          id: campaignId,
+          fields: ['impCnt', 'clkCnt', 'salesAmt', 'ctr', 'cpc', 'avgRnk'],
+          timeRange: {
+            since: dateStart,
+            until: dateEnd,
+          },
+          datePreset: 'custom',
+          timeIncrement: '1',
+        }
+
+        const result = await this.request<{ data: NaverStatRecord[] }>('POST', path, body)
+        if (result.data) {
+          allStats.push(...result.data)
+        }
+      } catch (err) {
+        console.error(`Failed to get stats for campaign ${campaignId}:`, err)
+      }
+    }
+
+    return allStats
   }
 
   /**
@@ -244,6 +401,110 @@ export class NaverSearchAdsAPI {
       }
       return { valid: false, message: '알 수 없는 오류가 발생했습니다' }
     }
+  }
+
+  /**
+   * 키워드별 통계 조회 (KEYWORD Report API 사용)
+   * 스마트스토어 전환 데이터 포함
+   */
+  async getKeywordStats(
+    dateStart: string,
+    dateEnd: string
+  ): Promise<NaverKeywordStatRecord[]> {
+    try {
+      // 1. 키워드 리포트 생성 요청
+      const { reportJobId } = await this.createReport('KEYWORD', dateStart, dateEnd)
+
+      // 2. 리포트 빌드 완료까지 대기 (최대 30초)
+      let status = 'REGIST'
+      let downloadUrl = ''
+      let attempts = 0
+      const maxAttempts = 15
+
+      while (status !== 'BUILT' && status !== 'ERROR' && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 2000)) // 2초 대기
+        const reportStatus = await this.getReportStatus(reportJobId)
+        status = reportStatus.status
+        if (reportStatus.downloadUrl) {
+          downloadUrl = reportStatus.downloadUrl
+        }
+        attempts++
+      }
+
+      if (status === 'ERROR') {
+        throw new NaverSearchAdsError('키워드 리포트 생성 실패', 500)
+      }
+
+      if (!downloadUrl) {
+        throw new NaverSearchAdsError('키워드 리포트 다운로드 URL을 찾을 수 없습니다', 500)
+      }
+
+      // 3. 리포트 다운로드 및 파싱
+      const response = await fetch(downloadUrl)
+      if (!response.ok) {
+        throw new NaverSearchAdsError('키워드 리포트 다운로드 실패', response.status)
+      }
+
+      const text = await response.text()
+      return this.parseKeywordReportTsv(text)
+
+    } catch (error) {
+      console.error('Keyword Report API failed:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 키워드 TSV 리포트 파싱
+   */
+  private parseKeywordReportTsv(tsv: string): NaverKeywordStatRecord[] {
+    const lines = tsv.trim().split('\n')
+    if (lines.length < 2) return []
+
+    const headers = lines[0].split('\t')
+    const records: NaverKeywordStatRecord[] = []
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split('\t')
+      const record: Record<string, string | number> = {}
+
+      headers.forEach((header, index) => {
+        const value = values[index] || ''
+        // 숫자 필드 변환
+        if (['impCnt', 'clkCnt', 'salesAmt', 'ccnt', 'convAmt'].includes(header)) {
+          record[header] = parseInt(value) || 0
+        } else if (['ctr', 'cpc', 'crto', 'ror', 'avgRnk'].includes(header)) {
+          record[header] = parseFloat(value) || 0
+        } else {
+          record[header] = value
+        }
+      })
+
+      // 키워드 ID가 있는 경우만 추가
+      if (record.nccKeywordId || record.keywordId) {
+        records.push({
+          campaignId: (record.nccCampaignId || record.campaignId || '') as string,
+          campaignName: (record.campaignName || record.nccCampaignName || '') as string,
+          adgroupId: (record.nccAdgroupId || record.adgroupId || '') as string,
+          adgroupName: (record.adgroupName || record.nccAdgroupName || '') as string,
+          keywordId: (record.nccKeywordId || record.keywordId) as string,
+          keyword: (record.keyword || record.kwdText || '') as string,
+          statDt: (record.statDt || record.date || '') as string,
+          impCnt: (record.impCnt || 0) as number,
+          clkCnt: (record.clkCnt || 0) as number,
+          salesAmt: (record.salesAmt || record.cost || 0) as number,
+          ccnt: (record.ccnt || record.convCnt || 0) as number,
+          convAmt: (record.convAmt || record.convValue || 0) as number,
+          crto: (record.crto || record.convRate || 0) as number,
+          ror: (record.ror || record.roas || 0) as number,
+          avgRnk: (record.avgRnk || record.avgPosition || 0) as number,
+          ctr: (record.ctr || 0) as number,
+          cpc: (record.cpc || 0) as number,
+        })
+      }
+    }
+
+    return records
   }
 }
 

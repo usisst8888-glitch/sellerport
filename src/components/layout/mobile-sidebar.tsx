@@ -27,23 +27,14 @@ const menuItems: MenuItem[] = [
     badge: '🚦',
   },
   {
-    title: '내 사이트 연동',
-    href: '/my-sites',
+    title: '빠른 시작',
+    href: '/quick-start',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
       </svg>
     ),
-  },
-  {
-    title: '광고 채널 연동',
-    href: '/ad-channels',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-      </svg>
-    ),
+    badge: '시작하기',
   },
   {
     title: '전환 추적 관리',
@@ -55,22 +46,13 @@ const menuItems: MenuItem[] = [
     ),
     badge: '분석핵심',
   },
-  // 수익 계산 메뉴 - 정식 오픈 후 활성화 예정
-  // {
-  //   title: '수익 계산',
-  //   href: '/profit',
-  //   icon: (
-  //     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-  //       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-  //     </svg>
-  //   ),
-  // },
   {
-    title: '상품 관리',
-    href: '/products',
+    title: '광고 채널 관리',
+    href: '/ad-channels',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
       </svg>
     ),
   },
@@ -225,7 +207,9 @@ export function MobileSidebar() {
                       "ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full",
                       item.badge === '분석핵심'
                         ? 'bg-red-500 text-white'
-                        : ''
+                        : item.badge === '시작하기'
+                          ? 'bg-green-500 text-white'
+                          : ''
                     )}>
                       {item.badge}
                     </span>

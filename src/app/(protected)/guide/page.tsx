@@ -890,7 +890,8 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
   }
 
   const handleConnect = (channelId: string) => {
-    router.push(`/ad-channels?connect=${channelId}`)
+    // 빠른시작 STEP 4로 이동하면서 해당 채널 선택
+    router.push(`/quick-start?step=4&channel=${channelId}`)
   }
 
   return (
@@ -1673,7 +1674,7 @@ function FAQContent() {
     },
     {
       question: '클릭은 되는데 전환이 안 잡혀요',
-      answer: '전환 추적은 네이버 스마트스토어 연동이 필요합니다. 내 사이트 연동 메뉴에서 스토어를 연결하면 주문 데이터가 자동으로 연동됩니다.',
+      answer: '전환 추적은 네이버 스마트스토어 연동이 필요합니다. 빠른 시작에서 스토어를 연결하면 주문 데이터가 자동으로 연동됩니다.',
     },
     {
       question: 'ROAS가 정확한가요?',

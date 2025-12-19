@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     if (syncType === 'all' || syncType === 'orders') {
       try {
         const ordersResponse = await naverClient.getNewOrders()
-        const orders = ordersResponse.data?.contents || []
+        const orders = ordersResponse?.data?.contents || []
 
         // 정산 정보를 조회할 상품주문번호 수집
         const productOrderIds: string[] = []
@@ -254,7 +254,13 @@ export async function POST(request: NextRequest) {
           }
         }
       } catch (err) {
-        console.error('Orders fetch error:', err)
+        // 404는 주문이 없는 경우일 수 있으므로 경고만 출력
+        const errorMsg = err instanceof Error ? err.message : String(err)
+        if (errorMsg.includes('404')) {
+          console.log('주문 조회: 최근 7일간 주문 없음 또는 API 접근 불가')
+        } else {
+          console.error('Orders fetch error:', err)
+        }
       }
     }
 

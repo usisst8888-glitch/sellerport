@@ -692,9 +692,9 @@ export default function AdChannelsPage() {
 
       {/* 헤더 */}
       <div>
-        <h1 className="text-2xl font-bold text-white">광고 채널 연동</h1>
+        <h1 className="text-2xl font-bold text-white">광고 채널 관리</h1>
         <p className="mt-1 text-sm text-slate-400">
-          광고 채널을 연동하면 광고비가 자동으로 수집되어 ROAS가 실시간으로 계산됩니다
+          연동된 광고 채널을 관리하고 광고비 수집 상태를 확인하세요
         </p>
       </div>
 
