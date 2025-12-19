@@ -50,7 +50,6 @@ export default function QuickStartPage() {
   // Step 2: 사이트 연동
   const [siteType, setSiteType] = useState<SiteType>(null)
   const [siteUrl, setSiteUrl] = useState('')
-  const [phoneNumber, setPhoneNumber] = useState('')
   const [connectedSites, setConnectedSites] = useState<MySite[]>([])
   const [selectedSiteId, setSelectedSiteId] = useState<string>('')
 
@@ -224,9 +223,14 @@ export default function QuickStartPage() {
   // Step 2에서 다음으로
   const handleStep2Next = () => {
     if (conversionGoal === 'call') {
-      if (!phoneNumber) return
-      // 전화 추적은 사이트 연동 없이 바로 광고 채널 선택으로
-      setTargetUrl(`tel:${phoneNumber.replace(/-/g, '')}`)
+      // 새 사이트 연동이 필요한 경우 (custom 선택, selectedSiteId 없음)
+      if (siteType && !selectedSiteId) {
+        setShowSiteConnectForm(true)
+        setSiteConnectStep('form')
+        return
+      }
+      // 기존 사이트 선택된 경우
+      if (!selectedSiteId) return
       setCurrentStep(3)
     } else if (conversionGoal === 'shopping') {
       // 새 사이트 연동이 필요한 경우 (siteType 선택, selectedSiteId 없음)
@@ -937,17 +941,81 @@ window.sellerport?.track('conversion', {
             </div>
           )}
 
-          {/* 전화연결: 전화번호 입력 */}
+          {/* 전화연결: 사이트 선택 */}
           {conversionGoal === 'call' && (
             <div className="mb-6">
-              <label className="block text-sm font-medium text-slate-300 mb-2">전화번호</label>
-              <input
-                type="tel"
-                placeholder="010-1234-5678"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(formatPhoneNumber(e.target.value))}
-                className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-600 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
-              />
+              {/* 연동된 사이트가 있으면 선택 가능 */}
+              {connectedSites.length > 0 && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-300 mb-2">연동된 사이트</label>
+                  <div className="space-y-2">
+                    {connectedSites.map((site) => (
+                      <button
+                        key={site.id}
+                        onClick={() => {
+                          setSelectedSiteId(site.id)
+                          setSiteType(null)
+                        }}
+                        className={`w-full p-4 rounded-xl border-2 transition-all text-left flex items-center gap-3 ${
+                          selectedSiteId === site.id
+                            ? 'border-blue-500 bg-blue-500/10'
+                            : 'border-slate-600 hover:border-slate-500 bg-slate-900/50'
+                        }`}
+                      >
+                        <img
+                          src={
+                            site.site_type === 'naver' ? '/site_logo/smartstore.png' :
+                            site.site_type === 'cafe24' ? '/site_logo/cafe24.png' :
+                            site.site_type === 'imweb' ? '/site_logo/imweb.png' :
+                            '/site_logo/own_site.png'
+                          }
+                          alt={site.site_type}
+                          className="w-10 h-10 object-contain rounded-lg"
+                        />
+                        <div>
+                          <div className="font-medium text-white">{site.name}</div>
+                          <div className="text-xs text-slate-400">
+                            {site.site_type === 'naver' && '네이버 스마트스토어'}
+                            {site.site_type === 'cafe24' && '카페24'}
+                            {site.site_type === 'imweb' && '아임웹'}
+                            {site.site_type === 'custom' && '자체 제작 사이트'}
+                          </div>
+                        </div>
+                        {selectedSiteId === site.id && (
+                          <span className="ml-auto text-xs bg-blue-500 text-white px-2 py-1 rounded">선택됨</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 새 사이트 연동 섹션 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  {connectedSites.length > 0 ? '또는 새 사이트 연동' : '사이트 선택'}
+                </label>
+                <div className="grid grid-cols-1 gap-3">
+                  {/* 일반 웹사이트/블로그 */}
+                  <button
+                    onClick={() => {
+                      setSiteType('custom')
+                      setSelectedSiteId('')
+                    }}
+                    className={`p-4 rounded-xl border-2 transition-all flex items-center gap-3 ${
+                      siteType === 'custom'
+                        ? 'border-blue-500 bg-blue-500/10'
+                        : 'border-slate-600 hover:border-slate-500 bg-slate-900/50'
+                    }`}
+                  >
+                    <img src="/site_logo/own_site.png" alt="자체몰" className="w-10 h-10 object-contain rounded-lg" />
+                    <div className="text-left">
+                      <div className="text-sm font-medium text-white">일반 웹사이트/블로그</div>
+                      <div className="text-xs text-slate-400">전화 전환 추적</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -963,7 +1031,7 @@ window.sellerport?.track('conversion', {
               disabled={
                 (conversionGoal === 'shopping' && !selectedSiteId && !siteType) ||
                 ((conversionGoal === 'signup' || conversionGoal === 'consultation') && !siteUrl && !selectedSiteId && !siteType) ||
-                (conversionGoal === 'call' && !phoneNumber)
+                (conversionGoal === 'call' && !selectedSiteId && !siteType)
               }
               className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-medium rounded-xl transition-colors"
             >
@@ -1244,43 +1312,65 @@ window.sellerport?.track('conversion', {
               <div className="mb-6 flex items-center gap-3">
                 <Image src="/site_logo/own_site.png" alt="자체몰" width={40} height={40} className="rounded-lg" />
                 <div>
-                  <h2 className="text-lg font-semibold text-white">자체몰 연동</h2>
-                  <p className="text-sm text-slate-400">스크립트 설치로 전환을 추적하세요</p>
+                  <h2 className="text-lg font-semibold text-white">
+                    {conversionGoal === 'call' ? '전화 추적 연동' : '자체몰 연동'}
+                  </h2>
+                  <p className="text-sm text-slate-400">
+                    {conversionGoal === 'call' ? '전화번호를 등록하고 전환을 추적하세요' : '스크립트 설치로 전환을 추적하세요'}
+                  </p>
                 </div>
               </div>
 
               <div className="space-y-4 mb-6">
-                <div className="p-4 rounded-xl bg-slate-900/50 border border-white/10">
-                  <p className="text-sm font-medium text-white mb-2">연동 방법</p>
-                  <ol className="text-sm text-slate-400 space-y-1 list-decimal list-inside">
-                    <li>사이트 정보 입력</li>
-                    <li>추적 스크립트 복사</li>
-                    <li>쇼핑몰 관리자에서 스크립트 설치</li>
-                  </ol>
-                </div>
+                {conversionGoal !== 'call' && (
+                  <div className="p-4 rounded-xl bg-slate-900/50 border border-white/10">
+                    <p className="text-sm font-medium text-white mb-2">연동 방법</p>
+                    <ol className="text-sm text-slate-400 space-y-1 list-decimal list-inside">
+                      <li>사이트 정보 입력</li>
+                      <li>추적 스크립트 복사</li>
+                      <li>쇼핑몰 관리자에서 스크립트 설치</li>
+                    </ol>
+                  </div>
+                )}
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">사이트 별칭 *</label>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    {conversionGoal === 'call' ? '추적 이름 *' : '사이트 별칭 *'}
+                  </label>
                   <input
                     type="text"
-                    placeholder="예: 내 회사 홈페이지"
+                    placeholder={conversionGoal === 'call' ? '예: 대표 전화번호' : '예: 내 회사 홈페이지'}
                     value={siteName}
                     onChange={(e) => setSiteName(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">사이트 주소 *</label>
-                  <input
-                    type="text"
-                    placeholder="example.com"
-                    value={siteConnectUrl}
-                    onChange={(e) => setSiteConnectUrl(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">웹사이트 주소를 입력하세요 (예: mysite.com)</p>
-                </div>
+                {conversionGoal === 'call' ? (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">전화번호 *</label>
+                    <input
+                      type="tel"
+                      placeholder="010-1234-5678"
+                      value={siteConnectPhone}
+                      onChange={(e) => setSiteConnectPhone(formatPhoneNumber(e.target.value))}
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">추적할 전화번호를 입력하세요</p>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">사이트 주소 *</label>
+                    <input
+                      type="text"
+                      placeholder="example.com"
+                      value={siteConnectUrl}
+                      onChange={(e) => setSiteConnectUrl(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">웹사이트 주소를 입력하세요 (예: mysite.com)</p>
+                  </div>
+                )}
 
                 {connectError && (
                   <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20">
@@ -1291,9 +1381,19 @@ window.sellerport?.track('conversion', {
                 <div className="p-3 rounded-xl bg-slate-900/50">
                   <p className="text-xs text-slate-400 font-medium mb-2">연동 후 사용 가능한 기능</p>
                   <ul className="text-xs text-slate-500 space-y-1">
-                    <li>- 광고 클릭 → 구매 전환 추적</li>
-                    <li>- ROAS (광고비 대비 매출) 계산</li>
-                    <li>- 광고 채널별 성과 분석</li>
+                    {conversionGoal === 'call' ? (
+                      <>
+                        <li>- 광고별 전화 전환 추적</li>
+                        <li>- 어떤 광고에서 전화가 왔는지 파악</li>
+                        <li>- 전화 전환 ROAS 계산</li>
+                      </>
+                    ) : (
+                      <>
+                        <li>- 광고 클릭 → 구매 전환 추적</li>
+                        <li>- ROAS (광고비 대비 매출) 계산</li>
+                        <li>- 광고 채널별 성과 분석</li>
+                      </>
+                    )}
                   </ul>
                 </div>
               </div>
@@ -1537,9 +1637,11 @@ window.sellerport?.track('conversion', {
           {/* 목적지 URL 표시 (쇼핑 외) */}
           {conversionGoal !== 'shopping' && (
             <div className="mb-6">
-              <label className="block text-sm font-medium text-slate-300 mb-2">목적지 URL</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                {conversionGoal === 'call' ? '추적 전화번호' : '목적지 URL'}
+              </label>
               <div className="px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-600 text-slate-300 text-sm break-all">
-                {targetUrl || siteUrl || phoneNumber}
+                {targetUrl || siteUrl || siteConnectPhone}
               </div>
             </div>
           )}
