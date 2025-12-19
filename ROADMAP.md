@@ -217,12 +217,19 @@ tracking_link_clicks (추적 링크 클릭 로그)
 ├── is_converted, converted_at
 └── created_at
 
-campaigns (광고 캠페인 - Meta/네이버 광고 캠페인 관리)
+ad_channels (광고 채널 연동 - Meta/네이버/구글 등 광고 플랫폼)
 ├── id, user_id
-├── tracking_link_id → tracking_links.id
-├── spent (광고비)
-├── clicks, conversions, revenue
-└── roas (ROAS %)
+├── channel_type (meta, google, naver_search, naver_gfa...)
+├── access_token, refresh_token
+├── account_id, account_name
+└── status, last_sync_at
+
+ad_spend_daily (일별 광고비 - 캠페인/키워드/광고소재 레벨)
+├── id, ad_channel_id, user_id
+├── campaign_id, campaign_name
+├── adset_id, adgroup_id, keyword_id, ad_id
+├── date, spend, impressions, clicks, conversions, conversion_value
+└── raw_data
 
 products (상품 목록 - 연동된 플랫폼의 상품 정보)
 ├── id, user_id
@@ -334,7 +341,7 @@ influencer_stats (인플루언서 효율 DB)
 | 전환 추적 (`/conversions`) | ✅ 완료 | 추적 링크 생성, 슬롯 관리 UI |
 | 수익 계산 (`/profit`) | ✅ 완료 | 마진 계산기 UI |
 | 알림 관리 (`/alerts`) | ✅ 완료 | 빨간불/노란불 알림 내역, 알림 설정 |
-| 내 사이트 연동 (`/my-sites`) | ✅ 완료 | 네이버 API 키 입력 방식 + 자체 사이트 추적 코드 |
+| 빠른시작 (`/quick-start`) | ✅ 완료 | 5단계 온보딩, 사이트/광고채널 연동, 추적링크 생성 |
 | 광고 채널 연동 (`/ad-channels`) | ✅ 완료 | Meta, 네이버 검색광고 연동 완료 (Google, 카카오 등 추가 예정) |
 | 디자이너 연결 (`/designers`) | ✅ 완료 | 디자이너 목록, 문의 모달 |
 | 결제 관리 (`/billing`) | ✅ 완료 | 구독 관리, 알림 충전 (15원/건) |
@@ -452,7 +459,7 @@ FLOW.md 기반으로 5단계 온보딩 마법사를 구현 중입니다.
 2. **STEP 2: 판매처/사이트 연동**
    - 연동된 사이트 목록 표시 및 선택 가능
    - 새 사이트 연동 옵션 (네이버, 카페24, 아임웹, 자체몰)
-   - 회원가입/상담신청: 아임웹, 일반 웹사이트/블로그 옵션 (my-sites 페이지와 동일하게 통일)
+   - 회원가입/상담신청: 아임웹, 일반 웹사이트/블로그 옵션
 
 3. **STEP 2.5: 사이트 연동 폼 (inline)**
    - 새 사이트 선택 시 페이지 내 inline으로 연동 폼 표시
@@ -523,34 +530,6 @@ FLOW.md 기반으로 5단계 온보딩 마법사를 구현 중입니다.
 |------|----------|
 | `/components/layout/sidebar.tsx` | 광고 채널 관리 메뉴 항목 제거 |
 | `/components/layout/mobile-sidebar.tsx` | 광고 채널 관리 메뉴 항목 제거 |
-
----
-
-### 내 사이트 연동 페이지 UI 개선
-
-"자체몰 사이트"와 "자체 제작 사이트/일반 웹사이트" 섹션을 "내 웹사이트"로 통합하여 브릿지샵 사용 여부로만 구분하도록 개선했습니다.
-
-#### 변경 사항
-
-| 이전 | 이후 |
-|------|------|
-| 외부 마켓플레이스 (브릿지샵 필요) | 외부 마켓플레이스 (브릿지샵 필요) - 유지 |
-| 자체몰 사이트 (직접 추적) | 내 웹사이트 (직접 추적)로 통합 |
-| 자체 제작 사이트 / 일반 웹사이트 (별도 섹션) | 내 웹사이트에 통합 |
-
-#### 내 웹사이트 섹션 구성
-
-| 사이트 | 설명 |
-|--------|------|
-| 카페24 | 쇼핑몰 솔루션 |
-| 아임웹 | 쇼핑몰 솔루션 |
-| 고도몰 | 쇼핑몰 솔루션 |
-| 메이크샵 | 쇼핑몰 솔루션 |
-| 일반 웹사이트 | 워드프레스, Wix 등 |
-
-- 5개 카드를 한 줄에 표시 (lg:grid-cols-5)
-- 추적 코드 보기 버튼은 우측 상단으로 이동
-- 사용자 혼란 방지를 위해 브릿지샵 사용 여부로만 구분
 
 ---
 
@@ -733,20 +712,6 @@ K/M 표기법(예: 60K)을 사용하지 않고 전체 숫자로 표시하도록 
 | `/components/ad-channels/tiktok-ads-connect-dialog.tsx` | TikTok Ads 연동 다이얼로그 |
 | `/components/ad-channels/tiktok-connect-dialog.tsx` | TikTok 계정 연동 다이얼로그 |
 | `/components/ad-channels/youtube-connect-dialog.tsx` | YouTube 연동 다이얼로그 |
-
----
-
-### 내 사이트 연동 다이얼로그 컴포넌트 추가
-
-내 사이트 연동 페이지(`/my-sites`)에서 사용할 연동 다이얼로그 컴포넌트들을 추가했습니다.
-
-#### 생성된 파일
-
-| 파일 | 설명 |
-|------|------|
-| `/components/my-sites/coupang-connect-dialog.tsx` | 쿠팡 Wing API 연동 다이얼로그 |
-| `/components/my-sites/custom-site-connect-dialog.tsx` | 자체 사이트 추적 코드 설치 다이얼로그 |
-| `/components/my-sites/naver-connect-dialog.tsx` | 네이버 스마트스토어 연동 다이얼로그 (기존 파일 이동) |
 
 ---
 
