@@ -33,7 +33,10 @@ interface Product {
   my_sites?: {
     site_type: string
     external_shop_id?: string
-  }
+  } | {
+    site_type: string
+    external_shop_id?: string
+  }[]
 }
 
 export default function QuickStartPage() {
@@ -135,9 +138,11 @@ export default function QuickStartPage() {
 
   // 상품 URL 생성
   const generateProductUrl = (product: Product): string => {
-    const siteTypeVal = product.site_type || product.my_sites?.site_type
+    // my_sites가 배열일 수 있으므로 첫 번째 요소 사용
+    const mySite = Array.isArray(product.my_sites) ? product.my_sites[0] : product.my_sites
+    const siteTypeVal = product.site_type || mySite?.site_type
     const externalId = product.external_product_id
-    const shopId = product.my_sites?.external_shop_id
+    const shopId = mySite?.external_shop_id
 
     if (siteTypeVal === 'naver' && externalId && shopId) {
       return `https://smartstore.naver.com/${shopId}/products/${externalId}`
