@@ -298,6 +298,35 @@ export default function QuickStartPage() {
     alert('복사되었습니다!')
   }
 
+  // 전환 목표에 맞는 사이트 필터링
+  const getFilteredSites = () => {
+    if (!conversionGoal) return []
+
+    return connectedSites.filter(site => {
+      const conversionType = site.metadata?.conversion_type as string | undefined
+
+      switch (conversionGoal) {
+        case 'shopping':
+          // 쇼핑 전환: naver, cafe24, imweb, custom (쇼핑몰용)
+          // 쇼핑몰은 conversion_type이 없거나 'shopping'인 경우
+          return ['naver', 'cafe24', 'imweb', 'custom'].includes(site.site_type) &&
+                 (!conversionType || conversionType === 'shopping')
+        case 'signup':
+          // 회원가입 전환: imweb, custom + conversion_type === 'signup'
+          return ['imweb', 'custom'].includes(site.site_type) && conversionType === 'signup'
+        case 'consultation':
+          // 상담신청 전환: imweb, custom + conversion_type === 'consultation' 또는 'db'
+          return ['imweb', 'custom'].includes(site.site_type) &&
+                 (conversionType === 'consultation' || conversionType === 'db')
+        case 'call':
+          // 전화연결 전환: site_type === 'call' 또는 conversion_type === 'call'
+          return site.site_type === 'call' || conversionType === 'call'
+        default:
+          return false
+      }
+    })
+  }
+
   // 전화번호 포맷팅
   const formatPhoneNumber = (value: string) => {
     const numbers = value.replace(/[^\d]/g, '')
@@ -725,11 +754,11 @@ window.sellerport?.track('conversion', {
           {conversionGoal === 'shopping' && (
             <div className="mb-6">
               {/* 연동된 사이트가 있으면 선택 가능 */}
-              {connectedSites.length > 0 && (
+              {getFilteredSites().length > 0 && (
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-slate-300 mb-2">연동된 사이트</label>
                   <div className="space-y-2">
-                    {connectedSites.map((site) => (
+                    {getFilteredSites().map((site) => (
                       <button
                         key={site.id}
                         onClick={() => {
@@ -773,7 +802,7 @@ window.sellerport?.track('conversion', {
               {/* 새 사이트 연동 섹션 */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                  {connectedSites.length > 0 ? '또는 새 사이트 연동' : '판매처 선택'}
+                  {getFilteredSites().length > 0 ? '또는 새 사이트 연동' : '판매처 선택'}
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   {/* 네이버 스마트스토어 */}
@@ -848,11 +877,11 @@ window.sellerport?.track('conversion', {
           {(conversionGoal === 'signup' || conversionGoal === 'consultation') && (
             <div className="mb-6">
               {/* 연동된 사이트가 있으면 선택 가능 */}
-              {connectedSites.length > 0 && (
+              {getFilteredSites().length > 0 && (
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-slate-300 mb-2">연동된 사이트</label>
                   <div className="space-y-2">
-                    {connectedSites.map((site) => (
+                    {getFilteredSites().map((site) => (
                       <button
                         key={site.id}
                         onClick={() => {
@@ -896,7 +925,7 @@ window.sellerport?.track('conversion', {
               {/* 새 사이트 연동 섹션 */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                  {connectedSites.length > 0 ? '또는 새 사이트 연동' : '사이트 선택'}
+                  {getFilteredSites().length > 0 ? '또는 새 사이트 연동' : '사이트 선택'}
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   {/* 아임웹 */}
@@ -944,12 +973,12 @@ window.sellerport?.track('conversion', {
           {/* 전화연결: 사이트 선택 */}
           {conversionGoal === 'call' && (
             <div className="mb-6">
-              {/* 연동된 사이트가 있으면 선택 가능 */}
-              {connectedSites.length > 0 && (
+              {/* 연동된 전화 추적이 있으면 선택 가능 */}
+              {getFilteredSites().length > 0 && (
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-slate-300 mb-2">연동된 사이트</label>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">등록된 전화번호</label>
                   <div className="space-y-2">
-                    {connectedSites.map((site) => (
+                    {getFilteredSites().map((site) => (
                       <button
                         key={site.id}
                         onClick={() => {
@@ -962,23 +991,15 @@ window.sellerport?.track('conversion', {
                             : 'border-slate-600 hover:border-slate-500 bg-slate-900/50'
                         }`}
                       >
-                        <img
-                          src={
-                            site.site_type === 'naver' ? '/site_logo/smartstore.png' :
-                            site.site_type === 'cafe24' ? '/site_logo/cafe24.png' :
-                            site.site_type === 'imweb' ? '/site_logo/imweb.png' :
-                            '/site_logo/own_site.png'
-                          }
-                          alt={site.site_type}
-                          className="w-10 h-10 object-contain rounded-lg"
-                        />
+                        <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                          <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
+                        </div>
                         <div>
                           <div className="font-medium text-white">{site.name}</div>
                           <div className="text-xs text-slate-400">
-                            {site.site_type === 'naver' && '네이버 스마트스토어'}
-                            {site.site_type === 'cafe24' && '카페24'}
-                            {site.site_type === 'imweb' && '아임웹'}
-                            {site.site_type === 'custom' && '자체 제작 사이트'}
+                            {site.site_url || (site.metadata?.phone_number as string) || '전화 추적'}
                           </div>
                         </div>
                         {selectedSiteId === site.id && (
@@ -990,10 +1011,10 @@ window.sellerport?.track('conversion', {
                 </div>
               )}
 
-              {/* 새 사이트 연동 섹션 */}
+              {/* 새 전화번호 등록 섹션 */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                  {connectedSites.length > 0 ? '또는 새 사이트 연동' : '사이트 선택'}
+                  {getFilteredSites().length > 0 ? '또는 새 전화번호 등록' : '전화번호 등록'}
                 </label>
                 <div className="grid grid-cols-1 gap-3">
                   {/* 일반 웹사이트/블로그 */}
