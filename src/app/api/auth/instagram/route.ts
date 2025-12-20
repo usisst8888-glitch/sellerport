@@ -27,7 +27,8 @@ export async function GET(request: NextRequest) {
 
     // Facebook App 사용 (Instagram Graph API는 Facebook Login 필요)
     const FB_APP_ID = process.env.META_APP_ID || process.env.INSTAGRAM_APP_ID
-    const REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/instagram/callback`
+    // Meta 콜백 통합 사용 (Meta Console에 하나만 등록 가능)
+    const REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/meta/callback`
 
     if (!FB_APP_ID) {
       return NextResponse.json({ error: 'Facebook App ID not configured' }, { status: 500 })
