@@ -35,16 +35,18 @@ export async function GET(request: NextRequest) {
     }
 
     // DM 자동발송을 위한 권한 목록
-    // Instagram 비즈니스 계정용 권한 사용
+    // 개발 모드: 검수 없이 사용 가능한 권한만 (검수 후 비즈니스 권한 추가 예정)
     const scopes = [
-      'instagram_business_basic',           // 비즈니스 프로필 정보 (테스트 준비 완료)
-      'instagram_business_manage_messages', // DM 발송 (테스트 준비 완료)
-      'instagram_manage_comments',          // 댓글 읽기/쓰기 (테스트 준비 완료)
-      'instagram_content_publish',          // 콘텐츠 게시 (테스트 준비 완료)
-      'pages_show_list',                    // 연결된 Facebook 페이지 목록 (테스트 준비 완료)
-      'pages_read_engagement',              // 페이지 참여 데이터 (테스트 준비 완료)
-      'business_management',                // 비즈니스 관리 (테스트 준비 완료)
+      'instagram_basic',                    // Instagram 기본 프로필
+      'pages_show_list',                    // 연결된 Facebook 페이지 목록
+      'pages_read_engagement',              // 페이지 참여 데이터
+      'business_management',                // 비즈니스 관리
       'public_profile',                     // 기본 프로필 (자동 부여)
+      // TODO: 검수 승인 후 아래 권한 추가
+      // 'instagram_business_basic',
+      // 'instagram_business_manage_messages',
+      // 'instagram_manage_comments',
+      // 'instagram_content_publish',
     ].join(',')
 
     // state에 user_id, from, siteId 저장
