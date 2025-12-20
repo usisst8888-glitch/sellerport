@@ -175,22 +175,7 @@ export async function POST(request: NextRequest) {
         .eq('id', conversionId)
     }
 
-    // 전환 로그 저장
-    await supabase.from('conversion_logs').insert({
-      conversion_id: conversionId,
-      tracking_link_id: trackingLinkId,
-      user_id: trackingLink.user_id,
-      event_type: 'meta_purchase',
-      event_data: {
-        order_id: orderId,
-        order_amount: orderAmount,
-        pixel_id: pixelId,
-        events_received: result.events_received,
-        fbtrace_id: result.fbtrace_id
-      },
-      created_at: new Date().toISOString()
-    })
-    // 로그 실패는 무시
+    // 전환 로그는 conversions 테이블의 metadata에 저장됨 (별도 테이블 불필요)
 
     return NextResponse.json({
       success: true,

@@ -162,21 +162,7 @@ export async function GET(
             })
             .eq('id', trackingLinkId)
 
-          // 3. 캠페인 클릭 수 증가
-          if (trackingLink.campaign_id) {
-            const { data: campaign } = await supabase
-              .from('campaigns')
-              .select('clicks')
-              .eq('id', trackingLink.campaign_id)
-              .single()
-
-            if (campaign) {
-              await supabase
-                .from('campaigns')
-                .update({ clicks: (campaign.clicks || 0) + 1 })
-                .eq('id', trackingLink.campaign_id)
-            }
-          }
+          // 캠페인 테이블은 삭제됨 - ad_channels로 대체
         }
 
         // 셀러포트 도메인으로 가는 경우에만 site_visits에도 기록

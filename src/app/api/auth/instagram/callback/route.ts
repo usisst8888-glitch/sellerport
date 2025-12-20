@@ -1,30 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-interface InstagramTokenResponse {
-  access_token: string
-  user_id: number
-}
-
-interface InstagramLongLivedTokenResponse {
+interface FacebookTokenResponse {
   access_token: string
   token_type: string
   expires_in: number
 }
 
-interface InstagramUserProfile {
+interface FacebookPage {
   id: string
-  username: string
-  account_type?: string
-  media_count?: number
-  followers_count?: number
-  follows_count?: number
-  biography?: string
-  profile_picture_url?: string
-  name?: string
+  name: string
+  access_token: string
+  instagram_business_account?: {
+    id: string
+  }
 }
 
-// Instagram OAuth 콜백 처리 (Instagram API 전용)
+interface InstagramAccount {
+  id: string
+  username: string
+  name?: string
+  profile_picture_url?: string
+  followers_count?: number
+  follows_count?: number
+  media_count?: number
+  biography?: string
+}
+
+// Instagram OAuth 콜백 처리 (Facebook Login 기반)
+// DM 자동발송을 위한 Instagram Graph API 연동
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -37,96 +41,126 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('Instagram OAuth error:', error, errorDescription)
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/ad-channels?error=${encodeURIComponent(errorDescription || error)}`
+        `${process.env.NEXT_PUBLIC_APP_URL}/quick-start?error=${encodeURIComponent(errorDescription || error)}`
       )
     }
 
     if (!code || !state) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/ad-channels?error=invalid_request`
+        `${process.env.NEXT_PUBLIC_APP_URL}/quick-start?error=invalid_request`
       )
     }
 
-    // state에서 user_id 추출
+    // state에서 정보 추출
     let userId: string
+    let from: string = 'quick-start'
+    let siteId: string | null = null
+
     try {
       const stateData = JSON.parse(Buffer.from(state, 'base64').toString())
       userId = stateData.userId
+      from = stateData.from || 'quick-start'
+      siteId = stateData.siteId || null
 
       // timestamp 검증 (10분 이내)
       if (Date.now() - stateData.timestamp > 10 * 60 * 1000) {
         return NextResponse.redirect(
-          `${process.env.NEXT_PUBLIC_APP_URL}/ad-channels?error=state_expired`
+          `${process.env.NEXT_PUBLIC_APP_URL}/${from}?error=state_expired`
         )
       }
     } catch {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/ad-channels?error=invalid_state`
+        `${process.env.NEXT_PUBLIC_APP_URL}/quick-start?error=invalid_state`
       )
     }
 
-    const INSTAGRAM_APP_ID = process.env.INSTAGRAM_APP_ID
-    const INSTAGRAM_APP_SECRET = process.env.INSTAGRAM_APP_SECRET
+    const FB_APP_ID = process.env.META_APP_ID || process.env.INSTAGRAM_APP_ID
+    const FB_APP_SECRET = process.env.META_APP_SECRET || process.env.INSTAGRAM_APP_SECRET
     const REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/instagram/callback`
 
-    if (!INSTAGRAM_APP_ID || !INSTAGRAM_APP_SECRET) {
+    if (!FB_APP_ID || !FB_APP_SECRET) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/ad-channels?error=configuration_error`
+        `${process.env.NEXT_PUBLIC_APP_URL}/${from}?error=configuration_error`
       )
     }
 
-    // 1. Authorization code를 Short-lived Access token으로 교환
-    const tokenResponse = await fetch('https://api.instagram.com/oauth/access_token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        client_id: INSTAGRAM_APP_ID,
-        client_secret: INSTAGRAM_APP_SECRET,
-        grant_type: 'authorization_code',
-        redirect_uri: REDIRECT_URI,
-        code: code,
-      }),
-    })
+    // 1. Authorization code를 Access token으로 교환
+    const tokenUrl = new URL('https://graph.facebook.com/v18.0/oauth/access_token')
+    tokenUrl.searchParams.set('client_id', FB_APP_ID)
+    tokenUrl.searchParams.set('redirect_uri', REDIRECT_URI)
+    tokenUrl.searchParams.set('client_secret', FB_APP_SECRET)
+    tokenUrl.searchParams.set('code', code)
 
-    const tokenData: InstagramTokenResponse = await tokenResponse.json()
+    const tokenResponse = await fetch(tokenUrl.toString())
+    const tokenData: FacebookTokenResponse = await tokenResponse.json()
 
     if (!tokenData.access_token) {
       console.error('Failed to get access token:', tokenData)
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/ad-channels?error=token_exchange_failed`
+        `${process.env.NEXT_PUBLIC_APP_URL}/${from}?error=token_exchange_failed`
       )
     }
 
-    // 2. Short-lived token을 Long-lived token으로 교환 (60일)
-    const longLivedTokenUrl = new URL('https://graph.instagram.com/access_token')
-    longLivedTokenUrl.searchParams.set('grant_type', 'ig_exchange_token')
-    longLivedTokenUrl.searchParams.set('client_secret', INSTAGRAM_APP_SECRET)
-    longLivedTokenUrl.searchParams.set('access_token', tokenData.access_token)
+    // 2. Long-lived access token으로 교환 (60일)
+    const longLivedUrl = new URL('https://graph.facebook.com/v18.0/oauth/access_token')
+    longLivedUrl.searchParams.set('grant_type', 'fb_exchange_token')
+    longLivedUrl.searchParams.set('client_id', FB_APP_ID)
+    longLivedUrl.searchParams.set('client_secret', FB_APP_SECRET)
+    longLivedUrl.searchParams.set('fb_exchange_token', tokenData.access_token)
 
-    const longLivedResponse = await fetch(longLivedTokenUrl.toString())
-    const longLivedData: InstagramLongLivedTokenResponse = await longLivedResponse.json()
+    const longLivedResponse = await fetch(longLivedUrl.toString())
+    const longLivedData: FacebookTokenResponse = await longLivedResponse.json()
 
-    const accessToken = longLivedData.access_token || tokenData.access_token
-    const expiresIn = longLivedData.expires_in || 3600
+    const userAccessToken = longLivedData.access_token || tokenData.access_token
+    const expiresIn = longLivedData.expires_in || tokenData.expires_in || 5184000 // 60일
 
-    // 3. Instagram 사용자 프로필 정보 가져오기
-    const profileUrl = new URL('https://graph.instagram.com/me')
-    profileUrl.searchParams.set('access_token', accessToken)
-    profileUrl.searchParams.set('fields', 'id,username,account_type,media_count,followers_count,follows_count,biography,profile_picture_url,name')
+    // 3. 연결된 Facebook 페이지 가져오기 (Instagram 비즈니스 계정이 연결된 페이지)
+    const pagesUrl = new URL('https://graph.facebook.com/v18.0/me/accounts')
+    pagesUrl.searchParams.set('access_token', userAccessToken)
+    pagesUrl.searchParams.set('fields', 'id,name,access_token,instagram_business_account')
 
-    const profileResponse = await fetch(profileUrl.toString())
-    const profile: InstagramUserProfile = await profileResponse.json()
+    const pagesResponse = await fetch(pagesUrl.toString())
+    const pagesData = await pagesResponse.json()
 
-    if (!profile.id || !profile.username) {
-      console.error('Failed to get Instagram profile:', profile)
+    if (!pagesData.data || pagesData.data.length === 0) {
+      console.error('No Facebook pages found')
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/ad-channels?error=instagram_account_error`
+        `${process.env.NEXT_PUBLIC_APP_URL}/${from}?error=no_facebook_page`
       )
     }
 
-    // 4. Supabase에 저장
+    // Instagram 비즈니스 계정이 연결된 페이지 찾기
+    const pageWithInstagram = pagesData.data.find(
+      (page: FacebookPage) => page.instagram_business_account
+    )
+
+    if (!pageWithInstagram || !pageWithInstagram.instagram_business_account) {
+      console.error('No Instagram business account found')
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/${from}?error=no_instagram_business`
+      )
+    }
+
+    const pageAccessToken = pageWithInstagram.access_token
+    const instagramAccountId = pageWithInstagram.instagram_business_account.id
+    const facebookPageId = pageWithInstagram.id
+
+    // 4. Instagram 비즈니스 계정 정보 가져오기
+    const igUrl = new URL(`https://graph.facebook.com/v18.0/${instagramAccountId}`)
+    igUrl.searchParams.set('access_token', pageAccessToken)
+    igUrl.searchParams.set('fields', 'id,username,name,profile_picture_url,followers_count,follows_count,media_count,biography')
+
+    const igResponse = await fetch(igUrl.toString())
+    const igAccount: InstagramAccount = await igResponse.json()
+
+    if (!igAccount.id || !igAccount.username) {
+      console.error('Failed to get Instagram account:', igAccount)
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/${from}?error=instagram_account_error`
+      )
+    }
+
+    // 5. Supabase에 저장
     const supabase = await createClient()
 
     // 기존 연동이 있는지 확인
@@ -135,28 +169,32 @@ export async function GET(request: NextRequest) {
       .select('id')
       .eq('user_id', userId)
       .eq('channel_type', 'instagram')
-      .eq('account_id', profile.username)
+      .eq('account_id', igAccount.username)
       .single()
 
     const channelData = {
       user_id: userId,
       channel_type: 'instagram',
-      channel_name: profile.name || profile.username,
-      account_id: profile.username,
-      account_name: profile.name || profile.username,
-      access_token: accessToken,
+      channel_name: igAccount.name || igAccount.username,
+      account_id: igAccount.username,
+      account_name: igAccount.name || igAccount.username,
+      access_token: pageAccessToken, // 페이지 토큰 사용 (DM 발송용)
       token_expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
       status: 'connected',
       last_sync_at: new Date().toISOString(),
       is_manual: false,
+      my_site_id: siteId,
       metadata: {
-        instagram_user_id: profile.id,
-        account_type: profile.account_type,
-        profile_picture_url: profile.profile_picture_url,
-        followers_count: profile.followers_count,
-        follows_count: profile.follows_count,
-        media_count: profile.media_count,
-        biography: profile.biography,
+        instagram_user_id: igAccount.id,
+        instagram_username: igAccount.username,
+        facebook_page_id: facebookPageId,
+        facebook_page_name: pageWithInstagram.name,
+        profile_picture_url: igAccount.profile_picture_url,
+        followers_count: igAccount.followers_count,
+        follows_count: igAccount.follows_count,
+        media_count: igAccount.media_count,
+        biography: igAccount.biography,
+        dm_enabled: true, // DM 자동발송 가능
         category: 'organic',
       },
     }
@@ -176,19 +214,19 @@ export async function GET(request: NextRequest) {
       if (insertError) {
         console.error('Failed to save Instagram channel:', insertError)
         return NextResponse.redirect(
-          `${process.env.NEXT_PUBLIC_APP_URL}/ad-channels?error=save_failed`
+          `${process.env.NEXT_PUBLIC_APP_URL}/${from}?error=save_failed`
         )
       }
     }
 
-    // 성공 시 ad-channels 페이지로 리다이렉트
+    // 성공 시 리다이렉트
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/ad-channels?success=instagram_connected`
+      `${process.env.NEXT_PUBLIC_APP_URL}/${from}?success=instagram_connected`
     )
   } catch (error) {
     console.error('Instagram OAuth callback error:', error)
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/ad-channels?error=internal_error`
+      `${process.env.NEXT_PUBLIC_APP_URL}/quick-start?error=internal_error`
     )
   }
 }

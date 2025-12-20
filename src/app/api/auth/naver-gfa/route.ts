@@ -7,6 +7,7 @@ interface ConnectRequest {
   apiKey: string
   secretKey: string
   accountName?: string
+  mySiteId?: string // 연결할 사이트 ID
 }
 
 // 네이버 GFA API 키 검증 및 연동
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: ConnectRequest = await request.json()
-    const { customerId, apiKey, secretKey, accountName } = body
+    const { customerId, apiKey, secretKey, accountName, mySiteId } = body
 
     // 필수 필드 검증
     if (!customerId || !apiKey || !secretKey) {
@@ -65,6 +66,7 @@ export async function POST(request: NextRequest) {
       access_token: apiKey,
       status: 'connected',
       last_sync_at: new Date().toISOString(),
+      my_site_id: mySiteId || null, // 연결할 사이트 ID
       metadata: {
         secretKey,
         customerId,

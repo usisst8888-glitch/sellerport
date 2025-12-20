@@ -1,6 +1,6 @@
 # 셀러포트 (SellerPort) 개발 로드맵
 
-> **마지막 업데이트:** 2025-12-20 (전환 추적 관리 페이지 개선)
+> **마지막 업데이트:** 2025-12-20 (Instagram DM 자동발송 기능 추가)
 
 ## 프로젝트 개요
 
@@ -267,6 +267,29 @@ influencer_stats (인플루언서 효율 DB)
 ├── avg_roas (평균 ROAS)
 ├── avg_conversion_rate (평균 전환율)
 └── last_updated_at
+
+instagram_dm_settings (Instagram DM 자동발송 설정)
+├── id, user_id
+├── ad_channel_id → ad_channels.id (Instagram 채널)
+├── tracking_link_id → tracking_links.id (추적 링크)
+├── instagram_media_id (게시물 ID)
+├── instagram_media_url, instagram_media_type, instagram_caption
+├── trigger_keywords (DM 발송 트리거 키워드 배열)
+├── dm_message (DM 메시지 템플릿, {{link}} 플레이스홀더)
+├── include_follow_cta, follow_cta_message (팔로우 유도 메시지)
+├── is_active (활성화 상태)
+├── total_dms_sent, last_dm_sent_at (통계)
+└── created_at, updated_at
+
+instagram_dm_logs (Instagram DM 발송 로그)
+├── id, dm_setting_id
+├── tracking_link_id
+├── recipient_ig_user_id, recipient_username (수신자 정보)
+├── comment_id, comment_text (트리거 댓글)
+├── dm_message, dm_message_id
+├── status (sent, failed, blocked)
+├── sent_at
+└── is_converted, converted_at, order_id (전환 추적)
 ```
 
 ### 광고 효율 신호등 시스템
@@ -392,10 +415,64 @@ influencer_stats (인플루언서 효율 DB)
 | 디자이너 마켓플레이스 API | ✅ 완료 | `/api/designers`, `/api/designers/[id]`, `/api/design-requests` |
 | Meta 광고 OAuth 연동 | ✅ 완료 | `/api/auth/meta`, `/api/auth/meta/callback`, `/api/ad-channels/meta/sync` (보안 검토 대기) |
 | 네이버 검색광고 API 연동 | ✅ 완료 | `/lib/naver/search-ads-api.ts`, `/api/auth/naver-search-ads`, `/api/ad-channels/naver-search/sync` |
+| Instagram DM 자동발송 | ✅ 완료 | `/api/auth/instagram`, `/api/webhooks/instagram`, `/api/instagram/dm-settings`, `/api/instagram/media` |
 
 ---
 
 ## 최근 변경 사항 (2025-12-20)
+
+### Instagram DM 자동발송 기능 추가
+
+Instagram 게시물에 특정 키워드가 포함된 댓글이 달리면, 해당 사용자에게 추적 링크가 포함된 DM을 자동 발송하는 기능을 구현했습니다.
+
+#### 구현된 기능
+
+| 기능 | 파일 | 설명 |
+|------|------|------|
+| Instagram OAuth | `/api/auth/instagram/route.ts` | Facebook Login을 통한 Instagram Graph API 접근 |
+| OAuth 콜백 | `/api/auth/instagram/callback/route.ts` | Facebook 페이지 → Instagram 비즈니스 계정 연결, 페이지 액세스 토큰 저장 |
+| Webhook 핸들러 | `/api/webhooks/instagram/route.ts` | Meta Webhook으로 댓글 이벤트 수신, 키워드 매칭 시 DM 자동 발송 |
+| DM 설정 API | `/api/instagram/dm-settings/route.ts` | DM 설정 CRUD (게시물별 키워드, 메시지 템플릿) |
+| 미디어 목록 API | `/api/instagram/media/route.ts` | 연결된 Instagram 계정의 게시물 목록 조회 |
+| DB 마이그레이션 | `047_instagram_dm_settings.sql` | instagram_dm_settings, instagram_dm_logs 테이블 생성 |
+
+#### 필요한 Meta 권한 (Facebook Login)
+
+- `instagram_business_basic`: 비즈니스 프로필 정보
+- `instagram_business_manage_messages`: DM 발송 (핵심!)
+- `instagram_manage_comments`: 댓글 읽기/쓰기 (Webhook용)
+- `instagram_content_publish`: 콘텐츠 게시
+- `pages_show_list`: 연결된 Facebook 페이지 목록
+- `pages_read_engagement`: 페이지 참여 데이터
+- `business_management`: 비즈니스 관리
+
+#### Meta Webhook 설정
+
+```
+콜백 URL: https://sellerport.app/api/webhooks/instagram
+확인 토큰: INSTAGRAM_WEBHOOK_VERIFY_TOKEN 환경변수
+구독 필드: comments, messages
+```
+
+#### DM 자동발송 흐름
+
+```
+1. 사용자가 Instagram 게시물에 키워드 댓글 작성
+2. Meta Webhook → /api/webhooks/instagram으로 이벤트 전송
+3. 해당 게시물의 DM 설정 조회 (instagram_dm_settings)
+4. 키워드 매칭 확인 (trigger_keywords 배열)
+5. 중복 발송 체크 (instagram_dm_logs)
+6. Instagram Graph API로 DM 발송 (추적 링크 포함)
+7. 발송 로그 저장, 통계 업데이트
+```
+
+#### 환경변수 추가
+
+```
+INSTAGRAM_WEBHOOK_VERIFY_TOKEN=sellerport_webhook_2025
+```
+
+---
 
 ### 전환 추적 관리 페이지 개선
 

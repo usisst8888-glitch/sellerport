@@ -249,29 +249,7 @@ export async function POST(request: NextRequest) {
                 .eq('id', matchedClick.tracking_link_id)
             }
 
-            // 캠페인 전환 수 및 매출 증가
-            if (campaignId) {
-              const { data: campaign } = await supabase
-                .from('campaigns')
-                .select('conversions, revenue, spent')
-                .eq('id', campaignId)
-                .single()
-
-              if (campaign) {
-                const newRevenue = (campaign.revenue || 0) + order.totalPaymentAmount
-                const newConversions = (campaign.conversions || 0) + 1
-                const roas = campaign.spent > 0 ? Math.round((newRevenue / campaign.spent) * 100) : 0
-
-                await supabase
-                  .from('campaigns')
-                  .update({
-                    conversions: newConversions,
-                    revenue: newRevenue,
-                    roas: roas
-                  })
-                  .eq('id', campaignId)
-              }
-            }
+            // 캠페인 테이블 삭제됨 - ad_channels로 대체됨
           }
         }
 

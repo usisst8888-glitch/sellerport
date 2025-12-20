@@ -177,28 +177,7 @@ export async function GET(request: NextRequest) {
               })
               .eq('id', matchedClick.id)
 
-            // 추적 링크/캠페인 통계 업데이트
-            if (campaignId) {
-              const { data: campaign } = await supabase
-                .from('campaigns')
-                .select('conversions, revenue, spent')
-                .eq('id', campaignId)
-                .single()
-
-              if (campaign) {
-                const newRevenue = (campaign.revenue || 0) + order.totalPaymentAmount
-                const roas = campaign.spent > 0 ? Math.round((newRevenue / campaign.spent) * 100) : 0
-
-                await supabase
-                  .from('campaigns')
-                  .update({
-                    conversions: (campaign.conversions || 0) + 1,
-                    revenue: newRevenue,
-                    roas
-                  })
-                  .eq('id', campaignId)
-              }
-            }
+            // 캠페인 테이블 삭제됨 - ad_channels로 대체됨
 
             // 주문 알림 발송
             await sendOrderAlert(site.user_id, order, profit, supabase)

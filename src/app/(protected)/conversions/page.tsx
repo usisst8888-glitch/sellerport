@@ -94,6 +94,7 @@ interface AdChannel {
   account_name: string | null
   status: string
   last_sync_at: string | null
+  my_site_id: string | null // 연결된 사이트 ID
 }
 
 interface AdSpendDaily {
@@ -134,14 +135,29 @@ function getSignalLight(
   return { color: 'red', bg: 'bg-red-500/20', text: 'text-red-400', label: '🔴 주의' }
 }
 
+// SNS 채널 타입
+type SnsChannelType = 'instagram' | 'youtube' | 'tiktok' | 'naver_blog' | 'influencer'
+
 export default function ConversionsPage() {
   const searchParams = useSearchParams()
   const fromQuickStart = searchParams.get('from') === 'quick-start'
+  const openModal = searchParams.get('openModal') === 'true'
 
   const [trackingLinks, setTrackingLinks] = useState<TrackingLink[]>([])
   const [loading, setLoading] = useState(true)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+
+  // 추적 링크 생성 모달
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [createForm, setCreateForm] = useState({
+    channelType: '' as SnsChannelType | '',
+    postName: '',
+    targetUrl: '',
+    enableDmAutoSend: false
+  })
+  const [creating, setCreating] = useState(false)
+  const [isInstagramConnected, setIsInstagramConnected] = useState(false)
 
   // 광고비 수정 모달
   const [editingLink, setEditingLink] = useState<TrackingLink | null>(null)
@@ -200,16 +216,19 @@ export default function ConversionsPage() {
       setConnectedSites(sites)
     }
 
-    // 연결된 광고 채널 조회
+    // 연결된 광고 채널 조회 (사이트 연결 정보 포함)
     const { data: channels } = await supabase
       .from('ad_channels')
-      .select('id, channel_type, channel_name, account_name, status, last_sync_at')
+      .select('id, channel_type, channel_name, account_name, status, last_sync_at, my_site_id')
       .eq('user_id', user.id)
       .eq('status', 'connected')
       .order('created_at', { ascending: false })
 
     if (channels) {
       setAdChannels(channels)
+      // Instagram 연결 상태 확인
+      const hasInstagram = channels.some(c => c.channel_type === 'instagram')
+      setIsInstagramConnected(hasInstagram)
       // 광고 채널이 있으면 성과 데이터 조회
       if (channels.length > 0) {
         fetchAdStats(channels, user.id)
@@ -369,6 +388,42 @@ export default function ConversionsPage() {
     }
   }
 
+  // 추적 링크 생성
+  const handleCreateTrackingLink = async () => {
+    if (!createForm.channelType || !createForm.targetUrl) {
+      setMessage({ type: 'error', text: '채널과 목적지 URL은 필수입니다' })
+      return
+    }
+
+    setCreating(true)
+    try {
+      const response = await fetch('/api/tracking-links', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channelType: createForm.channelType,
+          postName: createForm.postName,
+          targetUrl: createForm.targetUrl,
+          enableDmAutoSend: createForm.enableDmAutoSend
+        })
+      })
+
+      const result = await response.json()
+      if (result.success) {
+        setMessage({ type: 'success', text: '추적 링크가 생성되었습니다' })
+        setShowCreateModal(false)
+        setCreateForm({ channelType: '', postName: '', targetUrl: '', enableDmAutoSend: false })
+        fetchTrackingLinks()
+      } else {
+        setMessage({ type: 'error', text: result.error || '생성에 실패했습니다' })
+      }
+    } catch {
+      setMessage({ type: 'error', text: '생성 중 오류가 발생했습니다' })
+    } finally {
+      setCreating(false)
+    }
+  }
+
   // 광고비 업데이트
   const handleUpdateAdSpend = async () => {
     if (!editingLink) return
@@ -502,6 +557,13 @@ export default function ConversionsPage() {
     fetchConnectedData()
   }, [])
 
+  // URL 파라미터로 모달 열기
+  useEffect(() => {
+    if (openModal) {
+      setShowCreateModal(true)
+    }
+  }, [openModal])
+
   // 메시지 3초 후 자동 제거
   useEffect(() => {
     if (message) {
@@ -514,7 +576,7 @@ export default function ConversionsPage() {
 
   // 모달 열릴 때 배경 스크롤 방지
   useEffect(() => {
-    if (editingLink || editingLinkFull || deletingLink || editingRoasLink) {
+    if (editingLink || editingLinkFull || deletingLink || editingRoasLink || showCreateModal) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = 'unset'
@@ -522,7 +584,7 @@ export default function ConversionsPage() {
     return () => {
       document.body.style.overflow = 'unset'
     }
-  }, [editingLink, editingLinkFull, deletingLink, editingRoasLink])
+  }, [editingLink, editingLinkFull, deletingLink, editingRoasLink, showCreateModal])
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text)
@@ -541,9 +603,20 @@ export default function ConversionsPage() {
   return (
     <div className="space-y-6">
       {/* 페이지 헤더 */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">전환 추적</h1>
-        <p className="text-slate-400 mt-1">광고 채널과 쇼핑몰을 연동하여 전환을 자동으로 추적하세요</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">전환 추적</h1>
+          <p className="text-slate-400 mt-1">광고 채널과 쇼핑몰을 연동하여 전환을 자동으로 추적하세요</p>
+        </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          추적 링크 만들기
+        </button>
       </div>
 
       {/* 빠른 시작 안내 배너 */}
@@ -596,157 +669,172 @@ export default function ConversionsPage() {
         </div>
       )}
 
-      {/* 연결 상태 현황 - 쇼핑몰+광고채널 통합 카드 (가로 3등분) */}
+      {/* 연결 상태 현황 - 사이트-채널 매핑별 카드 표시 */}
       {(connectedSites.length > 0 || adChannels.length > 0) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {/* 각 쇼핑몰에 대해 연결된 광고 채널과 함께 카드 표시 */}
-          {connectedSites.map(site => (
-            <div key={site.id} className="p-4 rounded-xl bg-slate-800/60 border border-white/5 hover:border-white/10 transition-colors">
-              {/* 카드 헤더 - 상태 배지 */}
-              <div className="flex items-center justify-between mb-3">
-                {adChannels.length > 0 ? (
-                  <span className="px-2.5 py-1 text-xs rounded-full bg-emerald-500/20 text-emerald-400 flex items-center gap-1.5 border border-emerald-500/30">
-                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    연동됨
-                  </span>
-                ) : (
-                  <span className="px-2.5 py-1 text-xs rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                    채널 필요
-                  </span>
-                )}
-                <Link href="/quick-start" className="p-1.5 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </Link>
-              </div>
+          {/* 각 광고 채널별로 연결된 사이트와 함께 카드 표시 */}
+          {adChannels.map(channel => {
+            // 해당 채널과 연결된 사이트 찾기
+            const linkedSite = connectedSites.find(s => s.id === channel.my_site_id)
+            const badge = getChannelBadgeStyle(channel.channel_type)
+            const isBrandChannel = channel.channel_type.startsWith('brand_')
 
-              {/* 가로 레이아웃: 쇼핑몰 - 화살표 - 광고채널 (3등분 가운데 정렬) */}
-              <div className="grid grid-cols-3 items-center">
-                {/* 쇼핑몰 정보 - 1/3 */}
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-10 h-10 rounded-lg overflow-hidden mb-2 bg-white/10">
-                    <img
-                      src={
-                        site.site_type === 'naver' ? '/site_logo/smartstore.png' :
-                        site.site_type === 'cafe24' ? '/site_logo/cafe24.png' :
-                        site.site_type === 'imweb' ? '/site_logo/imweb.png' :
-                        site.site_type === 'godomall' ? '/site_logo/godomall.png' :
-                        site.site_type === 'makeshop' ? '/site_logo/makeshop.png' :
-                        '/site_logo/own_site.png'
-                      }
-                      alt={site.site_name}
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                  <p className="text-sm font-medium text-white truncate w-full">{site.site_name}</p>
-                  <p className={`text-xs ${
-                    site.site_type === 'naver' ? 'text-green-400/70' :
-                    site.site_type === 'cafe24' ? 'text-blue-400/70' :
-                    site.site_type === 'imweb' ? 'text-purple-400/70' : 'text-slate-500'
+            // 채널 로고 결정
+            const getChannelLogoUrl = (type: string) => {
+              const logos: Record<string, string> = {
+                'meta': '/channel_logo/meta.png',
+                'google': '/channel_logo/google_ads.png',
+                'naver_search': '/channel_logo/naver_search.png',
+                'naver_gfa': '/channel_logo/naver_gfa.png',
+                'tiktok': '/channel_logo/tiktok.png',
+                'kakao': '/channel_logo/toss.png',
+                'brand_blog': '/channel_logo/naver_blog.png',
+                'brand_instagram': '/channel_logo/insta.png',
+                'brand_youtube': '/channel_logo/youtube.png',
+                'brand_tiktok': '/channel_logo/tiktok.png',
+              }
+              return logos[type] || '/channel_logo/meta.png'
+            }
+
+            return (
+              <div key={channel.id} className="p-4 rounded-xl bg-slate-800/60 border border-white/5 hover:border-white/10 transition-colors">
+                {/* 카드 헤더 - 상태 배지 */}
+                <div className="flex items-center justify-between mb-3">
+                  <span className={`px-2.5 py-1 text-xs rounded-full flex items-center gap-1.5 border ${
+                    linkedSite
+                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                      : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
                   }`}>
-                    {site.site_type === 'naver' ? '스마트스토어' :
-                     site.site_type === 'cafe24' ? '카페24' :
-                     site.site_type === 'imweb' ? '아임웹' : '자체몰'}
-                  </p>
+                    {linkedSite ? (
+                      <>
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        연동됨
+                      </>
+                    ) : '사이트 미연결'}
+                  </span>
+                  <Link href="/quick-start" className="p-1.5 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </Link>
                 </div>
 
-                {/* 연결 화살표 - 1/3 (좌우 양방향) */}
-                <div className="flex items-center justify-center">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500/30 to-teal-500/20 border border-emerald-500/40 flex items-center justify-center shadow-lg shadow-emerald-500/10">
-                    <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                    </svg>
+                {/* 가로 레이아웃: 쇼핑몰 - 화살표 - 광고채널 (3등분 가운데 정렬) */}
+                <div className="grid grid-cols-3 items-center">
+                  {/* 쇼핑몰 정보 - 1/3 */}
+                  <div className="flex flex-col items-center text-center">
+                    {linkedSite ? (
+                      <>
+                        <div className="w-10 h-10 rounded-lg overflow-hidden mb-2 bg-white/10">
+                          <img
+                            src={
+                              linkedSite.site_type === 'naver' ? '/site_logo/smartstore.png' :
+                              linkedSite.site_type === 'cafe24' ? '/site_logo/cafe24.png' :
+                              linkedSite.site_type === 'imweb' ? '/site_logo/imweb.png' :
+                              linkedSite.site_type === 'godomall' ? '/site_logo/godomall.png' :
+                              linkedSite.site_type === 'makeshop' ? '/site_logo/makeshop.png' :
+                              '/site_logo/own_site.png'
+                            }
+                            alt={linkedSite.site_name}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        <p className="text-sm font-medium text-white truncate w-full">{linkedSite.site_name}</p>
+                        <p className={`text-xs ${
+                          linkedSite.site_type === 'naver' ? 'text-green-400/70' :
+                          linkedSite.site_type === 'cafe24' ? 'text-blue-400/70' :
+                          linkedSite.site_type === 'imweb' ? 'text-purple-400/70' : 'text-slate-500'
+                        }`}>
+                          {linkedSite.site_type === 'naver' ? '스마트스토어' :
+                           linkedSite.site_type === 'cafe24' ? '카페24' :
+                           linkedSite.site_type === 'imweb' ? '아임웹' : '자체몰'}
+                        </p>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center p-2">
+                        <div className="w-8 h-8 rounded bg-slate-700/50 flex items-center justify-center mb-1">
+                          <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <span className="text-xs text-slate-500">미연결</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 연결 화살표 - 1/3 */}
+                  <div className="flex items-center justify-center">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shadow-lg ${
+                      linkedSite
+                        ? 'bg-gradient-to-br from-emerald-500/30 to-teal-500/20 border border-emerald-500/40 shadow-emerald-500/10'
+                        : 'bg-slate-700/50 border border-slate-600'
+                    }`}>
+                      <svg className={`w-4 h-4 ${linkedSite ? 'text-emerald-400' : 'text-slate-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* 광고 채널 정보 - 1/3 */}
+                  <div className="flex flex-col items-center text-center">
+                    <div className="w-10 h-10 rounded-lg overflow-hidden mb-2 bg-white/10">
+                      <img
+                        src={getChannelLogoUrl(channel.channel_type)}
+                        alt={channel.channel_name || ''}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <p className="text-sm font-medium text-white truncate w-full">{channel.channel_name || getChannelLabel(channel.channel_type)}</p>
+                    <p className={`text-xs ${badge.text}`}>
+                      {isBrandChannel ? '추적링크' : getChannelLabel(channel.channel_type).split(' ')[0]}
+                    </p>
                   </div>
                 </div>
 
-                {/* 광고 채널 정보 - 1/3 */}
-                <div className="flex flex-col items-center text-center">
-                  {adChannels.length > 0 ? (
-                    <>
-                      <div className="w-10 h-10 rounded-lg overflow-hidden mb-2 bg-white/10">
-                        <img
-                          src={
-                            adChannels[0].channel_type === 'meta' ? '/channel_logo/meta.png' :
-                            adChannels[0].channel_type === 'google' ? '/channel_logo/google_ads.png' :
-                            adChannels[0].channel_type === 'naver_search' ? '/channel_logo/naver_search.png' :
-                            adChannels[0].channel_type === 'naver_gfa' ? '/channel_logo/naver_gfa.png' :
-                            adChannels[0].channel_type === 'tiktok' ? '/channel_logo/tiktok.png' :
-                            adChannels[0].channel_type === 'youtube' ? '/channel_logo/youtube.png' :
-                            adChannels[0].channel_type === 'instagram' ? '/channel_logo/insta.png' :
-                            '/channel_logo/meta.png'
-                          }
-                          alt={adChannels[0].channel_name || ''}
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                      <p className="text-sm font-medium text-white truncate w-full">{adChannels[0].channel_name || getChannelLabel(adChannels[0].channel_type)}</p>
-                      <p className={`text-xs ${
-                        adChannels[0].channel_type === 'meta' ? 'text-blue-400/70' :
-                        adChannels[0].channel_type === 'google' ? 'text-red-400/70' :
-                        adChannels[0].channel_type === 'naver_search' || adChannels[0].channel_type === 'naver_gfa' ? 'text-green-400/70' :
-                        adChannels[0].channel_type === 'kakao' ? 'text-yellow-400/70' :
-                        adChannels[0].channel_type === 'tiktok' ? 'text-pink-400/70' : 'text-slate-500'
-                      }`}>
-                        {adChannels[0].channel_type === 'naver_search' ? '검색광고' :
-                         adChannels[0].channel_type === 'naver_gfa' ? 'GFA' :
-                         adChannels[0].channel_type === 'meta' ? 'Meta' :
-                         adChannels[0].channel_type === 'google' ? 'Google' :
-                         adChannels[0].channel_type === 'kakao' ? '카카오' :
-                         adChannels[0].channel_type === 'tiktok' ? 'TikTok' : '광고'}
-                        {adChannels.length > 1 && <span className="text-slate-500"> +{adChannels.length - 1}</span>}
-                      </p>
-                    </>
+                {/* 동기화/관리 버튼 영역 */}
+                <div className="mt-4 pt-3 border-t border-white/5">
+                  {isBrandChannel ? (
+                    <button
+                      onClick={() => {
+                        // 해당 채널 타입으로 모달 열기
+                        setCreateForm({ ...createForm, channelType: channel.channel_type as SnsChannelType })
+                        setShowCreateModal(true)
+                      }}
+                      className="w-full px-3 py-2 text-xs font-medium rounded-lg bg-purple-500/20 text-purple-400 hover:opacity-80 transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      </svg>
+                      추적 링크 만들기
+                    </button>
                   ) : (
-                    <Link href="/quick-start" className="flex flex-col items-center p-2 rounded-lg border border-dashed border-slate-600 hover:border-slate-500 transition-colors">
-                      <div className="w-8 h-8 rounded bg-slate-700/50 flex items-center justify-center mb-1">
-                        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                      </div>
-                      <span className="text-xs text-slate-400">추가</span>
-                    </Link>
+                    <button
+                      onClick={() => handleSyncChannel(channel)}
+                      disabled={syncingChannel === channel.id}
+                      className={`w-full px-3 py-2 text-xs font-medium rounded-lg ${badge.bg} ${badge.text} hover:opacity-80 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5`}
+                    >
+                      {syncingChannel === channel.id ? (
+                        <>
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                          <span>동기화 중...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          <span>광고비 동기화</span>
+                        </>
+                      )}
+                    </button>
                   )}
                 </div>
               </div>
-
-              {/* 동기화 버튼 영역 */}
-              {adChannels.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-white/5">
-                  <div className="flex flex-wrap gap-2">
-                    {adChannels.map(channel => {
-                      const badge = getChannelBadgeStyle(channel.channel_type)
-                      return (
-                        <button
-                          key={channel.id}
-                          onClick={() => handleSyncChannel(channel)}
-                          disabled={syncingChannel === channel.id}
-                          className={`flex-1 min-w-0 px-3 py-2 text-xs font-medium rounded-lg ${badge.bg} ${badge.text} hover:opacity-80 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5`}
-                        >
-                          {syncingChannel === channel.id ? (
-                            <>
-                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
-                              <span className="truncate">동기화 중...</span>
-                            </>
-                          ) : (
-                            <>
-                              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                              </svg>
-                              <span className="truncate">동기화</span>
-                            </>
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+            )
+          })}
 
           {/* 새 연동 추가 카드 */}
           <Link href="/quick-start" className="p-4 rounded-xl border border-dashed border-slate-600 hover:border-slate-500 hover:bg-slate-800/30 transition-colors flex items-center justify-center min-h-[140px]">
@@ -1539,6 +1627,182 @@ export default function ConversionsPage() {
                 className="flex-1 h-11 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors disabled:opacity-50"
               >
                 {updatingRoas ? '저장 중...' : '저장'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 추적 링크 생성 모달 */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg bg-slate-800 border border-slate-700 rounded-2xl">
+            <div className="p-6 border-b border-slate-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">추적 링크 생성</h3>
+                  <p className="text-sm text-slate-400 mt-1">SNS 게시물용 추적 링크를 생성합니다</p>
+                </div>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* 채널 선택 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-3">채널 선택</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'instagram', label: '인스타그램', icon: '📸', hasDm: true },
+                    { id: 'youtube', label: '유튜브', icon: '▶️', hasDm: false },
+                    { id: 'tiktok', label: '틱톡', icon: '🎵', hasDm: false },
+                    { id: 'naver_blog', label: '네이버 블로그', icon: '📝', hasDm: false },
+                    { id: 'influencer', label: '인플루언서', icon: '⭐', hasDm: false },
+                  ].map((channel) => (
+                    <button
+                      key={channel.id}
+                      onClick={() => setCreateForm({ ...createForm, channelType: channel.id as SnsChannelType, enableDmAutoSend: false })}
+                      className={`p-3 rounded-xl border text-center transition-all ${
+                        createForm.channelType === channel.id
+                          ? 'bg-violet-500/20 border-violet-500/50 text-white'
+                          : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:border-slate-500'
+                      }`}
+                    >
+                      <span className="text-xl">{channel.icon}</span>
+                      <p className="text-xs mt-1">{channel.label}</p>
+                      {channel.hasDm && isInstagramConnected && (
+                        <span className="inline-block mt-1 px-1.5 py-0.5 text-[10px] bg-pink-500/20 text-pink-400 rounded">DM</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 게시물 이름 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">게시물 이름 (선택)</label>
+                <input
+                  type="text"
+                  value={createForm.postName}
+                  onChange={(e) => setCreateForm({ ...createForm, postName: e.target.value })}
+                  placeholder="예: 12월 신상 리뷰, 겨울 코디 릴스"
+                  className="w-full h-11 px-4 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-violet-500 focus:ring-1 focus:ring-violet-500/20"
+                />
+                <p className="text-xs text-slate-500 mt-1">나중에 어떤 게시물인지 구분하기 위한 이름입니다</p>
+              </div>
+
+              {/* 목적지 URL */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">목적지 URL</label>
+                <input
+                  type="url"
+                  value={createForm.targetUrl}
+                  onChange={(e) => setCreateForm({ ...createForm, targetUrl: e.target.value })}
+                  placeholder="https://smartstore.naver.com/..."
+                  className="w-full h-11 px-4 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-violet-500 focus:ring-1 focus:ring-violet-500/20"
+                />
+                <p className="text-xs text-slate-500 mt-1">클릭 시 이동할 상품 페이지 URL</p>
+              </div>
+
+              {/* Instagram DM 자동발송 옵션 */}
+              {createForm.channelType === 'instagram' && isInstagramConnected && (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-pink-500/10 border border-pink-500/20">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={createForm.enableDmAutoSend}
+                        onChange={(e) => setCreateForm({ ...createForm, enableDmAutoSend: e.target.checked })}
+                        className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-pink-500 focus:ring-pink-500/20"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-white">DM 자동발송 활성화</p>
+                        <p className="text-xs text-slate-400">댓글에 특정 키워드 입력 시 자동으로 DM 발송</p>
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* DM 설정 상세 (체크 시 표시) */}
+                  {createForm.enableDmAutoSend && (
+                    <div className="space-y-4 p-4 rounded-xl bg-slate-700/30 border border-slate-600">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">트리거 키워드</label>
+                        <input
+                          type="text"
+                          placeholder="링크, 구매, 정보 (쉼표로 구분)"
+                          defaultValue="링크, 구매, 정보, 가격"
+                          className="w-full h-10 px-3 rounded-lg bg-slate-800 border border-slate-600 text-white text-sm placeholder:text-slate-500"
+                        />
+                        <p className="text-xs text-slate-500 mt-1">이 키워드가 댓글에 포함되면 DM을 발송합니다</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">DM 메시지</label>
+                        <textarea
+                          rows={4}
+                          placeholder="안녕하세요! 요청하신 링크입니다..."
+                          defaultValue={`안녕하세요! 요청하신 링크입니다 👇
+
+{{link}}
+
+구매해주셔서 감사합니다! 🙏`}
+                          className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-white text-sm placeholder:text-slate-500 resize-none"
+                        />
+                        <p className="text-xs text-slate-500 mt-1">{"{{link}}"} 위치에 추적 링크가 자동 삽입됩니다</p>
+                      </div>
+
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                        <svg className="w-5 h-5 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p className="text-xs text-slate-300">
+                          DM 자동발송은 Instagram 비즈니스 계정에서만 작동합니다.
+                          댓글을 단 사용자에게만 발송되며, 동일 사용자에게 중복 발송되지 않습니다.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Instagram 미연결 안내 */}
+              {createForm.channelType === 'instagram' && !isInstagramConnected && (
+                <div className="p-4 rounded-xl bg-slate-700/50 border border-slate-600">
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-slate-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm text-slate-300">Instagram API를 연결하면 DM 자동발송을 사용할 수 있습니다</p>
+                      <Link href="/quick-start" className="text-xs text-violet-400 hover:text-violet-300 mt-1 inline-block">
+                        빠른 시작에서 연결하기 →
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-slate-700 flex gap-3">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="flex-1 h-11 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-medium transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleCreateTrackingLink}
+                disabled={creating || !createForm.channelType || !createForm.targetUrl}
+                className="flex-1 h-11 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {creating ? '생성 중...' : '추적 링크 생성'}
               </button>
             </div>
           </div>

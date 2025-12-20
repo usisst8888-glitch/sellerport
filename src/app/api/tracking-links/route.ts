@@ -60,11 +60,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { productId, utmSource, utmMedium, utmCampaign, targetUrl, adSpend, targetRoasGreen, targetRoasYellow } = body
+    const { productId, utmSource, utmMedium, utmCampaign, targetUrl, adSpend, targetRoasGreen, targetRoasYellow, channelType, postName, enableDmAutoSend } = body
 
-    if (!utmSource || !utmMedium || !utmCampaign || !targetUrl) {
-      return NextResponse.json({ error: '필수 항목이 누락되었습니다' }, { status: 400 })
+    if (!targetUrl) {
+      return NextResponse.json({ error: '목적지 URL은 필수입니다' }, { status: 400 })
     }
+
+    // channelType이 있으면 utmSource/utmMedium 자동 설정
+    const finalUtmSource = utmSource || channelType || 'direct'
+    const finalUtmMedium = utmMedium || (channelType ? 'social' : 'referral')
+    const finalUtmCampaign = utmCampaign || postName || `tracking_${Date.now()}`
 
     // 사용자 플랜 확인
     const { data: profile } = await supabase
@@ -163,13 +168,15 @@ export async function POST(request: NextRequest) {
         id: trackingLinkId,
         user_id: user.id,
         product_id: productId || null,
-        utm_source: utmSource,
-        utm_medium: utmMedium,
-        utm_campaign: utmCampaign,
+        utm_source: finalUtmSource,
+        utm_medium: finalUtmMedium,
+        utm_campaign: finalUtmCampaign,
         target_url: targetUrl,
         tracking_url: trackingUrl,
         bridge_shop_url: bridgeShopUrl,
         go_url: goUrl,
+        channel_type: channelType || null,
+        post_name: postName || null,
         status: 'active',
         clicks: 0,
         conversions: 0,

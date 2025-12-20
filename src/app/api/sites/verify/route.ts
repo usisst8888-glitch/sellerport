@@ -3,7 +3,7 @@
  * POST /api/sites/verify
  *
  * 일반 웹사이트(custom)의 추적 코드 설치 여부를 확인합니다.
- * landing_visits 테이블에서 해당 사이트의 방문 기록이 있는지 확인합니다.
+ * site_visits 테이블에서 해당 사이트의 방문 기록이 있는지 확인합니다.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -44,9 +44,9 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // 해당 사용자의 landing_visits에서 방문 기록 확인
+    // 해당 사용자의 site_visits에서 방문 기록 확인
     const { data: visits, error: visitsError } = await supabase
-      .from('landing_visits')
+      .from('site_visits')
       .select('id, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })

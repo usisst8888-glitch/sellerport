@@ -53,26 +53,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '상품 조회에 실패했습니다' }, { status: 500 })
     }
 
-    // 각 상품의 캠페인 수 조회
-    const productsWithStats = await Promise.all(
-      (products || []).map(async (product) => {
-        const { count: campaignCount } = await supabase
-          .from('campaigns')
-          .select('id', { count: 'exact', head: true })
-          .eq('product_id', product.id)
+    // 마진 계산
+    const productsWithStats = (products || []).map((product) => {
+      const margin = product.cost > 0
+        ? Math.round(((product.price - product.cost) / product.price) * 100)
+        : null
 
-        // 마진 계산 (원가가 있는 경우)
-        const margin = product.cost > 0
-          ? Math.round(((product.price - product.cost) / product.price) * 100)
-          : null
-
-        return {
-          ...product,
-          campaignCount: campaignCount || 0,
-          margin
-        }
-      })
-    )
+      return {
+        ...product,
+        margin
+      }
+    })
 
     return NextResponse.json({ success: true, data: productsWithStats })
 

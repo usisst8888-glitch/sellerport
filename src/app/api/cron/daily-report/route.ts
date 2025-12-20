@@ -71,17 +71,6 @@ export async function GET(request: NextRequest) {
         ? ((orderCount / clickCount) * 100).toFixed(1)
         : '0'
 
-      // 캠페인별 요약
-      const { data: campaigns } = await supabase
-        .from('campaigns')
-        .select('name, roas, status')
-        .eq('user_id', setting.user_id)
-        .eq('status', 'running')
-        .order('roas', { ascending: true })
-        .limit(3)
-
-      const redLightCampaigns = campaigns?.filter(c => (c.roas || 0) < 150) || []
-
       // 알림 생성
       const dateStr = today.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
       const title = `📊 ${dateStr} 일일 리포트`
@@ -90,9 +79,6 @@ export async function GET(request: NextRequest) {
         `💰 매출: ${totalRevenue.toLocaleString()}원`,
         `📈 순이익: ${totalProfit.toLocaleString()}원`,
         `🎯 전환율: ${conversionRate}%`,
-        redLightCampaigns.length > 0
-          ? `\n🔴 주의 캠페인: ${redLightCampaigns.map(c => c.name).join(', ')}`
-          : ''
       ].filter(Boolean).join('\n')
 
       await supabase.from('alerts').insert({
@@ -107,7 +93,6 @@ export async function GET(request: NextRequest) {
           totalProfit,
           clickCount,
           conversionRate,
-          redLightCampaigns: redLightCampaigns.map(c => c.name)
         }
       })
 

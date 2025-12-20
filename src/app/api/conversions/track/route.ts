@@ -132,24 +132,7 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', finalTrackingLinkId)
 
-    // 캠페인이 있으면 캠페인도 업데이트
-    if (trackingLink.campaign_id) {
-      const { data: campaign } = await supabase
-        .from('campaigns')
-        .select('conversions, revenue')
-        .eq('id', trackingLink.campaign_id)
-        .single()
-
-      if (campaign) {
-        await supabase
-          .from('campaigns')
-          .update({
-            conversions: (campaign.conversions || 0) + 1,
-            revenue: (campaign.revenue || 0) + orderAmount
-          })
-          .eq('id', trackingLink.campaign_id)
-      }
-    }
+    // 캠페인 테이블 삭제됨 - ad_channels로 대체됨
 
     // 클릭 로그에 전환 표시
     if (finalClickId) {
