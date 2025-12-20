@@ -60,7 +60,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { productId, utmSource, utmMedium, utmCampaign, targetUrl, adSpend, targetRoasGreen, targetRoasYellow, channelType, postName, enableDmAutoSend } = body
+    const {
+      productId, utmSource, utmMedium, utmCampaign, targetUrl, adSpend, targetRoasGreen, targetRoasYellow,
+      channelType, postName, enableDmAutoSend, dmTriggerKeywords, dmMessage,
+      // Instagram 게시물 정보 (DM 자동발송용)
+      instagramMediaId, instagramMediaUrl, instagramMediaType, instagramCaption
+    } = body
 
     if (!targetUrl) {
       return NextResponse.json({ error: '목적지 URL은 필수입니다' }, { status: 400 })
@@ -199,6 +204,44 @@ export async function POST(request: NextRequest) {
         .from('user_balance')
         .update({ slot_balance: currentBalance - 1 })
         .eq('user_id', user.id)
+    }
+
+    // Instagram DM 자동발송 설정 (Instagram 채널 + 옵션 활성화 시)
+    if (channelType === 'instagram' && enableDmAutoSend && dmMessage) {
+      // 사용자의 Instagram 채널 찾기
+      const { data: instagramChannel } = await supabase
+        .from('ad_channels')
+        .select('id, metadata')
+        .eq('user_id', user.id)
+        .eq('channel_type', 'instagram')
+        .eq('status', 'connected')
+        .single()
+
+      if (instagramChannel) {
+        // 키워드 파싱 (쉼표로 구분된 문자열 → 배열)
+        const keywords = dmTriggerKeywords
+          ? dmTriggerKeywords.split(',').map((k: string) => k.trim()).filter((k: string) => k)
+          : ['링크', '구매', '정보', '가격']
+
+        // 게시물 정보가 있으면 바로 활성화, 없으면 비활성화
+        const hasMediaInfo = instagramMediaId && instagramMediaId !== 'pending_selection'
+
+        // DM 설정 생성
+        await supabase
+          .from('instagram_dm_settings')
+          .insert({
+            user_id: user.id,
+            ad_channel_id: instagramChannel.id,
+            tracking_link_id: trackingLinkId,
+            instagram_media_id: instagramMediaId || 'pending_selection',
+            instagram_media_url: instagramMediaUrl || null,
+            instagram_media_type: instagramMediaType || null,
+            instagram_caption: instagramCaption || postName || null,
+            trigger_keywords: keywords,
+            dm_message: dmMessage,
+            is_active: hasMediaInfo, // 게시물 정보가 있으면 활성화
+          })
+      }
     }
 
     return NextResponse.json({

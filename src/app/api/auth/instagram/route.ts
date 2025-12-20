@@ -4,13 +4,13 @@ import { createClient } from '@/lib/supabase/server'
 // Instagram OAuth 연동 시작
 // DM 자동발송을 위해 Facebook Login을 통해 Instagram Graph API 접근
 //
-// 필요한 권한:
-// - instagram_basic: 기본 프로필 정보
-// - instagram_manage_messages: DM 발송 (핵심!)
-// - instagram_manage_comments: 댓글 읽기 (Webhook용)
+// 필요한 권한 (비즈니스용):
+// - instagram_business_basic: Instagram 비즈니스 기본 프로필
+// - instagram_business_manage_messages: DM 발송 (핵심!)
+// - instagram_business_manage_comments: 댓글 읽기 (Webhook용)
 // - pages_show_list: 연결된 페이지 목록
-// - pages_messaging: 페이지를 통한 메시징
 // - pages_read_engagement: 페이지 참여 데이터
+// - business_management: 비즈니스 관리
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -34,19 +34,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Facebook App ID not configured' }, { status: 500 })
     }
 
-    // DM 자동발송을 위한 권한 목록
-    // 개발 모드: 검수 없이 사용 가능한 권한만 (검수 후 비즈니스 권한 추가 예정)
+    // DM 자동발송을 위한 권한 목록 (비즈니스용 스코프 사용)
+    // instagram_basic은 deprecated → instagram_business_basic 사용
     const scopes = [
-      'instagram_basic',                    // Instagram 기본 프로필
-      'pages_show_list',                    // 연결된 Facebook 페이지 목록
-      'pages_read_engagement',              // 페이지 참여 데이터
-      'business_management',                // 비즈니스 관리
-      'public_profile',                     // 기본 프로필 (자동 부여)
-      // TODO: 검수 승인 후 아래 권한 추가
-      // 'instagram_business_basic',
-      // 'instagram_business_manage_messages',
-      // 'instagram_manage_comments',
-      // 'instagram_content_publish',
+      'public_profile',                           // 기본 프로필 (자동 부여)
+      'pages_show_list',                          // 연결된 Facebook 페이지 목록
+      'pages_read_engagement',                    // 페이지 참여 데이터
+      'business_management',                      // 비즈니스 관리
+      'instagram_business_basic',                 // Instagram 비즈니스 기본 프로필
+      'instagram_business_manage_messages',       // DM 발송 (핵심!)
+      'instagram_business_manage_comments',       // 댓글 읽기 (Webhook용)
     ].join(',')
 
     // state에 user_id, from, siteId 저장

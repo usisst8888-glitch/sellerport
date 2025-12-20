@@ -44,16 +44,17 @@ const menuItems: MenuItem[] = [
     ),
     badge: '분석핵심',
   },
-  {
-    title: '광고 채널 관리',
-    href: '/ad-channels',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-      </svg>
-    ),
-  },
+  // 광고 채널 관리 - 빠른 시작에서 모두 처리 가능하므로 삭제
+  // {
+  //   title: '광고 채널 관리',
+  //   href: '/ad-channels',
+  //   icon: (
+  //     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  //       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+  //       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+  //     </svg>
+  //   ),
+  // },
   // 수익 계산 메뉴 - 정식 오픈 후 활성화 예정
   // {
   //   title: '수익 계산',
