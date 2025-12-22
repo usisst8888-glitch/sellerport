@@ -35,16 +35,18 @@ export async function GET(request: NextRequest) {
     }
 
     // DM 자동발송을 위한 권한 목록
-    // ⚠️ 개발 모드: 테스터로 등록된 계정만 사용 가능
-    // ⚠️ 라이브 모드: 앱 검수 통과 후 모든 사용자 사용 가능
+    // ⚠️ 개발 모드: 기본 권한만으로 연동 (instagram_business_* 권한은 검수 후)
+    // ⚠️ 앱 검수 통과 후: instagram_business_basic, instagram_business_manage_messages 추가
     const scopes = [
       'public_profile',                           // 기본 프로필 (자동 부여)
       'pages_show_list',                          // 연결된 Facebook 페이지 목록
       'pages_read_engagement',                    // 페이지 참여 데이터
       'business_management',                      // 비즈니스 관리
-      'instagram_business_basic',                 // Instagram 비즈니스 기본 프로필 (필수!)
-      'instagram_business_manage_messages',       // DM 발송 (핵심!)
-      'instagram_business_manage_comments',       // 댓글 읽기 (Webhook용)
+      // Instagram Graph API 기본 권한 (검수 없이 사용 가능)
+      'instagram_basic',                          // Instagram 기본 프로필
+      'instagram_manage_comments',                // 댓글 관리
+      'instagram_manage_insights',                // 인사이트 조회
+      'pages_manage_metadata',                    // 페이지 메타데이터 관리
     ].join(',')
 
     // state에 user_id, from, siteId 저장
