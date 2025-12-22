@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
     const {
       productId, utmSource, utmMedium, utmCampaign, targetUrl, adSpend, targetRoasGreen, targetRoasYellow,
       channelType, postName, enableDmAutoSend, dmTriggerKeywords, dmMessage,
+      requireFollow, followMessage,
       // Instagram 게시물 정보 (DM 자동발송용)
       instagramMediaId, instagramMediaUrl, instagramMediaType, instagramCaption
     } = body
@@ -239,6 +240,8 @@ export async function POST(request: NextRequest) {
             instagram_caption: instagramCaption || postName || null,
             trigger_keywords: keywords,
             dm_message: dmMessage,
+            include_follow_cta: requireFollow || false,
+            follow_cta_message: followMessage || null,
             is_active: hasMediaInfo, // 게시물 정보가 있으면 활성화
           })
       }
