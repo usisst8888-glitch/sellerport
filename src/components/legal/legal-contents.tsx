@@ -98,7 +98,6 @@ export function TermsContent() {
         <h2 className="text-lg font-semibold text-white mb-3">제9조 (유료 서비스)</h2>
         <ol className="list-decimal list-inside space-y-2 text-sm">
           <li>회사가 제공하는 서비스 중 일부는 유료로 제공될 수 있으며, 이용 요금 및 결제 방법은 서비스 내 별도 안내에 따릅니다.</li>
-          <li>유료 서비스 이용 요금의 결제는 (주)리프컴퍼니를 통해 처리됩니다.</li>
           <li>회원이 유료 서비스 이용 요금을 결제한 경우, 회사는 전자상거래 등에서의 소비자 보호에 관한 법률에 따라 환불 정책을 적용합니다.</li>
         </ol>
       </section>
@@ -163,17 +162,6 @@ export function TermsContent() {
         </div>
       </section>
 
-      <section className="mt-4 p-4 bg-slate-700/50 rounded-xl">
-        <h3 className="text-sm font-semibold text-white mb-3">결제 및 고객센터 정보</h3>
-        <div className="text-sm space-y-1">
-          <p><span className="text-slate-400">상호:</span> (주)리프컴퍼니</p>
-          <p><span className="text-slate-400">대표자:</span> 박상호</p>
-          <p><span className="text-slate-400">사업자등록번호:</span> 413-87-02826</p>
-          <p><span className="text-slate-400">주소:</span> 서울시 광진구 구의동 218-13 202호</p>
-          <p><span className="text-slate-400">고객센터:</span> 1666-5157</p>
-          <p><span className="text-slate-400">이메일:</span> leadproject.cp@gmail.com</p>
-        </div>
-      </section>
     </div>
   )
 }
@@ -308,30 +296,7 @@ export function PrivacyContent() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-white mb-4">6. 개인정보 처리 위탁</h2>
-        <p className="text-sm mb-4">
-          회사는 원활한 서비스 제공을 위해 다음과 같이 개인정보 처리업무를 위탁하고 있습니다.
-        </p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="border-b border-slate-600">
-                <th className="text-left py-3 px-4 text-slate-300 font-medium">수탁업체</th>
-                <th className="text-left py-3 px-4 text-slate-300 font-medium">위탁 업무 내용</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-slate-700">
-                <td className="py-3 px-4">(주)리프컴퍼니</td>
-                <td className="py-3 px-4">결제 처리 및 고객 상담</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section>
-        <h2 className="text-lg font-semibold text-white mb-4">7. 이용자의 권리 및 행사 방법</h2>
+        <h2 className="text-lg font-semibold text-white mb-4">6. 이용자의 권리 및 행사 방법</h2>
         <ul className="list-disc list-inside space-y-1 text-sm">
           <li>이용자는 언제든지 자신의 개인정보를 조회하거나 수정할 수 있으며, 회원 탈퇴를 통해 개인정보의 수집 및 이용에 대한 동의를 철회할 수 있습니다.</li>
           <li>개인정보 조회·수정은 서비스 내 &quot;설정&quot; 메뉴에서, 회원 탈퇴는 설정 메뉴 또는 고객센터(1666-5157)를 통해 가능합니다.</li>
@@ -340,7 +305,7 @@ export function PrivacyContent() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-white mb-4">8. 개인정보의 파기</h2>
+        <h2 className="text-lg font-semibold text-white mb-4">7. 개인정보의 파기</h2>
         <p className="text-sm mb-4">
           회사는 원칙적으로 개인정보 처리목적이 달성된 경우에는 지체 없이 해당 개인정보를 파기합니다. 파기의 절차, 기한 및 방법은 다음과 같습니다.
         </p>
@@ -352,7 +317,7 @@ export function PrivacyContent() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-white mb-4">9. 개인정보 보호책임자</h2>
+        <h2 className="text-lg font-semibold text-white mb-4">8. 개인정보 보호책임자</h2>
         <div className="p-4 bg-slate-700/50 rounded-xl">
           <div className="text-sm space-y-1">
             <p><span className="text-slate-400">성명:</span> 배철응</p>
@@ -364,7 +329,7 @@ export function PrivacyContent() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-white mb-4">10. 개인정보 처리방침 변경</h2>
+        <h2 className="text-lg font-semibold text-white mb-4">9. 개인정보 처리방침 변경</h2>
         <p className="text-sm">
           이 개인정보 처리방침은 시행일로부터 적용되며, 법령 및 방침에 따른 변경 내용의 추가, 삭제 및 정정이 있는 경우에는 변경사항의 시행 7일 전부터 공지사항을 통하여 고지할 것입니다.
         </p>
@@ -387,17 +352,6 @@ export function PrivacyContent() {
         </div>
       </section>
 
-      <section className="mt-4 p-4 bg-slate-700/50 rounded-xl">
-        <h3 className="text-sm font-semibold text-white mb-3">결제 및 고객센터 정보</h3>
-        <div className="text-sm space-y-1">
-          <p><span className="text-slate-400">상호:</span> (주)리프컴퍼니</p>
-          <p><span className="text-slate-400">대표자:</span> 박상호</p>
-          <p><span className="text-slate-400">사업자등록번호:</span> 413-87-02826</p>
-          <p><span className="text-slate-400">주소:</span> 서울시 광진구 구의동 218-13 202호</p>
-          <p><span className="text-slate-400">고객센터:</span> 1666-5157</p>
-          <p><span className="text-slate-400">이메일:</span> leadproject.cp@gmail.com</p>
-        </div>
-      </section>
     </div>
   )
 }
@@ -533,17 +487,6 @@ export function MarketingContent() {
         </div>
       </section>
 
-      <section className="mt-4 p-4 bg-slate-700/50 rounded-xl">
-        <h3 className="text-sm font-semibold text-white mb-3">결제 및 고객센터 정보</h3>
-        <div className="text-sm space-y-1">
-          <p><span className="text-slate-400">상호:</span> (주)리프컴퍼니</p>
-          <p><span className="text-slate-400">대표자:</span> 박상호</p>
-          <p><span className="text-slate-400">사업자등록번호:</span> 413-87-02826</p>
-          <p><span className="text-slate-400">주소:</span> 서울시 광진구 구의동 218-13 202호</p>
-          <p><span className="text-slate-400">고객센터:</span> 1666-5157</p>
-          <p><span className="text-slate-400">이메일:</span> leadproject.cp@gmail.com</p>
-        </div>
-      </section>
     </div>
   )
 }

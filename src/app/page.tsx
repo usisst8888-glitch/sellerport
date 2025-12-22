@@ -1228,11 +1228,11 @@ export default function Home() {
                 </Link>
               </div>
 
-              {/* 엔터프라이즈 */}
+              {/* 리셀러 파트너 */}
               <div className="rounded-2xl p-6 bg-gradient-to-b from-violet-600/10 to-slate-800/50 border border-violet-500/30 hover:border-violet-500/50 transition-all duration-300">
                 <div className="mb-4">
-                  <h4 className="text-lg font-bold text-white">엔터프라이즈</h4>
-                  <p className="text-xs text-slate-400 mt-1">대기업/에이전시를 위한 맞춤 솔루션</p>
+                  <h4 className="text-lg font-bold text-white">리셀러 파트너</h4>
+                  <p className="text-xs text-slate-400 mt-1">화이트라벨 재판매 파트너십</p>
                 </div>
                 <div className="mb-4">
                   <div className="flex items-baseline gap-1">
@@ -1241,7 +1241,7 @@ export default function Home() {
                   <p className="text-xs text-violet-400 mt-1">알림톡 협의</p>
                 </div>
                 <ul className="space-y-2 mb-6">
-                  {['프로의 모든 기능', 'API 제공', '전담 매니저', '맞춤 리포트', '온보딩 지원', 'SLA 보장'].map((feature, i) => (
+                  {['화이트라벨 플랫폼 제공', '도매가 구독료', '자체 브랜드 운영', '파트너 대시보드', '수익 정산 시스템', '기술 지원'].map((feature, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm">
                       <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -1250,9 +1250,9 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <Link href="mailto:contact@sellerport.app?subject=엔터프라이즈 문의">
+                <Link href="mailto:contact@sellerport.app?subject=리셀러 파트너 문의">
                   <Button className="w-full bg-violet-600 hover:bg-violet-500 text-white">
-                    문의하기
+                    파트너 문의
                   </Button>
                 </Link>
               </div>
@@ -1346,25 +1346,14 @@ export default function Home() {
               </div>
             </div>
             <div className="mt-16 pt-8 border-t border-slate-700/50">
-              <div className="grid md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <p className="text-xs text-slate-500 mb-1">서비스 운영</p>
-                  <p className="text-sm text-slate-400">
-                    어시스트솔루션 (602-27-04681) 대표 배철응
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    서울시 광진구 화양동 15-51
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 mb-1">결제 및 고객센터 운영</p>
-                  <p className="text-sm text-slate-400">
-                    (주)리프컴퍼니 (413-87-02826) 대표 박상호
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    서울시 광진구 구의동 218-13 202호
-                  </p>
-                </div>
+              <div className="mb-6">
+                <p className="text-xs text-slate-500 mb-1">서비스 운영</p>
+                <p className="text-sm text-slate-400">
+                  어시스트솔루션 (602-27-04681) 대표 배철응
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  서울시 광진구 화양동 15-51
+                </p>
               </div>
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <p className="text-sm text-slate-500">

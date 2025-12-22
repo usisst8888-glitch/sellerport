@@ -20,7 +20,7 @@ export default function PrivacyPage() {
 
         <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8">
           <h1 className="text-2xl font-bold text-white mb-2">개인정보 수집·이용 동의</h1>
-          <p className="text-slate-400 text-sm mb-8">최종 수정일: 2025년 12월 15일</p>
+          <p className="text-slate-400 text-sm mb-8">최종 수정일: 2025년 12월 22일</p>
 
           <div className="prose prose-invert prose-slate max-w-none space-y-8 text-slate-300">
             <p className="text-sm leading-relaxed">
@@ -139,7 +139,52 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-lg font-semibold text-white mb-4">5. 개인정보의 제3자 제공</h2>
+              <h2 className="text-lg font-semibold text-white mb-4">5. 크롬 확장 프로그램 관련 개인정보 처리</h2>
+              <p className="text-sm mb-4">
+                회사는 &quot;셀러포트 - 스마트스토어 전환 추적&quot; 크롬 확장 프로그램을 통해 다음과 같이 개인정보를 수집·처리합니다.
+              </p>
+              <div className="overflow-x-auto mb-4">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-600">
+                      <th className="text-left py-3 px-4 text-slate-300 font-medium">수집 항목</th>
+                      <th className="text-left py-3 px-4 text-slate-300 font-medium">수집 목적</th>
+                      <th className="text-left py-3 px-4 text-slate-300 font-medium">보유 기간</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-slate-700">
+                      <td className="py-3 px-4">로그인 토큰</td>
+                      <td className="py-3 px-4">사용자 인증 및 API 접근 권한 확인</td>
+                      <td className="py-3 px-4">로그아웃 시 삭제</td>
+                    </tr>
+                    <tr className="border-b border-slate-700">
+                      <td className="py-3 px-4">스마트스토어 판매자센터 통계 데이터 (NT 파라미터별 방문수, 주문수, 매출)</td>
+                      <td className="py-3 px-4">메타 광고 전환 추적 및 성과 분석</td>
+                      <td className="py-3 px-4">서비스 이용 기간</td>
+                    </tr>
+                    <tr className="border-b border-slate-700">
+                      <td className="py-3 px-4">마지막 동기화 시간</td>
+                      <td className="py-3 px-4">사용자 편의 제공</td>
+                      <td className="py-3 px-4">로그아웃 시 삭제</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-sm mb-2"><strong className="text-white">확장 프로그램 권한 사용 목적:</strong></p>
+              <ul className="list-disc list-inside space-y-1 text-sm mb-4">
+                <li><strong className="text-white">activeTab:</strong> 사용자가 확장 프로그램 아이콘을 클릭했을 때 현재 탭이 스마트스토어 판매자센터인지 확인하기 위해 사용</li>
+                <li><strong className="text-white">storage:</strong> 로그인 토큰과 마지막 동기화 시간을 로컬에 저장하기 위해 사용 (기기 외부로 전송되지 않음)</li>
+                <li><strong className="text-white">호스트 권한 (sell.smartstore.naver.com):</strong> 판매자센터의 사용자정의채널 통계 데이터를 읽기 위해 사용</li>
+                <li><strong className="text-white">호스트 권한 (sellerport.app):</strong> 수집된 데이터를 셀러포트 서버로 전송하기 위해 사용</li>
+              </ul>
+              <p className="text-sm">
+                <strong className="text-white">원격 코드:</strong> 본 확장 프로그램은 원격 코드를 사용하지 않습니다. 모든 코드는 확장 프로그램 패키지 내에 포함되어 있습니다.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-white mb-4">6. 개인정보의 제3자 제공</h2>
               <p className="text-sm mb-4">
                 회사는 이용자의 개인정보를 &quot;2. 개인정보의 수집·이용 목적&quot;에서 명시한 범위 내에서만 처리하며, 이용자의 동의 없이는 제3자에게 개인정보를 제공하지 않습니다. 다만, 다음의 경우에는 예외로 합니다.
               </p>
@@ -147,29 +192,6 @@ export default function PrivacyPage() {
                 <li>이용자가 사전에 제3자 제공에 동의한 경우</li>
                 <li>법령의 규정에 의거하거나, 수사 목적으로 법령에 정해진 절차와 방법에 따라 수사기관의 요구가 있는 경우</li>
               </ul>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-white mb-4">6. 개인정보 처리 위탁</h2>
-              <p className="text-sm mb-4">
-                회사는 원활한 서비스 제공을 위해 다음과 같이 개인정보 처리업무를 위탁하고 있습니다.
-              </p>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-600">
-                      <th className="text-left py-3 px-4 text-slate-300 font-medium">수탁업체</th>
-                      <th className="text-left py-3 px-4 text-slate-300 font-medium">위탁 업무 내용</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b border-slate-700">
-                      <td className="py-3 px-4">(주)리프컴퍼니</td>
-                      <td className="py-3 px-4">결제 처리 및 고객 상담</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
             </section>
 
             <section>
@@ -214,7 +236,7 @@ export default function PrivacyPage() {
 
             <section className="mt-12 pt-8 border-t border-slate-700">
               <h2 className="text-lg font-semibold text-white mb-4">부칙</h2>
-              <p className="text-sm">본 개인정보 수집·이용 동의서는 2025년 12월 15일부터 시행됩니다.</p>
+              <p className="text-sm">본 개인정보 수집·이용 동의서는 2025년 12월 22일부터 시행됩니다.</p>
             </section>
 
             <section className="mt-8 p-4 bg-slate-700/50 rounded-xl">
@@ -229,17 +251,6 @@ export default function PrivacyPage() {
               </div>
             </section>
 
-            <section className="mt-4 p-4 bg-slate-700/50 rounded-xl">
-              <h3 className="text-sm font-semibold text-white mb-3">결제 및 고객센터 정보</h3>
-              <div className="text-sm space-y-1">
-                <p><span className="text-slate-400">상호:</span> (주)리프컴퍼니</p>
-                <p><span className="text-slate-400">대표자:</span> 박상호</p>
-                <p><span className="text-slate-400">사업자등록번호:</span> 413-87-02826</p>
-                <p><span className="text-slate-400">주소:</span> 서울시 광진구 구의동 218-13 202호</p>
-                <p><span className="text-slate-400">고객센터:</span> 1666-5157</p>
-                <p><span className="text-slate-400">이메일:</span> leadproject.cp@gmail.com</p>
-              </div>
-            </section>
           </div>
         </div>
       </div>

@@ -63,23 +63,23 @@ const SUBSCRIPTION_TIERS = [
     buttonDisabled: false,
   },
   {
-    id: 'enterprise',
-    name: '엔터프라이즈',
+    id: 'reseller',
+    name: '리셀러 파트너',
     price: -1,
     priceLabel: '별도 협의',
-    description: '대기업/에이전시를 위한 맞춤 솔루션',
+    description: '화이트라벨 재판매 파트너십',
     features: [
-      '프로의 모든 기능',
-      'API 제공',
-      '전담 매니저',
-      '맞춤 리포트',
-      '온보딩 지원',
-      'SLA 보장',
+      '동일 플랫폼 화이트라벨 제공',
+      '도매가 구독료 (무료/베이직/프로)',
+      '자체 브랜드로 운영 가능',
+      '파트너 전용 대시보드',
+      '수익 정산 시스템',
+      '기술 지원',
     ],
     alerts: -1,
     alertLabel: '알림톡 협의',
     popular: false,
-    buttonText: '문의하기',
+    buttonText: '파트너 문의',
     buttonDisabled: false,
   },
 ]
@@ -105,9 +105,9 @@ export default function BillingPage() {
   const [selectedTier, setSelectedTier] = useState<typeof SUBSCRIPTION_TIERS[0] | null>(null)
 
   const handleSubscribe = (tier: typeof SUBSCRIPTION_TIERS[0]) => {
-    if (tier.id === 'enterprise') {
-      // 엔터프라이즈는 문의 페이지로 이동
-      window.open('mailto:contact@sellerport.app?subject=엔터프라이즈 문의', '_blank')
+    if (tier.id === 'reseller') {
+      // 리셀러 파트너는 문의 페이지로 이동
+      window.open('mailto:contact@sellerport.app?subject=리셀러 파트너 문의', '_blank')
       return
     }
     if (tier.id === currentPlan) return

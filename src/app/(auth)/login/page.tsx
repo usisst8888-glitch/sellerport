@@ -1,12 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+
+// 크롬 확장 프로그램 ID (배포 후 실제 ID로 변경 필요)
+const CHROME_EXTENSION_ID = process.env.NEXT_PUBLIC_CHROME_EXTENSION_ID
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -14,6 +17,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isFromExtension = searchParams.get('extension') === 'true'
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,6 +35,32 @@ export default function LoginPage() {
       setError(error.message)
       setLoading(false)
     } else {
+      // 크롬 확장 프로그램에서 온 경우 토큰을 localStorage에 저장
+      // 확장 프로그램의 content script가 이를 읽어감
+      if (isFromExtension) {
+        const supabaseForToken = createClient()
+        const { data: sessionData } = await supabaseForToken.auth.getSession()
+
+        if (sessionData.session) {
+          // 확장 프로그램이 읽을 수 있도록 localStorage에 저장
+          localStorage.setItem('sellerport_extension_auth', JSON.stringify({
+            authToken: sessionData.session.access_token,
+            userInfo: {
+              email: sessionData.session.user.email,
+              id: sessionData.session.user.id
+            },
+            timestamp: Date.now()
+          }))
+
+          // 잠시 후 대시보드로 이동 (확장 프로그램이 읽을 시간)
+          setTimeout(() => {
+            router.push('/dashboard?extension_connected=true')
+            router.refresh()
+          }, 500)
+          return
+        }
+      }
+
       router.push('/dashboard')
       router.refresh()
     }

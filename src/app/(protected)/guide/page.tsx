@@ -23,7 +23,7 @@ const tabs: Tab[] = [
   },
   {
     id: 'mysites',
-    title: '내 사이트 연동',
+    title: '쇼핑몰 연동',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
@@ -169,16 +169,16 @@ function MySitesContent() {
   }
 
   const handleConnect = (siteId: string) => {
-    router.push(`/my-sites?connect=${siteId}`)
+    router.push(`/quick-start?site=${siteId}`)
   }
 
   return (
     <div className="space-y-8">
       <section>
-        <h2 className="text-xl font-bold text-white mb-4">내 사이트 연동이란?</h2>
+        <h2 className="text-xl font-bold text-white mb-4">쇼핑몰 연동이란?</h2>
         <p className="text-slate-300 leading-relaxed">
-          셀러포트에서 전환(구매, 회원가입, DB수집)을 추적하려면 먼저 <span className="text-blue-400 font-semibold">내 사이트</span>를 연동해야 합니다.
-          쇼핑몰, 웹사이트, 블로그 등 고객이 전환하는 사이트를 등록하면, 해당 사이트에서 발생하는 모든 전환을 추적할 수 있습니다.
+          셀러포트에서 전환(구매)을 추적하려면 먼저 <span className="text-blue-400 font-semibold">쇼핑몰</span>을 연동해야 합니다.
+          좌측 메뉴의 &apos;빠른 시작&apos;에서 스마트스토어, 카페24, 아임웹을 연동하면 해당 쇼핑몰에서 발생하는 주문을 자동으로 추적할 수 있습니다.
         </p>
       </section>
 
@@ -210,7 +210,7 @@ function MySitesContent() {
                 <StepCard step={1} title="네이버 커머스API센터 접속" description="apicenter.commerce.naver.com에 접속하여 스마트스토어 판매자 계정으로 로그인하세요." />
                 <StepCard step={2} title="애플리케이션 등록" description="새 애플리케이션을 등록하고 Client ID와 Client Secret을 발급받으세요." />
                 <StepCard step={3} title="API 호출 IP 등록" description="API 호출 IP에 34.64.115.226을 등록하세요." />
-                <StepCard step={4} title="셀러포트에서 연동" description="내 사이트 → 네이버 스마트스토어 연동하기를 클릭하고 발급받은 정보를 입력하세요." />
+                <StepCard step={4} title="셀러포트에서 연동" description="빠른 시작에서 '스마트스토어'를 선택하고 발급받은 정보를 입력하세요." />
               </div>
               <div className="bg-slate-700/50 rounded-lg p-4 border border-white/10">
                 <p className="text-slate-300 font-medium mb-2">필요한 API 권한</p>
@@ -228,25 +228,25 @@ function MySitesContent() {
             id="cafe24"
             icon={<img src="/site_logo/cafe24.png" alt="카페24" className="w-6 h-6 rounded" />}
             title="카페24"
-            description="앱스토어 설치"
+            description="OAuth 연동"
             isExpanded={expandedSite === 'cafe24'}
             onToggle={() => toggleSite('cafe24')}
             onConnect={() => handleConnect('cafe24')}
           >
             <div className="space-y-4">
               <div className="bg-blue-500/10 rounded-lg p-4 border border-blue-500/30">
-                <p className="text-blue-400 font-medium mb-2">앱스토어 설치 방식</p>
-                <p className="text-slate-300 text-sm">카페24 앱스토어에서 셀러포트 앱을 설치하면 자동으로 연동됩니다.</p>
+                <p className="text-blue-400 font-medium mb-2">OAuth 연동 방식</p>
+                <p className="text-slate-300 text-sm">쇼핑몰 ID를 입력하면 카페24 로그인으로 자동 연동됩니다.</p>
               </div>
               <div className="space-y-3">
-                <StepCard step={1} title="카페24 앱스토어 접속" description="카페24 앱스토어(store.cafe24.com)에 접속하세요." />
-                <StepCard step={2} title="셀러포트 검색" description="검색창에 '셀러포트'를 검색하세요." />
-                <StepCard step={3} title="앱 설치" description="앱 설치 버튼을 클릭하고 권한을 승인하세요." />
-                <StepCard step={4} title="셀러포트 연결" description="설치 완료 후 셀러포트에 회원가입/로그인하여 쇼핑몰을 연결하세요." />
+                <StepCard step={1} title="빠른 시작에서 카페24 선택" description="빠른 시작 메뉴에서 '카페24'를 선택하세요." />
+                <StepCard step={2} title="쇼핑몰 ID 입력" description="카페24 관리자 URL에서 확인할 수 있는 쇼핑몰 ID(Mall ID)를 입력하세요." />
+                <StepCard step={3} title="카페24 로그인" description="팝업 창에서 카페24 계정으로 로그인하고 권한을 승인하세요." />
+                <StepCard step={4} title="연동 완료" description="주문, 상품 데이터가 자동으로 수집됩니다." />
               </div>
-              <div className="bg-amber-500/10 rounded-lg p-4 border border-amber-500/30">
-                <p className="text-amber-400 font-medium mb-2">참고사항</p>
-                <p className="text-slate-300 text-sm">카페24는 앱스토어를 통해서만 연동할 수 있습니다. 직접 API 키를 입력하는 방식은 지원하지 않습니다.</p>
+              <div className="bg-slate-700/50 rounded-lg p-4 border border-white/10">
+                <p className="text-slate-300 font-medium mb-2">쇼핑몰 ID 확인 방법</p>
+                <p className="text-slate-400 text-sm">카페24 관리자 페이지 URL에서 확인할 수 있습니다. 예: https://<strong className="text-white">yourmall</strong>.cafe24.com → yourmall이 Mall ID입니다.</p>
               </div>
             </div>
           </SiteGuideCard>
@@ -267,7 +267,7 @@ function MySitesContent() {
                 <p className="text-slate-300 text-sm">아임웹 계정으로 로그인하면 자동으로 연동됩니다.</p>
               </div>
               <div className="space-y-3">
-                <StepCard step={1} title="셀러포트에서 연동 시작" description="내 사이트 → 아임웹 연동하기를 클릭하세요." />
+                <StepCard step={1} title="셀러포트에서 연동 시작" description="빠른 시작에서 '아임웹'을 선택하세요." />
                 <StepCard step={2} title="아임웹 로그인" description="팝업 창에서 아임웹 계정으로 로그인하세요." />
                 <StepCard step={3} title="권한 승인" description="셀러포트가 쇼핑몰 데이터를 읽을 수 있도록 권한을 승인하세요." />
                 <StepCard step={4} title="연동 완료" description="주문, 상품 데이터가 자동으로 수집됩니다." />
@@ -279,214 +279,6 @@ function MySitesContent() {
             </div>
           </SiteGuideCard>
 
-          {/* 자체 제작 쇼핑몰 - 쇼핑 */}
-          <SiteGuideCard
-            id="custom-shopping"
-            icon={<img src="/site_logo/own_site.png" alt="자체 제작 쇼핑몰" className="w-6 h-6 rounded" />}
-            title="자체 제작 쇼핑몰"
-            description="추적 스크립트 설치"
-            isExpanded={expandedSite === 'custom-shopping'}
-            onToggle={() => toggleSite('custom-shopping')}
-            onConnect={() => handleConnect('custom')}
-          >
-            <div className="space-y-4">
-              <div className="bg-emerald-500/10 rounded-lg p-4 border border-emerald-500/30">
-                <p className="text-emerald-400 font-medium mb-2">스크립트 설치 방식</p>
-                <p className="text-slate-300 text-sm">사이트에 추적 스크립트를 설치하고, 전환 발생 시 이벤트 코드를 호출합니다.</p>
-              </div>
-              <div className="space-y-3">
-                <StepCard step={1} title="사이트 등록" description="내 사이트 → 자체 제작 쇼핑몰 연동하기를 클릭하고 사이트 정보를 입력하세요." />
-                <StepCard step={2} title="추적 스크립트 설치" description="발급된 추적 스크립트를 사이트의 <head> 태그에 삽입하세요." />
-                <StepCard step={3} title="전환 이벤트 코드 설치" description="구매 완료 페이지에 전환 이벤트 코드를 삽입하세요." />
-                <StepCard step={4} title="연동 확인" description="테스트 주문으로 전환이 정상 수집되는지 확인하세요." />
-              </div>
-              <div className="bg-slate-900/70 rounded-lg p-4 border border-white/10">
-                <p className="text-slate-400 text-sm mb-2">전환 이벤트 코드 예시:</p>
-                <pre className="text-xs text-emerald-300 overflow-x-auto whitespace-pre-wrap">
-{`sellerport('track', 'Purchase', {
-  value: 50000,  // 주문 금액
-  order_id: 'ORDER_123'  // 주문 번호
-});`}
-                </pre>
-              </div>
-            </div>
-          </SiteGuideCard>
-        </div>
-      </section>
-
-      {/* 회원가입 추적 */}
-      <section>
-        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-          <span className="text-2xl">👤</span> 회원가입 추적
-        </h2>
-        <p className="text-slate-400 text-sm mb-4">
-          회원가입 전환을 추적합니다. 광고를 통해 유입된 신규 회원을 측정할 수 있습니다.
-        </p>
-        <div className="space-y-3">
-          {/* 아임웹 - 회원가입 */}
-          <SiteGuideCard
-            id="imweb-signup"
-            icon={<img src="/site_logo/imweb.png" alt="아임웹" className="w-6 h-6 rounded" />}
-            title="아임웹"
-            description="회원가입 폼 추적"
-            isExpanded={expandedSite === 'imweb-signup'}
-            onToggle={() => toggleSite('imweb-signup')}
-            onConnect={() => handleConnect('imweb')}
-          >
-            <div className="space-y-4">
-              <div className="bg-indigo-500/10 rounded-lg p-4 border border-indigo-500/30">
-                <p className="text-indigo-400 font-medium mb-2">OAuth 연동 방식</p>
-                <p className="text-slate-300 text-sm">아임웹 연동 시 회원가입 전환도 자동으로 추적됩니다.</p>
-              </div>
-              <div className="space-y-3">
-                <StepCard step={1} title="아임웹 쇼핑 추적 연동" description="위의 쇼핑 추적에서 아임웹을 먼저 연동하세요." />
-                <StepCard step={2} title="회원가입 추적 활성화" description="연동 완료 후 회원가입 전환이 자동으로 추적됩니다." />
-              </div>
-            </div>
-          </SiteGuideCard>
-
-          {/* 일반 웹사이트/블로그 - 회원가입 */}
-          <SiteGuideCard
-            id="custom-signup"
-            icon={<img src="/site_logo/own_site.png" alt="일반 웹사이트" className="w-6 h-6 rounded" />}
-            title="일반 웹사이트/블로그"
-            description="회원가입 폼 추적"
-            isExpanded={expandedSite === 'custom-signup'}
-            onToggle={() => toggleSite('custom-signup')}
-            onConnect={() => handleConnect('custom')}
-          >
-            <div className="space-y-4">
-              <div className="bg-emerald-500/10 rounded-lg p-4 border border-emerald-500/30">
-                <p className="text-emerald-400 font-medium mb-2">스크립트 설치 방식</p>
-                <p className="text-slate-300 text-sm">회원가입 완료 시 전환 이벤트 코드를 호출합니다.</p>
-              </div>
-              <div className="space-y-3">
-                <StepCard step={1} title="사이트 등록" description="내 사이트 → 일반 웹사이트/블로그 연동하기를 클릭하고 사이트 정보를 입력하세요." />
-                <StepCard step={2} title="추적 스크립트 설치" description="발급된 추적 스크립트를 사이트의 <head> 태그에 삽입하세요." />
-                <StepCard step={3} title="회원가입 전환 이벤트 코드 설치" description="회원가입 완료 페이지 또는 성공 시점에 전환 이벤트 코드를 호출하세요." />
-              </div>
-              <div className="bg-slate-900/70 rounded-lg p-4 border border-white/10">
-                <p className="text-slate-400 text-sm mb-2">회원가입 전환 이벤트 코드 예시:</p>
-                <pre className="text-xs text-emerald-300 overflow-x-auto whitespace-pre-wrap">
-{`window.sellerport?.track('signup', {
-  userId: '신규회원ID',      // 선택: 회원 고유 ID
-  email: 'user@email.com'   // 선택: 회원 이메일
-});`}
-                </pre>
-              </div>
-            </div>
-          </SiteGuideCard>
-        </div>
-      </section>
-
-      {/* DB 추적 */}
-      <section>
-        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-          <span className="text-2xl">📋</span> DB 추적
-        </h2>
-        <p className="text-slate-400 text-sm mb-4">
-          상담신청, 문의, 전화상담 등 DB 수집 전환을 추적합니다. 리드 획득 효율을 측정할 수 있습니다.
-        </p>
-        <div className="space-y-3">
-          {/* 아임웹 - DB */}
-          <SiteGuideCard
-            id="imweb-db"
-            icon={<img src="/site_logo/imweb.png" alt="아임웹" className="w-6 h-6 rounded" />}
-            title="아임웹"
-            description="DB 수집 폼 추적"
-            isExpanded={expandedSite === 'imweb-db'}
-            onToggle={() => toggleSite('imweb-db')}
-            onConnect={() => handleConnect('imweb')}
-          >
-            <div className="space-y-4">
-              <div className="bg-indigo-500/10 rounded-lg p-4 border border-indigo-500/30">
-                <p className="text-indigo-400 font-medium mb-2">OAuth 연동 방식</p>
-                <p className="text-slate-300 text-sm">아임웹 연동 시 폼 제출 전환도 자동으로 추적됩니다.</p>
-              </div>
-              <div className="space-y-3">
-                <StepCard step={1} title="아임웹 쇼핑 추적 연동" description="위의 쇼핑 추적에서 아임웹을 먼저 연동하세요." />
-                <StepCard step={2} title="DB 추적 활성화" description="연동 완료 후 폼 제출 전환이 자동으로 추적됩니다." />
-              </div>
-            </div>
-          </SiteGuideCard>
-
-          {/* 일반 웹사이트/블로그 - DB */}
-          <SiteGuideCard
-            id="custom-db"
-            icon={<img src="/site_logo/own_site.png" alt="일반 웹사이트" className="w-6 h-6 rounded" />}
-            title="일반 웹사이트/블로그"
-            description="상담신청, 문의, 전화상담 추적"
-            isExpanded={expandedSite === 'custom-db'}
-            onToggle={() => toggleSite('custom-db')}
-            onConnect={() => handleConnect('custom')}
-          >
-            <div className="space-y-4">
-              <div className="bg-amber-500/10 rounded-lg p-4 border border-amber-500/30">
-                <p className="text-amber-400 font-medium mb-2">스크립트 설치 방식</p>
-                <p className="text-slate-300 text-sm">상담신청/문의 폼 제출 시 전환 이벤트 코드를 호출합니다.</p>
-              </div>
-              <div className="space-y-3">
-                <StepCard step={1} title="사이트 등록" description="내 사이트 → 일반 웹사이트/블로그 연동하기를 클릭하고 사이트 정보를 입력하세요." />
-                <StepCard step={2} title="추적 스크립트 설치" description="발급된 추적 스크립트를 사이트의 <head> 태그에 삽입하세요." />
-                <StepCard step={3} title="DB 전환 이벤트 코드 설치" description="상담신청/문의 폼 제출 완료 시점에 전환 이벤트 코드를 호출하세요." />
-              </div>
-              <div className="bg-slate-900/70 rounded-lg p-4 border border-white/10">
-                <p className="text-slate-400 text-sm mb-2">DB 전환 이벤트 코드 예시:</p>
-                <pre className="text-xs text-amber-300 overflow-x-auto whitespace-pre-wrap">
-{`window.sellerport?.track('lead', {
-  formId: '폼ID',           // 선택: 폼 구분용 ID
-  formName: '상담신청'       // 선택: 폼 이름
-});`}
-                </pre>
-              </div>
-            </div>
-          </SiteGuideCard>
-        </div>
-      </section>
-
-      {/* 전화 추적 */}
-      <section>
-        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-          <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-          </svg>
-          전화 추적
-          <span className="px-2 py-0.5 text-[10px] bg-green-500/20 text-green-400 rounded-full font-medium">추적 링크</span>
-        </h2>
-        <p className="text-sm text-slate-400 mb-4">추적 링크를 통해 광고별 전화 전환을 추적합니다.</p>
-        <div className="space-y-4">
-          {/* 일반 웹사이트/블로그 - 전화 */}
-          <SiteGuideCard
-            id="custom-call"
-            icon={<img src="/site_logo/own_site.png" alt="일반 웹사이트" className="w-6 h-6 rounded" />}
-            title="일반 웹사이트/블로그"
-            description="추적 링크 생성"
-            isExpanded={expandedSite === 'custom-call'}
-            onToggle={() => toggleSite('custom-call')}
-            onConnect={() => handleConnect('custom')}
-          >
-            <div className="space-y-4">
-              <div className="bg-green-500/10 rounded-lg p-4 border border-green-500/30">
-                <p className="text-green-400 font-medium mb-2">추적 링크 방식</p>
-                <p className="text-slate-300 text-sm">광고에 추적 링크를 사용하면 고객이 어떤 광고를 통해 전화했는지 정확히 추적합니다.</p>
-              </div>
-              <div className="space-y-3">
-                <StepCard step={1} title="추적 링크 생성" description="내 사이트 → 전화 추적에서 추적 링크 생성을 클릭하세요." />
-                <StepCard step={2} title="광고에 추적 링크 사용" description="네이버 광고, 카카오 광고 등에 생성된 추적 링크를 사용하세요." />
-                <StepCard step={3} title="자동 리다이렉트" description="고객이 링크 클릭 시 광고 정보가 저장되고 도착 페이지로 이동합니다." />
-                <StepCard step={4} title="전화 전환 추적" description="고객이 전화번호를 클릭하면 해당 광고의 전환으로 기록됩니다." />
-              </div>
-              <div className="bg-slate-900/70 rounded-lg p-4 border border-white/10">
-                <p className="text-slate-400 text-sm mb-2">추적 링크 장점:</p>
-                <ul className="text-xs text-green-300 space-y-1 list-disc list-inside">
-                  <li>추가 비용 없음 (050 번호 비용 X)</li>
-                  <li>광고별 전화 전환 정확히 추적</li>
-                  <li>UTM 파라미터로 상세 분석 가능</li>
-                  <li>네이버 블로그 등 스크립트 설치 불가 사이트에서도 사용 가능</li>
-                </ul>
-              </div>
-            </div>
-          </SiteGuideCard>
         </div>
       </section>
 
@@ -500,7 +292,7 @@ function MySitesContent() {
           </div>
           <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700">
             <h4 className="font-medium text-white mb-2">Q. 스크립트 설치 없이도 전환 추적이 가능한가요?</h4>
-            <p className="text-sm text-slate-400">네이버 스마트스토어, 카페24, 아임웹은 API 연동으로 스크립트 설치 없이 주문을 자동 수집합니다. 일반 웹사이트는 스크립트 설치가 필요합니다.</p>
+            <p className="text-sm text-slate-400">네, 네이버 스마트스토어, 카페24, 아임웹은 API 연동으로 스크립트 설치 없이 주문을 자동 수집합니다.</p>
           </div>
           <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700">
             <h4 className="font-medium text-white mb-2">Q. 연동 후 데이터가 바로 수집되나요?</h4>
@@ -846,7 +638,7 @@ function TrackingContent() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-blue-400 mt-0.5">•</span>
-                <strong className="text-white">자체몰 추적 스크립트</strong> - 카페24, 고도몰 등 자체몰은 스크립트 설치로 100% 정확 추적
+                <strong className="text-white">API 연동</strong> - 스마트스토어, 카페24, 아임웹은 API 연동으로 100% 정확 추적
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-blue-400 mt-0.5">•</span>
@@ -890,8 +682,8 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
   }
 
   const handleConnect = (channelId: string) => {
-    // 빠른시작 STEP 4로 이동하면서 해당 채널 선택
-    router.push(`/quick-start?step=4&channel=${channelId}`)
+    // 빠른시작 STEP 2로 이동하면서 해당 채널 선택
+    router.push(`/quick-start?channel=${channelId}`)
   }
 
   return (
@@ -945,7 +737,7 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
               </div>
               <div className="space-y-3">
                 <StepCard step={1} title="비즈니스/크리에이터 계정 전환" description="Instagram 앱에서 '프로필 > 설정 > 계정 > 프로페셔널 계정으로 전환'을 선택하세요." />
-                <StepCard step={2} title="셀러포트에서 연동 시작" description="광고 채널 메뉴에서 인스타그램 '연동하기' 버튼을 클릭하세요." />
+                <StepCard step={2} title="셀러포트에서 연동 시작" description="빠른 시작 메뉴에서 SNS/브랜드 채널 중 '인스타그램'을 선택하세요." />
                 <StepCard step={3} title="Instagram 로그인" description="Instagram 계정으로 로그인하고 권한을 승인하세요." />
                 <StepCard step={4} title="연동 완료" description="팔로워 수, 게시물/릴스/스토리 인사이트 등이 자동으로 수집됩니다." />
               </div>
@@ -979,8 +771,8 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
                 <p className="text-slate-300 text-sm">Google 계정으로 로그인하면 자동으로 연동됩니다.</p>
               </div>
               <div className="space-y-3">
-                <StepCard step={1} title="광고 채널 메뉴 접속" description="좌측 사이드바에서 '광고 채널'을 클릭하세요." />
-                <StepCard step={2} title="유튜브 선택" description="'유튜브' 카드의 연동하기 버튼을 클릭하세요." />
+                <StepCard step={1} title="빠른 시작 메뉴 접속" description="좌측 사이드바에서 '빠른 시작'을 클릭하세요." />
+                <StepCard step={2} title="유튜브 선택" description="광고/브랜드 채널 추가에서 '유튜브'를 선택하세요." />
                 <StepCard step={3} title="Google 계정 로그인" description="팝업 창에서 YouTube 채널에 연결된 Google 계정으로 로그인하세요." />
                 <StepCard step={4} title="권한 승인" description="셀러포트가 YouTube 채널 데이터를 읽을 수 있도록 권한을 승인하세요." />
                 <StepCard step={5} title="연동 완료" description="조회수, 구독자, 시청시간 등 채널 데이터가 자동으로 수집됩니다." />
@@ -1017,7 +809,7 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
               <div className="space-y-3">
                 <StepCard step={1} title="네이버 블로그 접속" description="blog.naver.com에서 내 블로그로 이동하세요." />
                 <StepCard step={2} title="블로그 ID 확인" description="블로그 URL에서 블로그 ID를 확인하세요. (예: blog.naver.com/myblog)" />
-                <StepCard step={3} title="셀러포트에서 등록" description="광고 채널 메뉴에서 네이버 블로그를 선택하고, 블로그 별칭과 블로그 ID를 입력하세요." />
+                <StepCard step={3} title="셀러포트에서 등록" description="빠른 시작 메뉴에서 SNS/브랜드 채널 중 '네이버 블로그'를 선택하고, 블로그 별칭과 블로그 ID를 입력하세요." />
               </div>
               <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
                 <p className="text-slate-400 font-medium mb-2">입력 정보</p>
@@ -1063,8 +855,8 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
                 <p className="text-slate-300 text-sm">Google 계정으로 로그인하면 자동으로 연동됩니다.</p>
               </div>
               <div className="space-y-3">
-                <StepCard step={1} title="광고 채널 메뉴 접속" description="좌측 사이드바에서 '광고 채널'을 클릭하세요." />
-                <StepCard step={2} title="Google Ads 선택" description="'Google Ads' 카드의 연동하기 버튼을 클릭하세요." />
+                <StepCard step={1} title="빠른 시작 메뉴 접속" description="좌측 사이드바에서 '빠른 시작'을 클릭하세요." />
+                <StepCard step={2} title="Google Ads 선택" description="광고 채널 추가에서 'Google Ads'를 선택하세요." />
                 <StepCard step={3} title="Google 계정 로그인" description="팝업 창에서 Google Ads에 사용하는 Google 계정으로 로그인하세요." />
                 <StepCard step={4} title="권한 승인" description="셀러포트가 광고 데이터를 읽을 수 있도록 권한을 승인하세요." />
                 <StepCard step={5} title="연동 완료" description="연동이 완료되면 광고비, 클릭, 노출 데이터가 자동으로 수집됩니다." />
@@ -1108,8 +900,8 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
                 <p className="text-slate-300 text-sm">Facebook 계정으로 로그인하면 자동으로 연동됩니다.</p>
               </div>
               <div className="space-y-3">
-                <StepCard step={1} title="광고 채널 메뉴 접속" description="좌측 사이드바에서 '광고 채널'을 클릭하세요." />
-                <StepCard step={2} title="Meta 선택" description="'Meta' 카드의 연동하기 버튼을 클릭하세요." />
+                <StepCard step={1} title="빠른 시작 메뉴 접속" description="좌측 사이드바에서 '빠른 시작'을 클릭하세요." />
+                <StepCard step={2} title="Meta 광고 선택" description="광고 채널 추가에서 'Meta 광고'를 선택하세요." />
                 <StepCard step={3} title="Facebook 계정 로그인" description="팝업 창에서 Meta 광고 관리자에 사용하는 Facebook 계정으로 로그인하세요." />
                 <StepCard step={4} title="광고 계정 선택" description="연동할 광고 계정을 선택하고 권한을 승인하세요." />
                 <StepCard step={5} title="연동 완료" description="연동이 완료되면 Facebook과 Instagram 광고 데이터가 자동으로 수집됩니다." />
@@ -1150,7 +942,7 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
                 <StepCard step={2} title="도구 > API 사용 관리 메뉴" description="상단 메뉴에서 '도구' → 'API 사용 관리'를 클릭하세요." />
                 <StepCard step={3} title="API 라이선스 발급" description="'API 라이선스 발급' 버튼을 클릭하여 API Key와 Secret Key를 발급받으세요." />
                 <StepCard step={4} title="고객 ID 확인" description="화면 오른쪽 상단에서 고객 ID(숫자)를 확인하세요." />
-                <StepCard step={5} title="셀러포트에서 연동" description="광고 채널 메뉴에서 네이버 검색광고를 선택하고, 고객 ID, API Key, Secret Key를 입력하세요." />
+                <StepCard step={5} title="셀러포트에서 연동" description="빠른 시작 메뉴에서 광고 채널 중 '네이버 검색광고'를 선택하고, 고객 ID, API Key, Secret Key를 입력하세요." />
               </div>
               <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
                 <p className="text-slate-400 font-medium mb-2">입력 정보</p>
@@ -1171,7 +963,7 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
                 <path fill="#FEE500" d="M12 3C6.477 3 2 6.463 2 10.691c0 2.654 1.725 4.99 4.332 6.347-.137.457-.883 2.954-.912 3.15 0 0-.019.154.082.213.1.058.217.013.217.013.286-.039 3.314-2.163 3.833-2.53.474.068.963.103 1.448.103 5.523 0 10-3.463 10-7.296S17.523 3 12 3z"/>
               </svg>
             }
-            title="카카오 모먼트"
+            title="카카오 모먼트 (준비중)"
             description="REST API Key 연동으로 광고 성과 수집"
             isExpanded={expandedChannel === 'kakao-moment'}
             onToggle={() => toggleChannel('kakao-moment')}
@@ -1187,7 +979,7 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
                 <StepCard step={2} title="광고 계정 ID 확인" description="카카오 모먼트 광고 관리자에서 광고 계정 ID를 확인하세요." />
                 <StepCard step={3} title="Kakao Developers 접속" description="developers.kakao.com에서 앱을 생성하세요." />
                 <StepCard step={4} title="REST API Key 발급" description="앱 설정에서 REST API Key를 확인하세요." />
-                <StepCard step={5} title="셀러포트에서 연동" description="광고 채널 메뉴에서 카카오 모먼트를 선택하고, 광고 계정 ID와 REST API Key를 입력하세요." />
+                <StepCard step={5} title="셀러포트에서 연동" description="빠른 시작 메뉴에서 광고 채널 중 '카카오 모먼트'를 선택하고, 광고 계정 ID와 REST API Key를 입력하세요." />
               </div>
               <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
                 <p className="text-slate-400 font-medium mb-2">입력 정보</p>
@@ -1210,7 +1002,7 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
                 <path fill="white" d="M17.1 6.32s.51.5 0 0A4.278 4.278 0 0116.04 3.5h-3.09v12.4a2.592 2.592 0 01-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V10.16c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V10.51a7.35 7.35 0 004.3 1.38V8.8s-1.88.09-3.24-1.48z"/>
               </svg>
             }
-            title="TikTok Ads"
+            title="TikTok Ads (준비중)"
             description="Marketing API 연동으로 광고 성과 수집"
             isExpanded={expandedChannel === 'tiktok-ads'}
             onToggle={() => toggleChannel('tiktok-ads')}
@@ -1226,7 +1018,7 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
                 <StepCard step={2} title="광고주 ID 확인" description="대시보드 상단에서 Advertiser ID를 확인하세요." />
                 <StepCard step={3} title="TikTok for Developers 접속" description="developers.tiktok.com에서 Marketing API 앱을 생성하세요." />
                 <StepCard step={4} title="API 정보 발급" description="App ID, App Secret, Access Token을 발급받으세요." />
-                <StepCard step={5} title="셀러포트에서 연동" description="광고 채널 메뉴에서 TikTok Ads를 선택하고, 광고주 ID와 API 정보를 입력하세요." />
+                <StepCard step={5} title="셀러포트에서 연동" description="빠른 시작 메뉴에서 광고 채널 중 'TikTok Ads'를 선택하고, 광고주 ID와 API 정보를 입력하세요." />
               </div>
               <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
                 <p className="text-slate-400 font-medium mb-2">입력 정보</p>
@@ -1263,7 +1055,7 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
                 <StepCard step={1} title="네이버 GFA 광고 관리자 접속" description="gfa.naver.com에 로그인하세요." />
                 <StepCard step={2} title="고객 ID 확인" description="광고 관리자 화면에서 고객 ID를 확인하세요." />
                 <StepCard step={3} title="API 사용 신청" description="네이버 GFA API 사용을 신청하고 API Key와 Secret Key를 발급받으세요." />
-                <StepCard step={4} title="셀러포트에서 연동" description="광고 채널 메뉴에서 네이버 GFA를 선택하고, 고객 ID와 API 정보를 입력하세요." />
+                <StepCard step={4} title="셀러포트에서 연동" description="빠른 시작 메뉴에서 광고 채널 중 '네이버 GFA'를 선택하고, 고객 ID와 API 정보를 입력하세요." />
               </div>
               <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
                 <p className="text-slate-400 font-medium mb-2">입력 정보</p>
@@ -1308,8 +1100,8 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
                 <p className="text-slate-300 text-sm">인플루언서 마케팅 채널을 등록하여 추적 링크별 성과를 분석합니다. 채널 이름과 설명을 입력하여 관리하세요.</p>
               </div>
               <div className="space-y-3">
-                <StepCard step={1} title="광고 채널 메뉴 접속" description="좌측 사이드바에서 '광고 채널'을 클릭하세요." />
-                <StepCard step={2} title="기타 > 인플루언서 선택" description="기타 섹션에서 '인플루언서' 채널 추가 버튼을 클릭하세요." />
+                <StepCard step={1} title="빠른 시작 메뉴 접속" description="좌측 사이드바에서 '빠른 시작'을 클릭하세요." />
+                <StepCard step={2} title="SNS/브랜드 채널에서 선택" description="광고/브랜드 채널 추가에서 '인플루언서/블로그 협찬'을 선택하세요." />
                 <StepCard step={3} title="채널 정보 입력" description="인플루언서 이름, 플랫폼, 팔로워 수 등 필요한 정보를 입력하세요." />
               </div>
               <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
@@ -1343,8 +1135,8 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
                 <p className="text-slate-300 text-sm">체험단/서포터즈 마케팅 채널을 등록하여 캠페인별 성과를 분석합니다.</p>
               </div>
               <div className="space-y-3">
-                <StepCard step={1} title="광고 채널 메뉴 접속" description="좌측 사이드바에서 '광고 채널'을 클릭하세요." />
-                <StepCard step={2} title="기타 > 체험단 선택" description="기타 섹션에서 '체험단' 채널 추가 버튼을 클릭하세요." />
+                <StepCard step={1} title="빠른 시작 메뉴 접속" description="좌측 사이드바에서 '빠른 시작'을 클릭하세요." />
+                <StepCard step={2} title="SNS/브랜드 채널에서 선택" description="광고/브랜드 채널 추가에서 '인플루언서/블로그 협찬'을 선택하세요." />
                 <StepCard step={3} title="캠페인 정보 입력" description="캠페인 이름, 플랫폼, 참여자 수 등 필요한 정보를 입력하세요." />
               </div>
               <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
@@ -1718,16 +1510,16 @@ function FAQContent() {
       <div className="mt-8 p-6 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-500/20">
         <h3 className="text-white font-semibold mb-2">더 궁금한 점이 있으신가요?</h3>
         <p className="text-slate-400 text-sm mb-4">
-          카카오톡 채널에서 1:1 상담을 받아보세요.
+          이메일로 문의해 주시면 빠르게 답변 드리겠습니다.
         </p>
         <a
-          href="https://pf.kakao.com/_xnxnxn"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500 text-black font-medium rounded-lg hover:bg-yellow-400 transition-colors"
+          href="mailto:usisst8888@gmail.com"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-500 transition-colors"
         >
-          <span>💬</span>
-          카카오톡 상담하기
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          이메일 문의하기
         </a>
       </div>
     </div>

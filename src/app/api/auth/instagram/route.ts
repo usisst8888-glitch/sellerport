@@ -34,8 +34,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Facebook App ID not configured' }, { status: 500 })
     }
 
-    // DM 자동발송을 위한 권한 목록 (비즈니스용 스코프 사용)
-    // instagram_basic은 deprecated → instagram_business_basic 사용
+    // DM 자동발송을 위한 권한 목록
+    // ⚠️ 개발 모드: App Roles에 테스터 추가 필요 (Developer Console → App roles → Roles → Add People)
+    // 테스터로 추가된 계정만 Instagram DM 기능 테스트 가능
     const scopes = [
       'public_profile',                           // 기본 프로필 (자동 부여)
       'pages_show_list',                          // 연결된 Facebook 페이지 목록

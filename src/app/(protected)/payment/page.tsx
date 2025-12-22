@@ -40,11 +40,11 @@ const PLANS = [
     popular: true,
   },
   {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: 149900,
-    priceLabel: '149,900원/월',
-    features: ['슬롯 무제한', '알림톡 10,000건/월', '사이트 무제한', '전용 매니저', 'API 액세스'],
+    id: 'reseller',
+    name: '리셀러 파트너',
+    price: -1,
+    priceLabel: '별도 협의',
+    features: ['화이트라벨 플랫폼 제공', '도매가 구독료', '자체 브랜드 운영', '파트너 대시보드', '수익 정산'],
     popular: false,
   },
 ]

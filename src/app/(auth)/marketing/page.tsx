@@ -151,17 +151,6 @@ export default function MarketingPage() {
               </div>
             </section>
 
-            <section className="mt-4 p-4 bg-slate-700/50 rounded-xl">
-              <h3 className="text-sm font-semibold text-white mb-3">결제 및 고객센터 정보</h3>
-              <div className="text-sm space-y-1">
-                <p><span className="text-slate-400">상호:</span> (주)리프컴퍼니</p>
-                <p><span className="text-slate-400">대표자:</span> 박상호</p>
-                <p><span className="text-slate-400">사업자등록번호:</span> 413-87-02826</p>
-                <p><span className="text-slate-400">주소:</span> 서울시 광진구 구의동 218-13 202호</p>
-                <p><span className="text-slate-400">고객센터:</span> 1666-5157</p>
-                <p><span className="text-slate-400">이메일:</span> leadproject.cp@gmail.com</p>
-              </div>
-            </section>
           </div>
         </div>
       </div>

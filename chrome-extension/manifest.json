@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "셀러포트 - 스마트스토어 전환 추적",
+  "version": "1.0.0",
+  "description": "스마트스토어 판매자센터에서 NT 파라미터 전환 데이터를 수집하여 메타 광고 최적화를 지원합니다.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": [
+    "activeTab",
+    "storage",
+    "notifications",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://sell.smartstore.naver.com/*",
+    "https://sellerport.app/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "셀러포트"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://sell.smartstore.naver.com/*"],
+      "js": ["content.js"],
+      "css": ["content-styles.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://sellerport.app/*", "http://localhost:3002/*"],
+      "js": ["content-auth.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

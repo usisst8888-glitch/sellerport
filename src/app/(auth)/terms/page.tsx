@@ -120,7 +120,6 @@ export default function TermsPage() {
               <h2 className="text-lg font-semibold text-white mb-3">제9조 (유료 서비스)</h2>
               <ol className="list-decimal list-inside space-y-2 text-sm">
                 <li>회사가 제공하는 서비스 중 일부는 유료로 제공될 수 있으며, 이용 요금 및 결제 방법은 서비스 내 별도 안내에 따릅니다.</li>
-                <li>유료 서비스 이용 요금의 결제는 (주)리프컴퍼니를 통해 처리됩니다.</li>
                 <li>회원이 유료 서비스 이용 요금을 결제한 경우, 회사는 전자상거래 등에서의 소비자 보호에 관한 법률에 따라 환불 정책을 적용합니다.</li>
               </ol>
             </section>
@@ -185,17 +184,6 @@ export default function TermsPage() {
               </div>
             </section>
 
-            <section className="mt-4 p-4 bg-slate-700/50 rounded-xl">
-              <h3 className="text-sm font-semibold text-white mb-3">결제 및 고객센터 정보</h3>
-              <div className="text-sm space-y-1">
-                <p><span className="text-slate-400">상호:</span> (주)리프컴퍼니</p>
-                <p><span className="text-slate-400">대표자:</span> 박상호</p>
-                <p><span className="text-slate-400">사업자등록번호:</span> 413-87-02826</p>
-                <p><span className="text-slate-400">주소:</span> 서울시 광진구 구의동 218-13 202호</p>
-                <p><span className="text-slate-400">고객센터:</span> 1666-5157</p>
-                <p><span className="text-slate-400">이메일:</span> leadproject.cp@gmail.com</p>
-              </div>
-            </section>
           </div>
         </div>
       </div>

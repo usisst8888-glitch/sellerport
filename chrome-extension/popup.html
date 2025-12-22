@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>셀러포트</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo">
+        <img src="icons/icon48.png" alt="셀러포트" class="logo-icon">
+        <span class="logo-text">셀러포트</span>
+      </div>
+    </header>
+
+    <!-- 로그인 전 화면 -->
+    <div id="login-section" class="section">
+      <p class="description">스마트스토어 전환 데이터를 메타 광고에 연동하세요.</p>
+      <button id="login-btn" class="btn btn-primary">셀러포트 로그인</button>
+      <p class="signup-text">
+        계정이 없으신가요? <a href="https://sellerport.app/signup" target="_blank">회원가입</a>
+      </p>
+    </div>
+
+    <!-- 로그인 후 화면 -->
+    <div id="main-section" class="section hidden">
+      <div class="user-info">
+        <span class="user-email" id="user-email"></span>
+        <button id="logout-btn" class="btn btn-text">로그아웃</button>
+      </div>
+
+      <div class="status-card" id="status-card">
+        <div class="status-icon" id="status-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </div>
+        <div class="status-text">
+          <p class="status-title" id="status-title">판매자센터 접속 필요</p>
+          <p class="status-desc" id="status-desc">통계 > 마케팅분석 > 사용자정의채널 페이지로 이동하세요.</p>
+        </div>
+      </div>
+
+      <button id="collect-btn" class="btn btn-primary btn-full" disabled>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>전환 데이터 수집</span>
+      </button>
+
+      <div id="result-section" class="result-section hidden">
+        <h3 class="result-title">수집 결과</h3>
+        <div class="result-stats">
+          <div class="stat-item">
+            <span class="stat-value" id="stat-channels">0</span>
+            <span class="stat-label">채널 수</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="stat-orders">0</span>
+            <span class="stat-label">주문 수</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="stat-revenue">0</span>
+            <span class="stat-label">매출</span>
+          </div>
+        </div>
+        <p class="result-message" id="result-message"></p>
+      </div>
+
+      <div class="last-sync" id="last-sync-section">
+        <span class="last-sync-label">마지막 동기화:</span>
+        <span class="last-sync-time" id="last-sync-time">없음</span>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <a href="https://sellerport.app/guide" target="_blank">사용 가이드</a>
+      <span class="divider">|</span>
+      <a href="https://sellerport.app/support" target="_blank">고객 지원</a>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
