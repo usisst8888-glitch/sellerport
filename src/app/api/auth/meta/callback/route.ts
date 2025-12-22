@@ -336,6 +336,30 @@ async function handleInstagramDmCallback(
       }
     }
 
+    // 6. Instagram 비즈니스 계정에 대한 Webhook 구독 (댓글 이벤트 수신용)
+    try {
+      const subscribeUrl = `https://graph.facebook.com/v18.0/${instagramAccount.id}/subscribed_apps`
+      const subscribeResponse = await fetch(subscribeUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subscribed_fields: ['comments', 'messages'],
+          access_token: pageAccessToken
+        })
+      })
+
+      const subscribeResult = await subscribeResponse.json()
+      console.log('Instagram Webhook subscription result:', subscribeResult)
+
+      if (subscribeResult.error) {
+        console.error('Failed to subscribe to Instagram webhooks:', subscribeResult.error)
+        // 구독 실패해도 계속 진행 (필수 권한이 없을 수 있음)
+      }
+    } catch (webhookError) {
+      console.error('Instagram webhook subscription error:', webhookError)
+      // 구독 실패해도 계속 진행
+    }
+
     // 성공
     const redirectUrl = siteId
       ? `${process.env.NEXT_PUBLIC_APP_URL}/${from}?success=instagram_connected&siteId=${siteId}`

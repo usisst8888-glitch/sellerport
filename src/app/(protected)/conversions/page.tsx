@@ -184,6 +184,10 @@ export default function ConversionsPage() {
   const [adStatsLoading, setAdStatsLoading] = useState(false)
   const [syncingChannel, setSyncingChannel] = useState<string | null>(null)
 
+  // 채널 설정 드롭다운
+  const [openChannelMenu, setOpenChannelMenu] = useState<string | null>(null)
+  const [unlinkingChannel, setUnlinkingChannel] = useState<string | null>(null)
+
   // 성과 탭 (campaign: 캠페인 성과, tracking: 추적 링크)
   const [performanceTab, setPerformanceTab] = useState<'campaign' | 'tracking'>('campaign')
 
@@ -362,6 +366,58 @@ export default function ConversionsPage() {
       setMessage({ type: 'error', text: '동기화 중 오류가 발생했습니다' })
     } finally {
       setSyncingChannel(null)
+    }
+  }
+
+  // 광고 채널 연동 해제
+  const handleUnlinkChannel = async (channel: AdChannel) => {
+    if (!confirm(`"${channel.channel_name}" 연동을 해제하시겠습니까?\n\n연동 해제 시 해당 채널의 광고 성과 데이터도 함께 삭제됩니다.`)) {
+      return
+    }
+
+    setUnlinkingChannel(channel.id)
+    setOpenChannelMenu(null)
+
+    try {
+      const supabase = createClient()
+
+      // 1. 관련 광고 성과 데이터 삭제
+      await supabase
+        .from('ad_spend_daily')
+        .delete()
+        .eq('ad_channel_id', channel.id)
+
+      // 2. 관련 추적 링크의 채널 연결 해제
+      await supabase
+        .from('tracking_links')
+        .update({ ad_channel_id: null })
+        .eq('ad_channel_id', channel.id)
+
+      // 3. Instagram DM 설정 삭제 (Instagram 채널인 경우)
+      if (channel.channel_type === 'instagram') {
+        await supabase
+          .from('instagram_dm_settings')
+          .delete()
+          .eq('ad_channel_id', channel.id)
+      }
+
+      // 4. 광고 채널 삭제
+      const { error } = await supabase
+        .from('ad_channels')
+        .delete()
+        .eq('id', channel.id)
+
+      if (error) throw error
+
+      setMessage({ type: 'success', text: `${channel.channel_name} 연동이 해제되었습니다` })
+
+      // 데이터 새로고침
+      fetchConnectedData()
+    } catch (error) {
+      console.error('Failed to unlink channel:', error)
+      setMessage({ type: 'error', text: '연동 해제에 실패했습니다' })
+    } finally {
+      setUnlinkingChannel(null)
     }
   }
 
@@ -557,6 +613,17 @@ export default function ConversionsPage() {
     }
   }, [editingLink, editingLinkFull, deletingLink, editingRoasLink, showCreateModal])
 
+  // 드롭다운 메뉴 외부 클릭 시 닫기
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (openChannelMenu) {
+        setOpenChannelMenu(null)
+      }
+    }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [openChannelMenu])
+
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text)
     setCopiedId(id)
@@ -690,12 +757,37 @@ export default function ConversionsPage() {
                       </>
                     ) : '사이트 미연결'}
                   </span>
-                  <Link href="/quick-start" className="p-1.5 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </Link>
+                  <div className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setOpenChannelMenu(openChannelMenu === channel.id ? null : channel.id)
+                      }}
+                      className="p-1.5 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                      </svg>
+                    </button>
+                    {openChannelMenu === channel.id && (
+                      <div className="absolute right-0 top-8 w-36 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-10 py-1">
+                        <button
+                          onClick={() => handleUnlinkChannel(channel)}
+                          disabled={unlinkingChannel === channel.id}
+                          className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-slate-700 flex items-center gap-2 disabled:opacity-50"
+                        >
+                          {unlinkingChannel === channel.id ? (
+                            <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-red-400"></div>
+                          ) : (
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          )}
+                          연동 해제
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* 가로 레이아웃: 쇼핑몰 - 화살표 - 광고채널 (3등분 가운데 정렬) */}
