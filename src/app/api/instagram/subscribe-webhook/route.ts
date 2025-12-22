@@ -34,22 +34,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Instagram channel not found' }, { status: 404 })
     }
 
-    const instagramUserId = channel.metadata?.instagram_user_id || channel.account_id
+    const facebookPageId = channel.metadata?.facebook_page_id
     const accessToken = channel.access_token
 
-    if (!instagramUserId || !accessToken) {
-      return NextResponse.json({ error: 'Missing Instagram credentials' }, { status: 400 })
+    if (!facebookPageId || !accessToken) {
+      return NextResponse.json({ error: 'Missing Facebook Page credentials. Please reconnect Instagram.' }, { status: 400 })
     }
 
-    // Instagram 비즈니스 계정에 대한 Webhook 구독
-    const subscribeUrl = `https://graph.facebook.com/v18.0/${instagramUserId}/subscribed_apps`
+    // Facebook Page를 앱에 구독 (Instagram Webhook 수신용)
+    const subscribeUrl = `https://graph.facebook.com/v18.0/${facebookPageId}/subscribed_apps`
     const subscribeResponse = await fetch(subscribeUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        subscribed_fields: ['comments', 'messages'],
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        subscribed_fields: 'feed,messages',
         access_token: accessToken
-      })
+      }).toString()
     })
 
     const subscribeResult = await subscribeResponse.json()
@@ -115,15 +115,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Instagram channel not found' }, { status: 404 })
     }
 
-    const instagramUserId = channel.metadata?.instagram_user_id || channel.account_id
+    const facebookPageId = channel.metadata?.facebook_page_id
     const accessToken = channel.access_token
 
-    if (!instagramUserId || !accessToken) {
-      return NextResponse.json({ error: 'Missing Instagram credentials' }, { status: 400 })
+    if (!facebookPageId || !accessToken) {
+      return NextResponse.json({ error: 'Missing Facebook Page credentials. Please reconnect Instagram.' }, { status: 400 })
     }
 
     // 현재 구독 상태 확인
-    const statusUrl = `https://graph.facebook.com/v18.0/${instagramUserId}/subscribed_apps?access_token=${accessToken}`
+    const statusUrl = `https://graph.facebook.com/v18.0/${facebookPageId}/subscribed_apps?access_token=${accessToken}`
     const statusResponse = await fetch(statusUrl)
     const statusResult = await statusResponse.json()
 

@@ -259,6 +259,7 @@ async function handleInstagramDmCallback(
     let instagramAccount = null
     let pageAccessToken = null
     let pageName = null
+    let facebookPageId = null
 
     for (const page of pagesData.data) {
       if (page.instagram_business_account) {
@@ -274,6 +275,7 @@ async function handleInstagramDmCallback(
           instagramAccount = igData
           pageAccessToken = page.access_token
           pageName = page.name
+          facebookPageId = page.id
           break
         }
       }
@@ -313,6 +315,7 @@ async function handleInstagramDmCallback(
         name: instagramAccount.name,
         profile_picture_url: instagramAccount.profile_picture_url,
         followers_count: instagramAccount.followers_count,
+        facebook_page_id: facebookPageId,
         facebook_page_name: pageName,
         dm_enabled: true,
       },
@@ -336,28 +339,29 @@ async function handleInstagramDmCallback(
       }
     }
 
-    // 6. Instagram 비즈니스 계정에 대한 Webhook 구독 (댓글 이벤트 수신용)
+    // 6. Facebook Page를 앱에 구독 (Instagram Webhook 수신용)
+    // Instagram 댓글/메시지 Webhook은 연결된 Facebook Page를 통해 수신됨
     try {
-      const subscribeUrl = `https://graph.facebook.com/v18.0/${instagramAccount.id}/subscribed_apps`
+      const subscribeUrl = `https://graph.facebook.com/v18.0/${facebookPageId}/subscribed_apps`
       const subscribeResponse = await fetch(subscribeUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subscribed_fields: ['comments', 'messages'],
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          subscribed_fields: 'feed,messages',
           access_token: pageAccessToken
-        })
+        }).toString()
       })
 
       const subscribeResult = await subscribeResponse.json()
-      console.log('Instagram Webhook subscription result:', subscribeResult)
+      console.log('Facebook Page Webhook subscription result:', subscribeResult)
 
       if (subscribeResult.error) {
-        console.error('Failed to subscribe to Instagram webhooks:', subscribeResult.error)
-        // 구독 실패해도 계속 진행 (필수 권한이 없을 수 있음)
+        console.error('Failed to subscribe Facebook Page to webhooks:', subscribeResult.error)
+      } else if (subscribeResult.success) {
+        console.log('Successfully subscribed Facebook Page to webhooks')
       }
     } catch (webhookError) {
-      console.error('Instagram webhook subscription error:', webhookError)
-      // 구독 실패해도 계속 진행
+      console.error('Facebook Page webhook subscription error:', webhookError)
     }
 
     // 성공
