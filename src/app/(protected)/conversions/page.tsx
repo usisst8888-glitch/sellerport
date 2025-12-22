@@ -423,6 +423,9 @@ export default function ConversionsPage() {
       'google': { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Google' },
       'kakao': { bg: 'bg-yellow-500/20', text: 'text-yellow-400', label: 'Kakao' },
       'tiktok': { bg: 'bg-pink-500/20', text: 'text-pink-400', label: 'TikTok' },
+      'instagram': { bg: 'bg-pink-500/20', text: 'text-pink-400', label: 'Instagram' },
+      'youtube': { bg: 'bg-red-500/20', text: 'text-red-400', label: 'YouTube' },
+      'naver_blog': { bg: 'bg-green-500/20', text: 'text-green-400', label: '블로그' },
     }
     return styles[channelType] || { bg: 'bg-slate-500/20', text: 'text-slate-400', label: channelType }
   }
@@ -795,7 +798,9 @@ export default function ConversionsPage() {
             // 해당 채널과 연결된 사이트 찾기
             const linkedSite = connectedSites.find(s => s.id === channel.my_site_id)
             const badge = getChannelBadgeStyle(channel.channel_type)
-            const isBrandChannel = channel.channel_type.startsWith('brand_')
+            // SNS 채널 (추적 링크로 전환 추적): instagram, youtube, tiktok, naver_blog 또는 brand_로 시작하는 채널
+            const snsChannelTypes = ['instagram', 'youtube', 'tiktok', 'naver_blog', 'influencer']
+            const isBrandChannel = channel.channel_type.startsWith('brand_') || snsChannelTypes.includes(channel.channel_type)
 
             // 채널 로고 결정
             const getChannelLogoUrl = (type: string) => {
@@ -806,6 +811,9 @@ export default function ConversionsPage() {
                 'naver_gfa': '/channel_logo/naver_gfa.png',
                 'tiktok': '/channel_logo/tiktok.png',
                 'kakao': '/channel_logo/toss.png',
+                'instagram': '/channel_logo/insta.png',
+                'youtube': '/channel_logo/youtube.png',
+                'naver_blog': '/channel_logo/naver_blog.png',
                 'brand_blog': '/channel_logo/naver_blog.png',
                 'brand_instagram': '/channel_logo/insta.png',
                 'brand_youtube': '/channel_logo/youtube.png',
