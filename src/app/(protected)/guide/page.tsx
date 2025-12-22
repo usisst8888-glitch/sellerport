@@ -748,6 +748,23 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
                   <li>• 개인 계정은 인사이트 데이터를 제공하지 않습니다</li>
                 </ul>
               </div>
+              <div className="bg-rose-500/10 rounded-lg p-4 border border-rose-500/30">
+                <p className="text-rose-400 font-medium mb-2">DM 자동발송 기능 사용 시 추가 조건</p>
+                <ul className="text-slate-300 text-sm space-y-2">
+                  <li>• <strong className="text-rose-300">Facebook 페이지와 Instagram 계정 연결</strong>이 필수입니다</li>
+                  <li>• Meta의 정책상 Instagram DM API는 Facebook 페이지를 통해서만 접근 가능합니다</li>
+                  <li>• Facebook 페이지가 없는 경우, 먼저 Facebook 페이지를 생성한 후 Instagram 계정과 연결해야 합니다</li>
+                </ul>
+                <div className="mt-3 p-3 bg-slate-800/50 rounded-lg">
+                  <p className="text-slate-400 text-xs mb-2">Facebook 페이지 연결 방법:</p>
+                  <ol className="text-slate-300 text-xs space-y-1 list-decimal list-inside">
+                    <li>Facebook에서 비즈니스 페이지 생성 (없는 경우)</li>
+                    <li>Facebook 페이지 설정 &gt; Instagram 연결 메뉴 이동</li>
+                    <li>Instagram 비즈니스/크리에이터 계정 연결</li>
+                    <li>셀러포트에서 Instagram 재연동</li>
+                  </ol>
+                </div>
+              </div>
             </div>
           </ChannelGuideCard>
 

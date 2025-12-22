@@ -43,6 +43,8 @@ export async function GET(request: NextRequest) {
       'instagram_manage_messages',                // DM 관리 (검수 필요)
       'pages_show_list',                          // Facebook 페이지 목록
       'pages_read_engagement',                    // 페이지 참여 데이터
+      'pages_manage_metadata',                    // 페이지 Webhook 구독용
+      'pages_messaging',                          // 페이지 메시징 (Webhook 수신용)
     ].join(',')
 
     // state에 user_id, from, siteId 저장
