@@ -95,6 +95,12 @@ interface AdChannel {
   status: string
   last_sync_at: string | null
   my_site_id: string | null // 연결된 사이트 ID
+  metadata?: {
+    instagram_user_id?: string
+    instagram_username?: string
+    dm_enabled?: boolean
+    [key: string]: unknown
+  } | null
 }
 
 interface AdSpendDaily {
@@ -260,15 +266,18 @@ export default function ConversionsPage() {
     // 연결된 광고 채널 조회 (사이트 연결 정보 포함)
     const { data: channels } = await supabase
       .from('ad_channels')
-      .select('id, channel_type, channel_name, account_name, status, last_sync_at, my_site_id')
+      .select('id, channel_type, channel_name, account_name, status, last_sync_at, my_site_id, metadata')
       .eq('user_id', user.id)
       .eq('status', 'connected')
       .order('created_at', { ascending: false })
 
     if (channels) {
       setAdChannels(channels)
-      // Instagram 연결 상태 확인
-      const instagramChannel = channels.find(c => c.channel_type === 'instagram' && c.status === 'connected')
+      // Instagram 연결 상태 확인 (channel_type이 'instagram'이거나 metadata에 instagram_user_id가 있는 경우)
+      const instagramChannel = channels.find(c =>
+        c.channel_type === 'instagram' ||
+        c.metadata?.instagram_user_id
+      )
       setIsInstagramConnected(!!instagramChannel)
       if (instagramChannel) {
         setInstagramChannelId(instagramChannel.id)
