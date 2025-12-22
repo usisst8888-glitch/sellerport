@@ -35,16 +35,17 @@ export async function GET(request: NextRequest) {
     }
 
     // DM 자동발송을 위한 권한 목록
-    // ⚠️ 개발 모드: App Roles에 테스터 추가 필요 (Developer Console → App roles → Roles → Add People)
-    // 테스터로 추가된 계정만 Instagram DM 기능 테스트 가능
+    // ⚠️ 앱 검수 전: 기본 권한만 사용 (instagram_business_* 권한은 검수 통과 후 추가)
+    // ⚠️ 앱 검수 후: instagram_business_basic, instagram_business_manage_messages, instagram_business_manage_comments 추가
     const scopes = [
       'public_profile',                           // 기본 프로필 (자동 부여)
       'pages_show_list',                          // 연결된 Facebook 페이지 목록
       'pages_read_engagement',                    // 페이지 참여 데이터
       'business_management',                      // 비즈니스 관리
-      'instagram_business_basic',                 // Instagram 비즈니스 기본 프로필
-      'instagram_business_manage_messages',       // DM 발송 (핵심!)
-      'instagram_business_manage_comments',       // 댓글 읽기 (Webhook용)
+      // 아래 권한들은 앱 검수 통과 후 활성화
+      // 'instagram_business_basic',              // Instagram 비즈니스 기본 프로필
+      // 'instagram_business_manage_messages',    // DM 발송 (핵심!)
+      // 'instagram_business_manage_comments',    // 댓글 읽기 (Webhook용)
     ].join(',')
 
     // state에 user_id, from, siteId 저장
