@@ -306,6 +306,7 @@ async function handleInstagramDmCallback(
       access_token: pageAccessToken, // 페이지 액세스 토큰 (DM 발송용)
       status: 'connected',
       last_sync_at: new Date().toISOString(),
+      my_site_id: siteId, // 빠른 시작에서 전달받은 사이트 ID
       metadata: {
         instagram_user_id: instagramAccount.id,
         username: instagramAccount.username,
