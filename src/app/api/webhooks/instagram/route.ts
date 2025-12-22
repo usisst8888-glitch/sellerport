@@ -1,15 +1,19 @@
 /**
- * Instagram Webhook Handler
+ * Instagram Webhook Handler (Instagram Login 방식)
  *
  * Meta Developer Console에서 설정 필요:
- * 1. Webhook URL: https://yourdomain.com/api/webhooks/instagram
- * 2. Verify Token: INSTAGRAM_WEBHOOK_VERIFY_TOKEN 환경변수와 동일하게 설정
- * 3. Subscribed Fields: comments, messages
+ * 1. Instagram 제품 > Webhooks 설정
+ * 2. Webhook URL: https://yourdomain.com/api/webhooks/instagram
+ * 3. Verify Token: INSTAGRAM_WEBHOOK_VERIFY_TOKEN 환경변수와 동일하게 설정
+ * 4. Subscribed Fields: comments, messages
  *
  * 동작 방식:
  * 1. 사용자가 Instagram 게시물에 특정 키워드로 댓글 작성
  * 2. Webhook이 댓글 이벤트 수신
  * 3. 키워드 매칭 시 해당 사용자에게 DM 발송 (추적 링크 포함)
+ *
+ * 참고: Instagram Login 방식에서는 Facebook Page 없이 직접 Instagram API 사용
+ * https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -53,11 +57,13 @@ export async function POST(request: NextRequest) {
 
     // 각 엔트리 처리
     for (const entry of body.entry || []) {
+      const instagramUserId = entry.id // 이벤트가 발생한 Instagram 계정 ID
+
       // 댓글 이벤트 처리
       if (entry.changes) {
         for (const change of entry.changes) {
           if (change.field === 'comments') {
-            await handleCommentEvent(change.value)
+            await handleCommentEvent(change.value, instagramUserId)
           }
         }
       }
@@ -78,14 +84,17 @@ export async function POST(request: NextRequest) {
 }
 
 // 댓글 이벤트 처리
-async function handleCommentEvent(commentData: {
-  id: string
-  text: string
-  from: { id: string; username: string }
-  media: { id: string }
-}) {
+async function handleCommentEvent(
+  commentData: {
+    id: string
+    text: string
+    from: { id: string; username: string }
+    media: { id: string }
+  },
+  instagramAccountId?: string
+) {
   try {
-    console.log('Processing comment:', commentData)
+    console.log('Processing comment:', commentData, 'for account:', instagramAccountId)
 
     const { text, from, media } = commentData
     const commentText = text.toLowerCase().trim()
@@ -206,7 +215,8 @@ async function handleMessagingEvent(event: {
   console.log('Messaging event:', event)
 }
 
-// Instagram DM 발송
+// Instagram DM 발송 (Instagram Login 방식)
+// https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/messaging
 async function sendInstagramDM(
   senderIgUserId: string,
   recipientIgUserId: string,
@@ -214,18 +224,19 @@ async function sendInstagramDM(
   accessToken: string
 ): Promise<boolean> {
   try {
-    // Instagram Messaging API (Graph API v18.0)
+    // Instagram Messaging API (Graph API v21.0)
+    // Instagram Login 방식에서는 graph.instagram.com 또는 graph.facebook.com 둘 다 사용 가능
     const response = await fetch(
-      `https://graph.facebook.com/v18.0/${senderIgUserId}/messages`,
+      `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           recipient: { id: recipientIgUserId },
           message: { text: message },
-          access_token: accessToken,
         }),
       }
     )
@@ -234,7 +245,33 @@ async function sendInstagramDM(
 
     if (result.error) {
       console.error('Instagram DM API error:', result.error)
-      return false
+
+      // graph.facebook.com으로 폴백 시도
+      console.log('Trying fallback to graph.facebook.com...')
+      const fallbackResponse = await fetch(
+        `https://graph.facebook.com/v21.0/${senderIgUserId}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            recipient: { id: recipientIgUserId },
+            message: { text: message },
+            access_token: accessToken,
+          }),
+        }
+      )
+
+      const fallbackResult = await fallbackResponse.json()
+
+      if (fallbackResult.error) {
+        console.error('Instagram DM fallback API error:', fallbackResult.error)
+        return false
+      }
+
+      console.log('Instagram DM sent via fallback:', fallbackResult)
+      return true
     }
 
     console.log('Instagram DM sent:', result)
