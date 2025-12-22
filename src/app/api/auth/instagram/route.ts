@@ -35,18 +35,14 @@ export async function GET(request: NextRequest) {
     }
 
     // DM 자동발송을 위한 권한 목록
-    // ⚠️ 개발 모드: 기본 권한만으로 연동 (instagram_business_* 권한은 검수 후)
-    // ⚠️ 앱 검수 통과 후: instagram_business_basic, instagram_business_manage_messages 추가
+    // Meta 콘솔 "권한 및 기능"에서 해당 권한 활성화 필요
     const scopes = [
-      'public_profile',                           // 기본 프로필 (자동 부여)
-      'pages_show_list',                          // 연결된 Facebook 페이지 목록
-      'pages_read_engagement',                    // 페이지 참여 데이터
-      'business_management',                      // 비즈니스 관리
-      // Instagram Graph API 기본 권한 (검수 없이 사용 가능)
-      'instagram_basic',                          // Instagram 기본 프로필
+      'instagram_basic',                          // Instagram 프로필 및 미디어 읽기
+      'instagram_content_publish',                // 콘텐츠 게시 (선택)
       'instagram_manage_comments',                // 댓글 관리
-      'instagram_manage_insights',                // 인사이트 조회
-      'pages_manage_metadata',                    // 페이지 메타데이터 관리
+      'instagram_manage_messages',                // DM 관리 (검수 필요)
+      'pages_show_list',                          // Facebook 페이지 목록
+      'pages_read_engagement',                    // 페이지 참여 데이터
     ].join(',')
 
     // state에 user_id, from, siteId 저장
