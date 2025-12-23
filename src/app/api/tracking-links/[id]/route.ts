@@ -7,6 +7,12 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
+
+const supabaseAdmin = createAdminClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 // 추적 링크 상세 조회
 export async function GET(
@@ -112,14 +118,32 @@ export async function DELETE(
       return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 })
     }
 
-    // 1. 연결된 클릭 데이터 삭제
-    await supabase
+    // 먼저 해당 추적 링크가 이 유저의 것인지 확인
+    const { data: linkData } = await supabaseAdmin
+      .from('tracking_links')
+      .select('id, user_id')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single()
+
+    if (!linkData) {
+      return NextResponse.json({ error: '추적 링크를 찾을 수 없습니다' }, { status: 404 })
+    }
+
+    // 1. 연결된 Instagram DM 설정 삭제
+    await supabaseAdmin
+      .from('instagram_dm_settings')
+      .delete()
+      .eq('tracking_link_id', id)
+
+    // 2. 연결된 클릭 데이터 삭제
+    await supabaseAdmin
       .from('tracking_link_clicks')
       .delete()
       .eq('tracking_link_id', id)
 
-    // 2. 추적 링크 삭제
-    const { error } = await supabase
+    // 3. 추적 링크 삭제 (supabaseAdmin 사용)
+    const { error } = await supabaseAdmin
       .from('tracking_links')
       .delete()
       .eq('id', id)
