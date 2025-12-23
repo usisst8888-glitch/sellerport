@@ -114,15 +114,16 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
       const response = await fetch('/api/youtube/video-codes')
       const result = await response.json()
 
-      if (result.success && result.data) {
-        setExistingCodes(result.data)
+      if (result.success) {
+        setExistingCodes(result.data || [])
 
-        // 스토어 슬러그는 항상 API에서 가져옴 (유튜브 채널명 기반)
+        // 스토어 슬러그는 항상 API에서 가져옴 (유튜브 채널명 기반 또는 store-{user_id})
+        // 영상번호가 없어도 storeSlug는 항상 존재
         if (result.storeSlug) {
           setSavedStoreSlug(result.storeSlug)
         }
 
-        if (result.data.length > 0) {
+        if (result.data && result.data.length > 0) {
           // 다음 영상번호 자동 생성
           const codes = result.data.map((item: YoutubeVideoCode) => item.video_code)
           const nextCode = generateNextVideoCode(codes)
@@ -147,7 +148,7 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
     }
   }, [isOpen, fetchExistingCodes, fetchProducts])
 
-  // 모달 닫힐 때 초기화
+  // 모달 닫힐 때 초기화 (savedStoreSlug는 유지)
   useEffect(() => {
     if (!isOpen) {
       setForm({ videoCode: '', videoTitle: '', selectedProductId: '' })
@@ -155,6 +156,7 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
       setCopiedUrl(false)
       setProductSearch('')
       setIsProductDropdownOpen(false)
+      // savedStoreSlug는 초기화하지 않음 - 항상 유지
     }
   }, [isOpen])
 
