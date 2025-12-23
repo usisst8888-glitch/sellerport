@@ -103,7 +103,8 @@ async function handleCommentEvent(
     const mediaId = media.id
 
     // 해당 미디어(게시물)에 대한 DM 설정 찾기
-    const { data: dmSettings } = await supabase
+    // 같은 media ID에 여러 설정이 있을 수 있으므로 가장 최근 것 사용
+    const { data: dmSettingsList, error: dmSettingsError } = await supabase
       .from('instagram_dm_settings')
       .select(`
         *,
@@ -122,7 +123,15 @@ async function handleCommentEvent(
       `)
       .eq('instagram_media_id', mediaId)
       .eq('is_active', true)
-      .single()
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    if (dmSettingsError) {
+      console.error('Error fetching DM settings:', dmSettingsError)
+      return
+    }
+
+    const dmSettings = dmSettingsList?.[0]
 
     if (!dmSettings) {
       console.log('No DM settings found for media:', mediaId)
