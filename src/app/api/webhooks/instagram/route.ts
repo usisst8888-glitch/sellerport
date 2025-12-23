@@ -163,16 +163,18 @@ async function handleCommentEvent(
       return
     }
 
-    // DM 메시지 구성
-    const dmMessage = dmSettings.dm_message || `안녕하세요! 요청하신 링크입니다 👇\n\n${trackingUrl}\n\n감사합니다! 🙏`
-    const finalMessage = dmMessage.replace('{{link}}', trackingUrl)
+    // 팔로우 확인 요청 메시지 (Quick Reply 버튼 포함)
+    const followRequestMessage = dmSettings.follow_request_message ||
+      `안녕하세요! 댓글 감사합니다 🙏\n\n링크를 받으시려면 팔로우 후 아래 버튼을 눌러주세요!`
 
-    // Instagram DM 발송 API 호출
-    const dmSent = await sendInstagramDM(
-      instagramUserId,
-      commenterIgUserId,
-      finalMessage,
-      accessToken
+    // Instagram Private Reply API 호출 (Quick Reply 버튼 포함)
+    // 사용자가 버튼을 누르면 messaging 이벤트로 수신됨
+    const dmSent = await sendInstagramPrivateReplyWithQuickReply(
+      commentData.id,
+      followRequestMessage,
+      accessToken,
+      dmSettings.id,  // DM 설정 ID (버튼 클릭 시 링크 발송용)
+      trackingUrl
     )
 
     if (dmSent) {
@@ -184,7 +186,7 @@ async function handleCommentEvent(
         recipient_username: commenterUsername,
         comment_id: commentData.id,
         comment_text: text,
-        dm_message: finalMessage,
+        dm_message: followRequestMessage,
         sent_at: new Date().toISOString(),
         status: 'sent',
       })
@@ -205,90 +207,218 @@ async function handleCommentEvent(
   }
 }
 
-// 메시징 이벤트 처리 (DM 수신 등)
+// 메시징 이벤트 처리 (DM 수신, Quick Reply 버튼 클릭 등)
 async function handleMessagingEvent(event: {
   sender: { id: string }
   recipient: { id: string }
-  message?: { mid: string; text: string }
+  message?: { mid: string; text: string; quick_reply?: { payload: string } }
 }) {
-  // DM 수신 시 처리 (필요한 경우 확장)
-  console.log('Messaging event:', event)
+  console.log('Messaging event:', JSON.stringify(event, null, 2))
+
+  // Quick Reply 버튼 클릭 처리 (팔로우 확인)
+  if (event.message?.quick_reply?.payload) {
+    const payload = event.message.quick_reply.payload
+
+    // payload 형식: "follow_confirmed:{dm_setting_id}:{tracking_url}"
+    if (payload.startsWith('follow_confirmed:')) {
+      const parts = payload.split(':')
+      const dmSettingId = parts[1]
+      const trackingUrl = parts.slice(2).join(':') // URL에 : 포함될 수 있음
+
+      await handleFollowConfirmed(event.sender.id, event.recipient.id, dmSettingId, trackingUrl)
+      return
+    }
+  }
+
+  // 텍스트 메시지 처리 ("팔로우 했어요" 등)
+  if (event.message?.text) {
+    const messageText = event.message.text.toLowerCase().trim()
+
+    // "팔로우" 관련 키워드 확인
+    const followKeywords = ['팔로우', '팔로우했어요', '팔로우 했어요', '팔로했어요', 'follow', 'followed']
+    const isFollowConfirm = followKeywords.some(keyword => messageText.includes(keyword))
+
+    if (isFollowConfirm) {
+      // 이 사용자의 대기 중인 DM 로그 찾기
+      const { data: pendingDm } = await supabase
+        .from('instagram_dm_logs')
+        .select(`
+          *,
+          instagram_dm_settings!inner (
+            id,
+            dm_message,
+            ad_channels!inner (
+              access_token
+            ),
+            tracking_links (
+              go_url,
+              tracking_url
+            )
+          )
+        `)
+        .eq('recipient_ig_user_id', event.sender.id)
+        .eq('status', 'sent')
+        .order('sent_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (pendingDm) {
+        const trackingUrl = pendingDm.instagram_dm_settings.tracking_links?.go_url ||
+          pendingDm.instagram_dm_settings.tracking_links?.tracking_url
+
+        if (trackingUrl) {
+          await handleFollowConfirmed(
+            event.sender.id,
+            event.recipient.id,
+            pendingDm.instagram_dm_settings.id,
+            trackingUrl
+          )
+        }
+      }
+    }
+  }
 }
 
-// Instagram DM 발송 (Instagram Login 방식)
-// https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/messaging
-async function sendInstagramDM(
-  senderIgUserId: string,
-  recipientIgUserId: string,
-  message: string,
-  accessToken: string
-): Promise<boolean> {
+// 팔로우 확인 버튼 클릭 시 링크 발송
+async function handleFollowConfirmed(
+  senderId: string,
+  recipientId: string,
+  dmSettingId: string,
+  trackingUrl: string
+) {
   try {
-    // Instagram Login API의 Messaging 엔드포인트
-    // /me/messages 엔드포인트 사용 (Instagram-Scoped User ID로 수신자 지정)
-    const endpoints = [
-      // 1. /me/messages 엔드포인트 (Instagram Login 권장)
-      {
-        url: `https://graph.instagram.com/v21.0/me/messages`,
-        body: {
-          recipient: { id: recipientIgUserId },
-          message: { text: message },
-        },
-        useAuth: true,
-      },
-      // 2. /{ig-user-id}/messages 엔드포인트
-      {
-        url: `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
-        body: {
-          recipient: { id: recipientIgUserId },
-          message: { text: message },
-        },
-        useAuth: true,
-      },
-      // 3. graph.facebook.com (Messenger Platform 방식)
-      {
-        url: `https://graph.facebook.com/v21.0/${senderIgUserId}/messages`,
-        body: {
-          recipient: { id: recipientIgUserId },
-          message: { text: message },
-          messaging_type: 'RESPONSE',
-          access_token: accessToken,
-        },
-        useAuth: false,
-      },
-    ]
+    console.log('Follow confirmed, sending link to:', senderId)
 
-    for (let i = 0; i < endpoints.length; i++) {
-      const endpoint = endpoints[i]
-      console.log(`Trying DM endpoint ${i + 1}: ${endpoint.url}`)
+    // DM 설정에서 액세스 토큰 가져오기
+    const { data: dmSettings } = await supabase
+      .from('instagram_dm_settings')
+      .select(`
+        *,
+        ad_channels!inner (
+          access_token,
+          metadata
+        )
+      `)
+      .eq('id', dmSettingId)
+      .single()
 
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      }
-      if (endpoint.useAuth) {
-        headers['Authorization'] = `Bearer ${accessToken}`
-      }
-
-      const response = await fetch(endpoint.url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(endpoint.body),
-      })
-
-      const result = await response.json()
-
-      if (!result.error) {
-        console.log(`Instagram DM sent via endpoint ${i + 1}:`, result)
-        return true
-      }
-
-      console.error(`Instagram DM endpoint ${i + 1} error:`, result.error)
+    if (!dmSettings) {
+      console.error('DM settings not found:', dmSettingId)
+      return
     }
 
-    console.error('All Instagram DM endpoints failed')
+    const accessToken = dmSettings.ad_channels.access_token
+
+    // 링크 메시지 발송 (24시간 윈도우 내 - 사용자가 버튼 눌렀으므로 가능)
+    const linkMessage = dmSettings.dm_message ||
+      `감사합니다! 요청하신 링크입니다 👇\n\n${trackingUrl}\n\n즐거운 쇼핑 되세요! 🎉`
+    const finalMessage = linkMessage.replace('{{link}}', trackingUrl)
+
+    const response = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        recipient: { id: senderId },
+        message: { text: finalMessage },
+      }),
+    })
+
+    const result = await response.json()
+
+    if (result.error) {
+      console.error('Failed to send link message:', result.error)
+    } else {
+      console.log('Link message sent successfully:', result)
+
+      // DM 로그 업데이트 (링크 발송 완료)
+      await supabase
+        .from('instagram_dm_logs')
+        .update({
+          status: 'link_sent',
+          link_sent_at: new Date().toISOString(),
+        })
+        .eq('dm_setting_id', dmSettingId)
+        .eq('recipient_ig_user_id', senderId)
+    }
+  } catch (error) {
+    console.error('Error handling follow confirmed:', error)
+  }
+}
+
+// Instagram Private Reply with Quick Reply 버튼
+// 댓글에 대한 비공개 답장 + "팔로우 확인" 버튼 포함
+async function sendInstagramPrivateReplyWithQuickReply(
+  commentId: string,
+  message: string,
+  accessToken: string,
+  dmSettingId: string,
+  trackingUrl: string
+): Promise<boolean> {
+  try {
+    // Private Reply API: POST /{comment-id}/private_replies
+    const url = `https://graph.instagram.com/v21.0/${commentId}/private_replies`
+
+    console.log('Sending Private Reply with Quick Reply to comment:', commentId)
+
+    // Quick Reply 버튼 포함 메시지
+    // payload에 DM 설정 ID와 추적 URL을 포함하여 버튼 클릭 시 링크 발송 가능
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        message: {
+          text: message,
+          quick_replies: [
+            {
+              content_type: 'text',
+              title: '✅ 팔로우 했어요!',
+              payload: `follow_confirmed:${dmSettingId}:${trackingUrl}`,
+            },
+          ],
+        },
+      }),
+    })
+
+    const result = await response.json()
+
+    if (!result.error) {
+      console.log('Instagram Private Reply with Quick Reply sent successfully:', result)
+      return true
+    }
+
+    // Quick Reply가 지원되지 않는 경우 일반 메시지로 재시도
+    console.error('Instagram Private Reply with Quick Reply error:', result.error)
+
+    // Fallback: 일반 텍스트 메시지로 재시도
+    console.log('Retrying with plain text message...')
+    const fallbackResponse = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        message: message + `\n\n👉 "팔로우 했어요"라고 답장해주세요!`,
+      }),
+    })
+
+    const fallbackResult = await fallbackResponse.json()
+
+    if (!fallbackResult.error) {
+      console.log('Instagram Private Reply (fallback) sent successfully:', fallbackResult)
+      return true
+    }
+
+    console.error('Instagram Private Reply fallback error:', fallbackResult.error)
     return false
   } catch (error) {
-    console.error('Failed to send Instagram DM:', error)
+    console.error('Failed to send Instagram Private Reply:', error)
     return false
   }
 }
