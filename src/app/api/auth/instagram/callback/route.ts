@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 /**
  * Instagram OAuth 콜백 처리 (Instagram Login 방식)
@@ -140,6 +140,8 @@ export async function GET(request: NextRequest) {
     }
 
     // 4. Supabase에 저장
+    // Admin 클라이언트 사용 (RLS 우회) - OAuth 콜백에서는 세션 쿠키가 없을 수 있음
+    const adminSupabase = createAdminClient()
     const supabase = await createClient()
 
     // userId가 없으면 현재 로그인된 사용자 확인
@@ -153,8 +155,8 @@ export async function GET(request: NextRequest) {
       userId = user.id
     }
 
-    // 기존 Instagram 채널 확인
-    const { data: existingChannel } = await supabase
+    // 기존 Instagram 채널 확인 (Admin 클라이언트 사용)
+    const { data: existingChannel } = await adminSupabase
       .from('ad_channels')
       .select('id')
       .eq('user_id', userId)
@@ -187,12 +189,19 @@ export async function GET(request: NextRequest) {
     }
 
     if (existingChannel) {
-      await supabase
+      const { error: updateError } = await adminSupabase
         .from('ad_channels')
         .update(channelData)
         .eq('id', existingChannel.id)
+
+      if (updateError) {
+        console.error('Failed to update Instagram channel:', updateError)
+        return NextResponse.redirect(
+          `${process.env.NEXT_PUBLIC_APP_URL}/${redirectPath}?error=save_failed`
+        )
+      }
     } else {
-      const { error: insertError } = await supabase
+      const { error: insertError } = await adminSupabase
         .from('ad_channels')
         .insert(channelData)
 
