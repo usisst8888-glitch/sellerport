@@ -8,10 +8,9 @@ import { createClient } from '@/lib/supabase/server'
  * Facebook 페이지 연결 없이 Instagram 프로페셔널 계정만으로 DM 자동발송 가능
  *
  * 필요한 권한:
- * - instagram_basic: Instagram 프로필 및 미디어 읽기
- * - instagram_content_publish: 콘텐츠 게시 (선택)
- * - instagram_manage_comments: 댓글 관리 (Webhook용)
- * - instagram_manage_messages: DM 관리 (핵심!)
+ * - instagram_business_basic: Instagram 프로필 및 미디어 읽기
+ * - instagram_business_manage_messages: DM 관리 (핵심!)
+ * - instagram_business_manage_comments: 댓글 관리 (Webhook용)
  *
  * 참고: https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login
  */
@@ -41,9 +40,9 @@ export async function GET(request: NextRequest) {
     // Instagram Login API 권한 목록 (Facebook Page 불필요)
     // https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/business-login
     const scopes = [
-      'instagram_basic',                // Instagram 프로필 및 미디어 읽기
-      'instagram_manage_comments',      // 댓글 관리 (Webhook용)
-      'instagram_manage_messages',      // DM 관리 (핵심!)
+      'instagram_business_basic',            // Instagram 프로필 및 미디어 읽기
+      'instagram_business_manage_messages',  // DM 관리 (핵심!)
+      'instagram_business_manage_comments',  // 댓글 관리 (Webhook용)
     ].join(',')
 
     // state에 user_id, from, siteId 저장

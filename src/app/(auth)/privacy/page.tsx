@@ -183,8 +183,38 @@ export default function PrivacyPage() {
               </p>
             </section>
 
+            <section id="meta-data-deletion">
+              <h2 className="text-lg font-semibold text-white mb-4">6. Meta/Instagram 연동 데이터 삭제</h2>
+              <p className="text-sm mb-4">
+                셀러포트는 Meta(Facebook, Instagram) 플랫폼과 연동하여 광고 성과 분석 및 Instagram DM 자동발송 기능을 제공합니다.
+                사용자는 언제든지 연동된 Meta/Instagram 데이터의 삭제를 요청할 수 있습니다.
+              </p>
+              <div className="p-4 bg-slate-700/50 rounded-xl mb-4">
+                <h3 className="text-sm font-semibold text-white mb-3">삭제 요청 방법</h3>
+                <ul className="list-disc list-inside space-y-2 text-sm">
+                  <li><strong className="text-white">서비스 내 삭제:</strong> 설정 &gt; 광고 채널 관리에서 Meta/Instagram 연동 해제</li>
+                  <li><strong className="text-white">이메일 요청:</strong> support@sellerport.app로 삭제 요청</li>
+                  <li><strong className="text-white">전화 요청:</strong> 070-8095-7325</li>
+                </ul>
+              </div>
+              <div className="p-4 bg-slate-700/50 rounded-xl">
+                <h3 className="text-sm font-semibold text-white mb-3">삭제되는 데이터</h3>
+                <ul className="list-disc list-inside space-y-1 text-sm">
+                  <li>Meta/Instagram 액세스 토큰</li>
+                  <li>연동된 광고 계정 정보</li>
+                  <li>Instagram 계정 정보 (사용자명, 프로필 등)</li>
+                  <li>Instagram DM 발송 설정 및 로그</li>
+                  <li>광고 성과 데이터 (ROAS, 지출, 전환 등)</li>
+                </ul>
+              </div>
+              <p className="text-sm mt-4">
+                삭제 요청 접수 후 <strong className="text-white">영업일 기준 3일 이내</strong>에 처리되며, 처리 완료 시 이메일로 통지드립니다.
+                단, 법령에 따라 보존이 필요한 결제 관련 기록은 관련 법률에서 정한 기간 동안 보관됩니다.
+              </p>
+            </section>
+
             <section>
-              <h2 className="text-lg font-semibold text-white mb-4">6. 개인정보의 제3자 제공</h2>
+              <h2 className="text-lg font-semibold text-white mb-4">7. 개인정보의 제3자 제공</h2>
               <p className="text-sm mb-4">
                 회사는 이용자의 개인정보를 &quot;2. 개인정보의 수집·이용 목적&quot;에서 명시한 범위 내에서만 처리하며, 이용자의 동의 없이는 제3자에게 개인정보를 제공하지 않습니다. 다만, 다음의 경우에는 예외로 합니다.
               </p>
@@ -195,7 +225,7 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-lg font-semibold text-white mb-4">7. 이용자의 권리 및 행사 방법</h2>
+              <h2 className="text-lg font-semibold text-white mb-4">8. 이용자의 권리 및 행사 방법</h2>
               <ul className="list-disc list-inside space-y-1 text-sm">
                 <li>이용자는 언제든지 자신의 개인정보를 조회하거나 수정할 수 있으며, 회원 탈퇴를 통해 개인정보의 수집 및 이용에 대한 동의를 철회할 수 있습니다.</li>
                 <li>개인정보 조회·수정은 서비스 내 &quot;설정&quot; 메뉴에서, 회원 탈퇴는 설정 메뉴 또는 고객센터(1666-5157)를 통해 가능합니다.</li>
@@ -204,7 +234,7 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-lg font-semibold text-white mb-4">8. 개인정보의 파기</h2>
+              <h2 className="text-lg font-semibold text-white mb-4">9. 개인정보의 파기</h2>
               <p className="text-sm mb-4">
                 회사는 원칙적으로 개인정보 처리목적이 달성된 경우에는 지체 없이 해당 개인정보를 파기합니다. 파기의 절차, 기한 및 방법은 다음과 같습니다.
               </p>
@@ -216,7 +246,7 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-lg font-semibold text-white mb-4">9. 개인정보 보호책임자</h2>
+              <h2 className="text-lg font-semibold text-white mb-4">10. 개인정보 보호책임자</h2>
               <div className="p-4 bg-slate-700/50 rounded-xl">
                 <div className="text-sm space-y-1">
                   <p><span className="text-slate-400">성명:</span> 배철응</p>
@@ -228,7 +258,7 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-lg font-semibold text-white mb-4">10. 개인정보 처리방침 변경</h2>
+              <h2 className="text-lg font-semibold text-white mb-4">11. 개인정보 처리방침 변경</h2>
               <p className="text-sm">
                 이 개인정보 처리방침은 시행일로부터 적용되며, 법령 및 방침에 따른 변경 내용의 추가, 삭제 및 정정이 있는 경우에는 변경사항의 시행 7일 전부터 공지사항을 통하여 고지할 것입니다.
               </p>
