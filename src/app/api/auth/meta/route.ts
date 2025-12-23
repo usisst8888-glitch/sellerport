@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-// Meta OAuth 연동 시작 - 사용자를 Facebook 로그인 페이지로 리다이렉트
+/**
+ * Meta 광고 OAuth 연동 시작
+ *
+ * Meta 광고 계정 연동용 (Instagram DM은 별도 /api/auth/instagram 사용)
+ *
+ * 필요한 권한:
+ * - ads_read: 광고 데이터 읽기 (성과, 지출, 픽셀 등)
+ * - business_management: Business Manager 광고 계정 접근
+ * - Ads Management Standard Access: 광고 관리 표준 액세스 (앱 레벨 설정)
+ */
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -18,18 +27,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Meta App ID not configured' }, { status: 500 })
     }
 
-    // 필요한 권한들 (Meta Marketing API)
-    // 참고: read_insights는 앱 검토 승인 후 사용 가능
+    // Meta 광고 계정 연동용 권한
+    // Ads Management Standard Access는 앱 레벨에서 설정됨 (OAuth scope 아님)
     const scopes = [
-      'ads_management',     // 광고 관리 (읽기/쓰기)
-      'ads_read',           // 광고 읽기
-      'business_management', // 비즈니스 관리
+      'ads_read',            // 광고 데이터 읽기 (성과, 지출, 픽셀 등)
+      'business_management', // Business Manager 광고 계정 접근
     ].join(',')
 
-    // state에 user_id 저장 (보안상 서명된 토큰 사용 권장)
+    // state에 user_id 저장
     const state = Buffer.from(JSON.stringify({
       userId: user.id,
       timestamp: Date.now(),
+      type: 'meta_ads',
     })).toString('base64')
 
     // Facebook OAuth URL 생성
