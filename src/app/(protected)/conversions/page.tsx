@@ -915,9 +915,8 @@ export default function ConversionsPage() {
         </div>
       )}
 
-      {/* 광고 성과 통합 섹션 */}
-      {(adChannels.length > 0 || trackingLinks.length > 0) && (
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-900/20 to-slate-800/40 border border-violet-500/20">
+      {/* 광고 성과 통합 섹션 - 항상 표시 */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-900/20 to-slate-800/40 border border-violet-500/20">
           <div className="p-6 border-b border-white/5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -1398,7 +1397,6 @@ export default function ConversionsPage() {
             )}
           </div>
         </div>
-      )}
 
       {/* 연결 필요 안내 (아무것도 연결 안된 경우) */}
       {connectedSites.length === 0 && adChannels.length === 0 && !loading && (
