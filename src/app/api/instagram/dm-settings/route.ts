@@ -7,8 +7,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-// DM 설정 목록 조회
-export async function GET() {
+// DM 설정 목록 조회 (또는 trackingLinkId로 단일 조회)
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -17,6 +17,44 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { searchParams } = new URL(request.url)
+    const trackingLinkId = searchParams.get('trackingLinkId')
+
+    // trackingLinkId가 있으면 해당 설정만 조회
+    if (trackingLinkId) {
+      const { data: setting, error } = await supabase
+        .from('instagram_dm_settings')
+        .select(`
+          *,
+          ad_channels (
+            id,
+            channel_name,
+            account_name,
+            metadata
+          ),
+          tracking_links (
+            id,
+            utm_campaign,
+            target_url,
+            go_url,
+            post_name,
+            clicks,
+            conversions
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('tracking_link_id', trackingLinkId)
+        .single()
+
+      if (error) {
+        console.error('Failed to fetch DM setting:', error)
+        return NextResponse.json({ error: 'DM 설정을 찾을 수 없습니다' }, { status: 404 })
+      }
+
+      return NextResponse.json({ success: true, data: setting })
+    }
+
+    // 전체 목록 조회
     const { data: settings, error } = await supabase
       .from('instagram_dm_settings')
       .select(`

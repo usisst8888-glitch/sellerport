@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 
 interface InstagramMedia {
@@ -19,9 +19,11 @@ interface InstagramDmModalProps {
   onSuccess: () => void
   channelId: string | null
   isConnected: boolean
+  // 수정 모드용
+  editingTrackingLinkId?: string | null
 }
 
-export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConnected }: InstagramDmModalProps) {
+export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConnected, editingTrackingLinkId }: InstagramDmModalProps) {
   const [form, setForm] = useState({
     triggerKeywords: '',
     dmMessage: '',
@@ -30,19 +32,67 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
   })
   const [creating, setCreating] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [loading, setLoading] = useState(false)
 
   // 게시물 선택
   const [media, setMedia] = useState<InstagramMedia[]>([])
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null)
+  const [selectedMediaUrl, setSelectedMediaUrl] = useState<string | null>(null)
+  const [selectedMediaCaption, setSelectedMediaCaption] = useState<string | null>(null)
   const [showMediaModal, setShowMediaModal] = useState(false)
   const [loadingMedia, setLoadingMedia] = useState(false)
+
+  // 수정 모드용 DM 설정 ID
+  const [dmSettingId, setDmSettingId] = useState<string | null>(null)
+
+  const isEditMode = !!editingTrackingLinkId
+
+  // 기존 DM 설정 불러오기
+  const fetchExistingDmSettings = useCallback(async () => {
+    if (!editingTrackingLinkId) return
+
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/instagram/dm-settings?trackingLinkId=${editingTrackingLinkId}`)
+      const result = await response.json()
+
+      if (result.success && result.data) {
+        const settings = result.data
+        setForm({
+          triggerKeywords: settings.trigger_keywords?.join(', ') || '',
+          dmMessage: settings.dm_message || '',
+          followMessage: settings.follow_cta_message || '',
+          targetUrl: settings.tracking_links?.target_url || ''
+        })
+        setSelectedMediaId(settings.instagram_media_id || null)
+        setSelectedMediaUrl(settings.instagram_media_url || null)
+        setSelectedMediaCaption(settings.instagram_caption || null)
+        setDmSettingId(settings.id)
+      }
+    } catch (error) {
+      console.error('Failed to fetch DM settings:', error)
+      setMessage({ type: 'error', text: '설정을 불러오는데 실패했습니다' })
+    } finally {
+      setLoading(false)
+    }
+  }, [editingTrackingLinkId])
+
+  // 모달 열릴 때 수정 모드면 기존 데이터 불러오기
+  useEffect(() => {
+    if (isOpen && editingTrackingLinkId) {
+      fetchExistingDmSettings()
+    }
+  }, [isOpen, editingTrackingLinkId, fetchExistingDmSettings])
 
   // 모달 닫힐 때 초기화
   useEffect(() => {
     if (!isOpen) {
       setForm({ triggerKeywords: '', dmMessage: '', followMessage: '', targetUrl: '' })
       setSelectedMediaId(null)
+      setSelectedMediaUrl(null)
+      setSelectedMediaCaption(null)
       setMessage(null)
+      setDmSettingId(null)
     }
   }, [isOpen])
 
@@ -68,8 +118,8 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
     fetchMedia()
   }
 
-  // DM 설정 생성
-  const handleCreate = async () => {
+  // DM 설정 생성 또는 수정
+  const handleSubmit = async () => {
     if (!form.triggerKeywords || !form.dmMessage || !form.targetUrl || !form.followMessage) {
       setMessage({ type: 'error', text: '모든 필드를 입력해주세요' })
       return
@@ -79,31 +129,53 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
     try {
       const selectedMedia = media.find(m => m.id === selectedMediaId)
 
-      const response = await fetch('/api/tracking-links', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          channelType: 'instagram',
-          postName: selectedMedia?.caption?.slice(0, 50) || 'Instagram DM',
-          targetUrl: form.targetUrl,
-          enableDmAutoSend: true,
-          dmTriggerKeywords: form.triggerKeywords,
-          dmMessage: form.dmMessage,
-          requireFollow: true,
-          followMessage: form.followMessage,
-          instagramMediaId: selectedMediaId,
-          instagramMediaUrl: selectedMedia?.permalink,
-          instagramMediaType: selectedMedia?.media_type,
-          instagramCaption: selectedMedia?.caption
+      if (isEditMode && dmSettingId) {
+        // 수정 모드
+        const response = await fetch(`/api/instagram/dm-settings/${dmSettingId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            triggerKeywords: form.triggerKeywords.split(',').map(k => k.trim()).filter(k => k),
+            dmMessage: form.dmMessage,
+            followCtaMessage: form.followMessage,
+          })
         })
-      })
 
-      const result = await response.json()
-      if (result.success) {
-        onSuccess()
-        onClose()
+        const result = await response.json()
+        if (result.success) {
+          onSuccess()
+          onClose()
+        } else {
+          setMessage({ type: 'error', text: result.error || '수정에 실패했습니다' })
+        }
       } else {
-        setMessage({ type: 'error', text: result.error || '설정에 실패했습니다' })
+        // 생성 모드
+        const response = await fetch('/api/tracking-links', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            channelType: 'instagram',
+            postName: selectedMedia?.caption?.slice(0, 50) || 'Instagram DM',
+            targetUrl: form.targetUrl,
+            enableDmAutoSend: true,
+            dmTriggerKeywords: form.triggerKeywords,
+            dmMessage: form.dmMessage,
+            requireFollow: true,
+            followMessage: form.followMessage,
+            instagramMediaId: selectedMediaId,
+            instagramMediaUrl: selectedMedia?.permalink,
+            instagramMediaType: selectedMedia?.media_type,
+            instagramCaption: selectedMedia?.caption
+          })
+        })
+
+        const result = await response.json()
+        if (result.success) {
+          onSuccess()
+          onClose()
+        } else {
+          setMessage({ type: 'error', text: result.error || '설정에 실패했습니다' })
+        }
       }
     } catch {
       setMessage({ type: 'error', text: '오류가 발생했습니다' })
@@ -128,8 +200,12 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white">Instagram DM 자동발송</h3>
-                  <p className="text-sm text-slate-400">댓글 트리거로 자동 DM 발송</p>
+                  <h3 className="text-lg font-semibold text-white">
+                    {isEditMode ? 'Instagram DM 설정 수정' : 'Instagram DM 자동발송'}
+                  </h3>
+                  <p className="text-sm text-slate-400">
+                    {isEditMode ? '기존 DM 설정을 수정합니다' : '댓글 트리거로 자동 DM 발송'}
+                  </p>
                 </div>
               </div>
               <button onClick={onClose} className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg">
@@ -141,6 +217,14 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
           </div>
 
           <div className="p-6 space-y-5">
+            {/* 로딩 상태 */}
+            {loading && (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+                <span className="ml-3 text-slate-400">설정을 불러오는 중...</span>
+              </div>
+            )}
+
             {/* 에러 메시지 */}
             {message && (
               <div className={`p-3 rounded-lg text-sm ${message.type === 'error' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
@@ -149,7 +233,7 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
             )}
 
             {/* Instagram 미연결 */}
-            {!isConnected ? (
+            {!loading && !isConnected ? (
               <div className="p-6 rounded-xl bg-slate-700/50 border border-slate-600 text-center">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-pink-500/20 flex items-center justify-center">
                   <svg className="w-8 h-8 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,40 +246,59 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
                   빠른 시작에서 연결하기
                 </Link>
               </div>
-            ) : (
+            ) : !loading && (
               <>
-                {/* 1. 게시물 선택 */}
+                {/* 1. 게시물 선택 (수정 모드에서는 변경 불가) */}
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
                     <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-pink-500 text-white text-xs mr-2">1</span>
                     게시물 선택
+                    {isEditMode && <span className="ml-2 text-xs text-slate-500">(변경 불가)</span>}
                   </label>
                   {selectedMediaId ? (
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-700 border border-slate-600">
-                      {media.find(m => m.id === selectedMediaId) && (
+                      {/* 새로 선택한 게시물 또는 기존 저장된 게시물 표시 */}
+                      {(media.find(m => m.id === selectedMediaId) || selectedMediaUrl) && (
                         <>
-                          <img
-                            src={media.find(m => m.id === selectedMediaId)?.thumbnail_url || media.find(m => m.id === selectedMediaId)?.media_url}
-                            alt="선택된 게시물"
-                            className="w-16 h-16 rounded-lg object-cover"
-                          />
+                          {(media.find(m => m.id === selectedMediaId)?.thumbnail_url ||
+                            media.find(m => m.id === selectedMediaId)?.media_url ||
+                            selectedMediaUrl) && (
+                            <div className="w-16 h-16 rounded-lg bg-slate-600 flex items-center justify-center overflow-hidden">
+                              {media.find(m => m.id === selectedMediaId) ? (
+                                <img
+                                  src={media.find(m => m.id === selectedMediaId)?.thumbnail_url || media.find(m => m.id === selectedMediaId)?.media_url}
+                                  alt="선택된 게시물"
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              )}
+                            </div>
+                          )}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm text-white truncate">
-                              {media.find(m => m.id === selectedMediaId)?.caption?.slice(0, 50) || '캡션 없음'}
+                              {media.find(m => m.id === selectedMediaId)?.caption?.slice(0, 50) || selectedMediaCaption?.slice(0, 50) || '캡션 없음'}
                             </p>
+                            <p className="text-xs text-slate-500 mt-0.5">ID: {selectedMediaId}</p>
                           </div>
-                          <button onClick={() => setSelectedMediaId(null)} className="p-2 text-slate-400 hover:text-white">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
+                          {/* 수정 모드가 아닐 때만 삭제 버튼 표시 */}
+                          {!isEditMode && (
+                            <button onClick={() => { setSelectedMediaId(null); setSelectedMediaUrl(null); setSelectedMediaCaption(null) }} className="p-2 text-slate-400 hover:text-white">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          )}
                         </>
                       )}
                     </div>
                   ) : (
                     <button
                       onClick={openMediaModal}
-                      className="w-full p-4 rounded-xl bg-slate-700/50 border-2 border-dashed border-slate-600 text-slate-400 hover:border-pink-500 hover:text-pink-400 transition-colors flex flex-col items-center gap-2"
+                      disabled={isEditMode}
+                      className="w-full p-4 rounded-xl bg-slate-700/50 border-2 border-dashed border-slate-600 text-slate-400 hover:border-pink-500 hover:text-pink-400 transition-colors flex flex-col items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-slate-600 disabled:hover:text-slate-400"
                     >
                       <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -254,36 +357,41 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
                   <p className="text-xs text-slate-500 mt-1">팔로우 확인 후 발송됩니다. 메시지 끝에 목적지 URL이 자동 추가됩니다.</p>
                 </div>
 
-                {/* 5. 목적지 URL */}
+                {/* 5. 목적지 URL (수정 모드에서는 변경 불가) */}
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
                     <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-pink-500 text-white text-xs mr-2">5</span>
                     목적지 URL
+                    {isEditMode && <span className="ml-2 text-xs text-slate-500">(변경 불가)</span>}
                   </label>
                   <input
                     type="url"
                     placeholder="https://smartstore.naver.com/..."
                     value={form.targetUrl}
                     onChange={(e) => setForm({ ...form, targetUrl: e.target.value })}
-                    className="w-full h-11 px-4 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-pink-500"
+                    disabled={isEditMode}
+                    className="w-full h-11 px-4 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-pink-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
+                  {isEditMode && (
+                    <p className="text-xs text-slate-500 mt-1">목적지 URL을 변경하려면 새 추적링크를 생성하세요</p>
+                  )}
                 </div>
               </>
             )}
           </div>
 
           {/* 버튼 */}
-          {isConnected && (
+          {isConnected && !loading && (
             <div className="p-6 border-t border-slate-700 flex gap-3">
               <button onClick={onClose} className="flex-1 h-11 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-medium">
                 취소
               </button>
               <button
-                onClick={handleCreate}
-                disabled={creating || !form.targetUrl || !form.dmMessage || !form.triggerKeywords || !form.followMessage}
+                onClick={handleSubmit}
+                disabled={creating || !form.dmMessage || !form.triggerKeywords || !form.followMessage || (!isEditMode && !form.targetUrl)}
                 className="flex-1 h-11 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-medium disabled:opacity-50"
               >
-                {creating ? '설정 중...' : 'DM 자동발송 설정'}
+                {creating ? '저장 중...' : (isEditMode ? '수정 완료' : 'DM 자동발송 설정')}
               </button>
             </div>
           )}

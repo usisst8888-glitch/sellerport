@@ -156,6 +156,8 @@ export default function ConversionsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [isInstagramConnected, setIsInstagramConnected] = useState(false)
   const [instagramChannelId, setInstagramChannelId] = useState<string | null>(null)
+  // Instagram DM 수정 모드
+  const [editingInstagramLinkId, setEditingInstagramLinkId] = useState<string | null>(null)
 
   // 광고비 수정 모달
   const [editingLink, setEditingLink] = useState<TrackingLink | null>(null)
@@ -1354,8 +1356,14 @@ export default function ConversionsPage() {
                                     </button>
                                     <button
                                       onClick={() => {
-                                        setEditingLinkFull(link)
-                                        setEditForm({ name: link.utm_campaign, status: link.status })
+                                        // Instagram 채널인 경우 DM 수정 모달 열기
+                                        if (link.utm_source === 'instagram') {
+                                          setEditingInstagramLinkId(link.id)
+                                          setShowCreateModal(true)
+                                        } else {
+                                          setEditingLinkFull(link)
+                                          setEditForm({ name: link.utm_campaign, status: link.status })
+                                        }
                                       }}
                                       className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
                                       title="수정"
@@ -1698,12 +1706,17 @@ export default function ConversionsPage() {
       {/* Instagram DM 자동발송 모달 */}
       <InstagramDmModal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => {
+          setShowCreateModal(false)
+          setEditingInstagramLinkId(null)
+        }}
         onSuccess={() => {
           fetchTrackingLinks()
+          setEditingInstagramLinkId(null)
         }}
         channelId={instagramChannelId}
         isConnected={isInstagramConnected}
+        editingTrackingLinkId={editingInstagramLinkId}
       />
     </div>
   )
