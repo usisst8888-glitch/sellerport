@@ -350,6 +350,7 @@ async function handleFollowConfirmed(
 
 // Instagram Private Reply with Quick Reply 버튼
 // 댓글에 대한 비공개 답장 + "팔로우 확인" 버튼 포함
+// 참고: https://developers.facebook.com/docs/messenger-platform/instagram/features/private-replies
 async function sendInstagramPrivateReplyWithQuickReply(
   commentId: string,
   message: string,
@@ -358,8 +359,9 @@ async function sendInstagramPrivateReplyWithQuickReply(
   trackingUrl: string
 ): Promise<boolean> {
   try {
-    // Private Reply API: POST /{comment-id}/private_replies
-    const url = `https://graph.instagram.com/v21.0/${commentId}/private_replies`
+    // Private Reply API: POST /me/messages with recipient.comment_id
+    // 댓글 ID를 recipient로 사용하여 Private Reply 발송
+    const url = `https://graph.instagram.com/v21.0/me/messages`
 
     console.log('Sending Private Reply with Quick Reply to comment:', commentId)
 
@@ -372,6 +374,9 @@ async function sendInstagramPrivateReplyWithQuickReply(
         'Authorization': `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
+        recipient: {
+          comment_id: commentId,
+        },
         message: {
           text: message,
           quick_replies: [
@@ -404,7 +409,12 @@ async function sendInstagramPrivateReplyWithQuickReply(
         'Authorization': `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
-        message: message + `\n\n👉 "팔로우 했어요"라고 답장해주세요!`,
+        recipient: {
+          comment_id: commentId,
+        },
+        message: {
+          text: message + `\n\n👉 "팔로우 했어요"라고 답장해주세요!`,
+        },
       }),
     })
 
