@@ -242,7 +242,7 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
                   <label className="block text-sm font-medium text-slate-300 mb-2">
                     <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-pink-500 text-white text-xs mr-2">4</span>
                     팔로워용 메시지
-                    <span className="ml-2 text-xs text-green-400">(두 번째 DM + 링크)</span>
+                    <span className="ml-2 text-xs text-green-400">(두 번째 DM)</span>
                   </label>
                   <textarea
                     rows={2}
@@ -251,7 +251,7 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
                     onChange={(e) => setForm({ ...form, dmMessage: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-pink-500 resize-none"
                   />
-                  <p className="text-xs text-slate-500 mt-1">팔로우 확인 후 발송됩니다. 메시지 끝에 추적 링크가 자동 추가됩니다.</p>
+                  <p className="text-xs text-slate-500 mt-1">팔로우 확인 후 발송됩니다. 메시지 끝에 목적지 URL이 자동 추가됩니다.</p>
                 </div>
 
                 {/* 5. 목적지 URL */}
