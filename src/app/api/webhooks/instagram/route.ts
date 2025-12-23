@@ -280,6 +280,7 @@ async function handleMessagingEvent(event: {
 }
 
 // 팔로우 확인 버튼 클릭 시 링크 발송
+// 팔로우가 안 되어 있으면 에러 발생 → 팔로우 요청 메시지 다시 발송
 async function handleFollowConfirmed(
   senderId: string,
   recipientId: string,
@@ -287,7 +288,7 @@ async function handleFollowConfirmed(
   trackingUrl: string
 ) {
   try {
-    console.log('Follow confirmed, sending link to:', senderId)
+    console.log('Follow confirmed button clicked, attempting to send link to:', senderId)
 
     // DM 설정에서 액세스 토큰 가져오기
     const { data: dmSettings } = await supabase
@@ -309,11 +310,23 @@ async function handleFollowConfirmed(
 
     const accessToken = dmSettings.ad_channels.access_token
 
-    // 링크 메시지 발송 (24시간 윈도우 내 - 사용자가 버튼 눌렀으므로 가능)
-    const linkMessage = dmSettings.dm_message ||
-      `감사합니다! 요청하신 링크입니다 👇\n\n${trackingUrl}\n\n즐거운 쇼핑 되세요! 🎉`
-    const finalMessage = linkMessage.replace('{{link}}', trackingUrl)
+    // 팔로워용 DM 메시지 생성 (dm_message + URL)
+    let finalMessage: string
 
+    if (dmSettings.dm_message) {
+      // 셀러가 설정한 메시지 사용
+      if (dmSettings.dm_message.includes('{{link}}')) {
+        finalMessage = dmSettings.dm_message.replace('{{link}}', trackingUrl)
+      } else {
+        // {{link}}가 없으면 메시지 끝에 URL 추가
+        finalMessage = `${dmSettings.dm_message}\n\n${trackingUrl}`
+      }
+    } else {
+      // 기본 메시지
+      finalMessage = `감사합니다! 요청하신 링크입니다 👇\n\n${trackingUrl}`
+    }
+
+    // DM 발송 시도 (팔로워만 메시지 수신 설정된 경우 에러 발생)
     const response = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
       method: 'POST',
       headers: {
@@ -329,9 +342,39 @@ async function handleFollowConfirmed(
     const result = await response.json()
 
     if (result.error) {
-      console.error('Failed to send link message:', result.error)
+      // 에러 발생 = 팔로우가 안 되어 있음
+      // 팔로우 요청 메시지 다시 발송
+      console.log('Failed to send link (user may not be following), sending follow request again:', result.error)
+
+      const followRequestMessage = dmSettings.follow_request_message ||
+        `아직 팔로우가 확인되지 않았어요! 😅\n\n팔로우 후 다시 버튼을 눌러주세요!`
+
+      // 팔로우 요청 메시지 재발송 (Quick Reply 버튼 포함)
+      await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { id: senderId },
+          message: {
+            text: followRequestMessage,
+            quick_replies: [
+              {
+                content_type: 'text',
+                title: '✅ 팔로우 했어요!',
+                payload: `follow_confirmed:${dmSettingId}:${trackingUrl}`,
+              },
+            ],
+          },
+        }),
+      })
+
+      console.log('Follow request message sent again to:', senderId)
     } else {
-      console.log('Link message sent successfully:', result)
+      // 성공 = 팔로워임, 링크 발송 완료
+      console.log('Link message sent successfully (user is a follower):', result)
 
       // DM 로그 업데이트 (링크 발송 완료)
       await supabase
