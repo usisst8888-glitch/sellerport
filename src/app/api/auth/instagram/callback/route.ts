@@ -117,22 +117,26 @@ export async function GET(request: NextRequest) {
 
     // 3. Instagram 사용자 정보 가져오기
     // https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/get-started#get-user-info
-    const userInfoUrl = new URL(`https://graph.instagram.com/v21.0/${instagramUserId}`)
+    // Instagram Login API에서 지원하는 필드만 요청 (account_type, followers_count는 지원 안 될 수 있음)
+    const userInfoUrl = new URL(`https://graph.instagram.com/v21.0/me`)
     userInfoUrl.searchParams.set('access_token', accessToken)
-    userInfoUrl.searchParams.set('fields', 'id,username,name,profile_picture_url,followers_count,account_type')
+    userInfoUrl.searchParams.set('fields', 'user_id,username,name,profile_picture_url,account_type')
 
     const userInfoResponse = await fetch(userInfoUrl.toString())
     const userInfo = await userInfoResponse.json()
 
+    console.log('Instagram user info response:', JSON.stringify(userInfo))
+
     if (userInfo.error) {
       console.error('Failed to get Instagram user info:', userInfo.error)
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/${redirectPath}?error=user_info_failed`
-      )
+      // 기본 정보만으로 진행 (에러가 나도 토큰은 있으니 저장)
+      // return NextResponse.redirect(
+      //   `${process.env.NEXT_PUBLIC_APP_URL}/${redirectPath}?error=user_info_failed`
+      // )
     }
 
-    // 계정 타입 확인 (BUSINESS 또는 CREATOR만 지원)
-    if (userInfo.account_type && !['BUSINESS', 'MEDIA_CREATOR'].includes(userInfo.account_type)) {
+    // 계정 타입 확인 (BUSINESS 또는 CREATOR만 지원) - 정보가 있을 때만 체크
+    if (userInfo?.account_type && !['BUSINESS', 'MEDIA_CREATOR'].includes(userInfo.account_type)) {
       console.error('Not a professional account:', userInfo.account_type)
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL}/${redirectPath}?error=not_professional_account`
@@ -167,9 +171,9 @@ export async function GET(request: NextRequest) {
     const channelData = {
       user_id: userId,
       channel_type: 'instagram',
-      channel_name: userInfo.username || userInfo.name || 'Instagram',
+      channel_name: userInfo?.username || userInfo?.name || 'Instagram',
       account_id: instagramUserId.toString(),
-      account_name: userInfo.username,
+      account_name: userInfo?.username || null,
       access_token: accessToken,
       token_expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
       status: 'connected',
@@ -177,11 +181,11 @@ export async function GET(request: NextRequest) {
       my_site_id: siteId,
       metadata: {
         instagram_user_id: instagramUserId.toString(),
-        username: userInfo.username,
-        name: userInfo.name,
-        profile_picture_url: userInfo.profile_picture_url,
-        followers_count: userInfo.followers_count,
-        account_type: userInfo.account_type,
+        username: userInfo?.username || null,
+        name: userInfo?.name || null,
+        profile_picture_url: userInfo?.profile_picture_url || null,
+        followers_count: userInfo?.followers_count || null,
+        account_type: userInfo?.account_type || null,
         // Instagram Login 방식에서는 Facebook Page 불필요
         auth_method: 'instagram_login',
         dm_enabled: true,

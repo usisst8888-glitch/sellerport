@@ -66,17 +66,38 @@
   function extractTableData() {
     const channels = [];
 
+    // 디버그: 페이지 구조 분석
+    console.log('[셀러포트 디버그] ========== 페이지 분석 시작 ==========');
+    console.log('[셀러포트 디버그] 현재 URL:', window.location.href);
+
     // 방법 1: 테이블 직접 파싱
     const tables = document.querySelectorAll('table');
+    console.log('[셀러포트 디버그] 발견된 테이블 수:', tables.length);
 
-    for (const table of tables) {
+    for (let i = 0; i < tables.length; i++) {
+      const table = tables[i];
+      console.log(`[셀러포트 디버그] 테이블 ${i + 1}:`, {
+        className: table.className,
+        id: table.id,
+        innerHTML: table.innerHTML.substring(0, 500) + '...'
+      });
+
       const rows = table.querySelectorAll('tbody tr');
+      console.log(`[셀러포트 디버그] 테이블 ${i + 1} tbody tr 수:`, rows.length);
 
-      for (const row of rows) {
+      // thead도 확인
+      const headerRows = table.querySelectorAll('thead tr th, thead tr td');
+      console.log(`[셀러포트 디버그] 테이블 ${i + 1} 헤더:`, Array.from(headerRows).map(h => h.innerText.trim()));
+
+      for (let j = 0; j < rows.length; j++) {
+        const row = rows[j];
         const cells = row.querySelectorAll('td');
+        console.log(`[셀러포트 디버그] 테이블 ${i + 1} 행 ${j + 1} td 수:`, cells.length);
+        console.log(`[셀러포트 디버그] 테이블 ${i + 1} 행 ${j + 1} 내용:`, Array.from(cells).map(c => c.innerText.trim()));
 
         if (cells.length >= 4) {
           const channelData = parseRowData(cells);
+          console.log(`[셀러포트 디버그] 파싱 결과:`, channelData);
           if (channelData) {
             channels.push(channelData);
           }
@@ -86,9 +107,12 @@
 
     // 방법 2: 리스트 형태 파싱 (테이블이 아닌 경우)
     if (channels.length === 0) {
+      console.log('[셀러포트 디버그] 테이블에서 데이터 없음, 리스트 형태 탐색...');
       const listItems = document.querySelectorAll('[class*="channel-item"], [class*="list-item"], [data-channel]');
+      console.log('[셀러포트 디버그] 리스트 아이템 수:', listItems.length);
 
       for (const item of listItems) {
+        console.log('[셀러포트 디버그] 리스트 아이템:', item.innerText.substring(0, 200));
         const channelData = parseListItem(item);
         if (channelData) {
           channels.push(channelData);
@@ -98,11 +122,87 @@
 
     // 방법 3: 네이버 데이터 객체에서 직접 추출 (window.__NEXT_DATA__ 등)
     if (channels.length === 0) {
+      console.log('[셀러포트 디버그] 리스트에서도 데이터 없음, 스크립트 데이터 탐색...');
       const scriptData = extractFromScript();
+      console.log('[셀러포트 디버그] 스크립트 데이터:', scriptData);
       if (scriptData && scriptData.length > 0) {
         channels.push(...scriptData);
       }
     }
+
+    // 디버그: 추가 선택자 테스트
+    if (channels.length === 0) {
+      console.log('[셀러포트 디버그] ========== 추가 선택자 테스트 ==========');
+
+      // iframe 확인
+      const iframes = document.querySelectorAll('iframe');
+      console.log('[셀러포트 디버그] iframe 수:', iframes.length);
+      iframes.forEach((iframe, i) => {
+        console.log(`[셀러포트 디버그] iframe ${i + 1}:`, {
+          src: iframe.src,
+          id: iframe.id,
+          className: iframe.className
+        });
+        try {
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+          if (iframeDoc) {
+            const iframeTables = iframeDoc.querySelectorAll('table');
+            console.log(`[셀러포트 디버그] iframe ${i + 1} 내부 테이블 수:`, iframeTables.length);
+            console.log(`[셀러포트 디버그] iframe ${i + 1} body 텍스트:`, iframeDoc.body?.innerText?.substring(0, 500));
+          }
+        } catch (e) {
+          console.log(`[셀러포트 디버그] iframe ${i + 1} 접근 불가 (CORS):`, e.message);
+        }
+      });
+
+      // 메인 컨텐츠 영역 분석
+      const mainContent = document.querySelector('main, #app, #root, [class*="content"], [class*="main"]');
+      if (mainContent) {
+        console.log('[셀러포트 디버그] 메인 컨텐츠 영역:', {
+          tagName: mainContent.tagName,
+          className: mainContent.className,
+          childCount: mainContent.children.length,
+          text: mainContent.innerText?.substring(0, 1000)
+        });
+      }
+
+      // 모든 div 중 텍스트가 많은 영역 찾기
+      const allDivs = document.querySelectorAll('div');
+      const contentDivs = Array.from(allDivs)
+        .filter(div => div.innerText && div.innerText.length > 100 && div.children.length > 3)
+        .slice(0, 10);
+      console.log('[셀러포트 디버그] 컨텐츠가 있는 div 수:', contentDivs.length);
+      contentDivs.forEach((div, i) => {
+        console.log(`[셀러포트 디버그] 컨텐츠 div ${i + 1}:`, {
+          className: div.className,
+          id: div.id,
+          childCount: div.children.length,
+          textLength: div.innerText.length,
+          text: div.innerText.substring(0, 300)
+        });
+      });
+
+      // 전체 body HTML 구조 (간략히)
+      console.log('[셀러포트 디버그] body 직접 자식 요소들:');
+      Array.from(document.body.children).forEach((child, i) => {
+        console.log(`[셀러포트 디버그] body > ${i + 1}:`, {
+          tagName: child.tagName,
+          className: child.className,
+          id: child.id
+        });
+      });
+
+      // NT 파라미터가 포함된 텍스트 찾기
+      const allText = document.body.innerText;
+      const ntMatches = allText.match(/meta|facebook|instagram|nt_source|nt_medium/gi);
+      console.log('[셀러포트 디버그] NT 관련 텍스트 발견:', ntMatches ? ntMatches.slice(0, 10) : 'none');
+
+      // 페이지에서 볼 수 있는 모든 텍스트 (처음 2000자)
+      console.log('[셀러포트 디버그] 페이지 전체 텍스트 (처음 2000자):', allText.substring(0, 2000));
+    }
+
+    console.log('[셀러포트 디버그] ========== 최종 결과 ==========');
+    console.log('[셀러포트 디버그] 수집된 채널 수:', channels.length);
 
     return channels;
   }
