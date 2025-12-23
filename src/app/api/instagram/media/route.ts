@@ -56,9 +56,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Instagram Graph API로 미디어 목록 가져오기
-    const mediaUrl = new URL(`https://graph.facebook.com/v18.0/${instagramUserId}/media`)
+    // Instagram Login API 토큰은 graph.instagram.com 사용
+    const mediaUrl = new URL(`https://graph.instagram.com/v21.0/me/media`)
     mediaUrl.searchParams.set('access_token', accessToken)
-    mediaUrl.searchParams.set('fields', 'id,media_type,media_url,thumbnail_url,permalink,caption,timestamp,like_count,comments_count')
+    mediaUrl.searchParams.set('fields', 'id,media_type,media_url,thumbnail_url,permalink,caption,timestamp')
     mediaUrl.searchParams.set('limit', '25') // 최근 25개
 
     const response = await fetch(mediaUrl.toString())

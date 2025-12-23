@@ -66,218 +66,199 @@
   function extractTableData() {
     const channels = [];
 
-    // 디버그: 페이지 구조 분석
-    console.log('[셀러포트 디버그] ========== 페이지 분석 시작 ==========');
-    console.log('[셀러포트 디버그] 현재 URL:', window.location.href);
+    console.log('[셀러포트] ========== 데이터 수집 시작 ==========');
 
-    // 방법 1: 테이블 직접 파싱
-    const tables = document.querySelectorAll('table');
-    console.log('[셀러포트 디버그] 발견된 테이블 수:', tables.length);
+    // 먼저 iframe 내부에서 데이터 찾기 (네이버 스마트스토어는 iframe 사용)
+    const iframeData = extractFromIframe();
+    if (iframeData && iframeData.length > 0) {
+      console.log('[셀러포트] iframe에서 데이터 발견:', iframeData.length, '개');
+      channels.push(...iframeData);
+      return channels;
+    }
 
-    for (let i = 0; i < tables.length; i++) {
-      const table = tables[i];
-      console.log(`[셀러포트 디버그] 테이블 ${i + 1}:`, {
-        className: table.className,
-        id: table.id,
-        innerHTML: table.innerHTML.substring(0, 500) + '...'
-      });
+    // 메인 document에서 테이블 파싱
+    const tableData = extractFromTables(document);
+    if (tableData.length > 0) {
+      channels.push(...tableData);
+      return channels;
+    }
 
-      const rows = table.querySelectorAll('tbody tr');
-      console.log(`[셀러포트 디버그] 테이블 ${i + 1} tbody tr 수:`, rows.length);
+    // 스크립트 데이터에서 추출
+    const scriptData = extractFromScript();
+    if (scriptData && scriptData.length > 0) {
+      channels.push(...scriptData);
+    }
 
-      // thead도 확인
-      const headerRows = table.querySelectorAll('thead tr th, thead tr td');
-      console.log(`[셀러포트 디버그] 테이블 ${i + 1} 헤더:`, Array.from(headerRows).map(h => h.innerText.trim()));
+    console.log('[셀러포트] 수집된 채널 수:', channels.length);
+    return channels;
+  }
 
-      for (let j = 0; j < rows.length; j++) {
-        const row = rows[j];
-        const cells = row.querySelectorAll('td');
-        console.log(`[셀러포트 디버그] 테이블 ${i + 1} 행 ${j + 1} td 수:`, cells.length);
-        console.log(`[셀러포트 디버그] 테이블 ${i + 1} 행 ${j + 1} 내용:`, Array.from(cells).map(c => c.innerText.trim()));
+  // iframe 내부에서 데이터 추출
+  function extractFromIframe() {
+    const channels = [];
+    const iframes = document.querySelectorAll('iframe');
 
-        if (cells.length >= 4) {
-          const channelData = parseRowData(cells);
-          console.log(`[셀러포트 디버그] 파싱 결과:`, channelData);
-          if (channelData) {
-            channels.push(channelData);
-          }
+    for (const iframe of iframes) {
+      try {
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (!iframeDoc) continue;
+
+        console.log('[셀러포트] iframe 접근 성공:', iframe.id || iframe.src?.substring(0, 50));
+
+        // iframe 내부 테이블에서 데이터 추출
+        const tableData = extractFromTables(iframeDoc);
+        if (tableData.length > 0) {
+          channels.push(...tableData);
         }
+      } catch (e) {
+        console.log('[셀러포트] iframe 접근 실패 (CORS):', e.message);
       }
     }
 
-    // 방법 2: 리스트 형태 파싱 (테이블이 아닌 경우)
-    if (channels.length === 0) {
-      console.log('[셀러포트 디버그] 테이블에서 데이터 없음, 리스트 형태 탐색...');
-      const listItems = document.querySelectorAll('[class*="channel-item"], [class*="list-item"], [data-channel]');
-      console.log('[셀러포트 디버그] 리스트 아이템 수:', listItems.length);
+    return channels;
+  }
 
-      for (const item of listItems) {
-        console.log('[셀러포트 디버그] 리스트 아이템:', item.innerText.substring(0, 200));
-        const channelData = parseListItem(item);
+  // 테이블에서 데이터 추출 (document 또는 iframe document)
+  function extractFromTables(doc) {
+    const channels = [];
+    const tables = doc.querySelectorAll('table');
+
+    console.log('[셀러포트] 테이블 수:', tables.length);
+
+    for (const table of tables) {
+      // 헤더 분석하여 올바른 테이블인지 확인
+      const headers = Array.from(table.querySelectorAll('thead th, thead td')).map(h => h.innerText.trim());
+      console.log('[셀러포트] 테이블 헤더:', headers);
+
+      // 사용자정의채널 테이블 식별 (채널명, 유입수, 결제수 등의 헤더)
+      const isChannelTable = headers.some(h =>
+        h.includes('채널') || h.includes('유입') || h.includes('결제') ||
+        h.includes('source') || h.includes('medium')
+      );
+
+      if (!isChannelTable && headers.length > 0) {
+        console.log('[셀러포트] 채널 테이블 아님, 건너뜀');
+        continue;
+      }
+
+      const rows = table.querySelectorAll('tbody tr');
+      console.log('[셀러포트] 테이블 행 수:', rows.length);
+
+      for (const row of rows) {
+        const cells = row.querySelectorAll('td');
+        if (cells.length < 2) continue;
+
+        // 셀 내용 추출
+        const cellTexts = Array.from(cells).map(c => c.innerText.trim());
+        console.log('[셀러포트] 행 데이터:', cellTexts);
+
+        const channelData = parseChannelRow(cellTexts, headers);
         if (channelData) {
           channels.push(channelData);
         }
       }
     }
 
-    // 방법 3: 네이버 데이터 객체에서 직접 추출 (window.__NEXT_DATA__ 등)
-    if (channels.length === 0) {
-      console.log('[셀러포트 디버그] 리스트에서도 데이터 없음, 스크립트 데이터 탐색...');
-      const scriptData = extractFromScript();
-      console.log('[셀러포트 디버그] 스크립트 데이터:', scriptData);
-      if (scriptData && scriptData.length > 0) {
-        channels.push(...scriptData);
-      }
-    }
-
-    // 디버그: 추가 선택자 테스트
-    if (channels.length === 0) {
-      console.log('[셀러포트 디버그] ========== 추가 선택자 테스트 ==========');
-
-      // iframe 확인
-      const iframes = document.querySelectorAll('iframe');
-      console.log('[셀러포트 디버그] iframe 수:', iframes.length);
-      iframes.forEach((iframe, i) => {
-        console.log(`[셀러포트 디버그] iframe ${i + 1}:`, {
-          src: iframe.src,
-          id: iframe.id,
-          className: iframe.className
-        });
-        try {
-          const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-          if (iframeDoc) {
-            const iframeTables = iframeDoc.querySelectorAll('table');
-            console.log(`[셀러포트 디버그] iframe ${i + 1} 내부 테이블 수:`, iframeTables.length);
-            console.log(`[셀러포트 디버그] iframe ${i + 1} body 텍스트:`, iframeDoc.body?.innerText?.substring(0, 500));
-          }
-        } catch (e) {
-          console.log(`[셀러포트 디버그] iframe ${i + 1} 접근 불가 (CORS):`, e.message);
-        }
-      });
-
-      // 메인 컨텐츠 영역 분석
-      const mainContent = document.querySelector('main, #app, #root, [class*="content"], [class*="main"]');
-      if (mainContent) {
-        console.log('[셀러포트 디버그] 메인 컨텐츠 영역:', {
-          tagName: mainContent.tagName,
-          className: mainContent.className,
-          childCount: mainContent.children.length,
-          text: mainContent.innerText?.substring(0, 1000)
-        });
-      }
-
-      // 모든 div 중 텍스트가 많은 영역 찾기
-      const allDivs = document.querySelectorAll('div');
-      const contentDivs = Array.from(allDivs)
-        .filter(div => div.innerText && div.innerText.length > 100 && div.children.length > 3)
-        .slice(0, 10);
-      console.log('[셀러포트 디버그] 컨텐츠가 있는 div 수:', contentDivs.length);
-      contentDivs.forEach((div, i) => {
-        console.log(`[셀러포트 디버그] 컨텐츠 div ${i + 1}:`, {
-          className: div.className,
-          id: div.id,
-          childCount: div.children.length,
-          textLength: div.innerText.length,
-          text: div.innerText.substring(0, 300)
-        });
-      });
-
-      // 전체 body HTML 구조 (간략히)
-      console.log('[셀러포트 디버그] body 직접 자식 요소들:');
-      Array.from(document.body.children).forEach((child, i) => {
-        console.log(`[셀러포트 디버그] body > ${i + 1}:`, {
-          tagName: child.tagName,
-          className: child.className,
-          id: child.id
-        });
-      });
-
-      // NT 파라미터가 포함된 텍스트 찾기
-      const allText = document.body.innerText;
-      const ntMatches = allText.match(/meta|facebook|instagram|nt_source|nt_medium/gi);
-      console.log('[셀러포트 디버그] NT 관련 텍스트 발견:', ntMatches ? ntMatches.slice(0, 10) : 'none');
-
-      // 페이지에서 볼 수 있는 모든 텍스트 (처음 2000자)
-      console.log('[셀러포트 디버그] 페이지 전체 텍스트 (처음 2000자):', allText.substring(0, 2000));
-    }
-
-    console.log('[셀러포트 디버그] ========== 최종 결과 ==========');
-    console.log('[셀러포트 디버그] 수집된 채널 수:', channels.length);
-
     return channels;
   }
 
-  // 테이블 행 데이터 파싱
-  function parseRowData(cells) {
-    try {
-      // NT 파라미터 정보 추출
-      const sourceText = cells[0]?.innerText?.trim() || '';
-      const mediumText = cells[1]?.innerText?.trim() || '';
-      const detailText = cells[2]?.innerText?.trim() || '';
+  // 채널 행 데이터 파싱 (헤더 기반)
+  // 테이블 구조: [채널속성, nt_source, nt_medium, 고객수, 유입수, 결제수, 유입당결제율, 결제금액, ...]
+  function parseChannelRow(cellTexts, headers) {
+    if (!cellTexts || cellTexts.length < 3) return null;
 
-      // nt_source, nt_medium, nt_detail 형식인지 확인
-      if (!sourceText) return null;
+    // 헤더에서 각 컬럼의 인덱스 찾기
+    const sourceIdx = headers.findIndex(h => h === 'nt_source' || h.includes('source'));
+    const mediumIdx = headers.findIndex(h => h === 'nt_medium' || h.includes('medium'));
 
-      // 숫자 데이터 추출 (방문수, 주문수, 매출 등)
-      const numericValues = [];
-      for (let i = 3; i < cells.length; i++) {
-        const text = cells[i]?.innerText?.trim() || '0';
-        const value = parseNumber(text);
-        numericValues.push(value);
+    let nt_source = '';
+    let nt_medium = '';
+    let nt_detail = '';
+    let deviceType = '';
+
+    // 헤더 기반으로 source/medium 추출
+    if (sourceIdx !== -1 && mediumIdx !== -1) {
+      // 채널속성(PC/모바일)은 첫 번째 컬럼
+      deviceType = cellTexts[0] || '';
+      nt_source = cellTexts[sourceIdx] || '';
+      nt_medium = cellTexts[mediumIdx] || '';
+    } else {
+      // 헤더가 없거나 다른 형식일 경우 기존 로직
+      const channelName = cellTexts[0];
+      if (channelName && channelName.includes('/')) {
+        const parts = channelName.split('/');
+        nt_source = parts[0] || '';
+        nt_medium = parts[1] || '';
+        nt_detail = parts[2] || '';
+      } else {
+        nt_source = channelName || '';
       }
-
-      return {
-        nt_source: sourceText,
-        nt_medium: mediumText,
-        nt_detail: detailText,
-        visits: numericValues[0] || 0,
-        orders: numericValues[1] || 0,
-        revenue: numericValues[2] || 0,
-        conversionRate: numericValues[3] || 0
-      };
-    } catch (error) {
-      console.error('[셀러포트] 행 파싱 오류:', error);
-      return null;
     }
-  }
 
-  // 리스트 아이템 파싱
-  function parseListItem(item) {
-    try {
-      const text = item.innerText || '';
-      const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    // "전체" 행은 건너뜀
+    if (nt_source === '전체' || nt_source === '' || nt_source === 'PC' || nt_source === '모바일') {
+      // 채널속성만 있고 source가 없는 경우
+      if (sourceIdx !== -1 && cellTexts[sourceIdx]) {
+        nt_source = cellTexts[sourceIdx];
+      } else {
+        return null;
+      }
+    }
 
-      if (lines.length < 2) return null;
+    // 숫자 데이터 매핑 (헤더 기반)
+    let visitors = 0, visits = 0, orders = 0, revenue = 0, conversionRate = 0;
+    let ordersEstimated = 0, revenueEstimated = 0;
 
-      // NT 파라미터와 숫자 데이터 분리
-      const ntParams = {};
-      const numericData = [];
+    headers.forEach((header, idx) => {
+      if (idx >= cellTexts.length) return;
+      const value = parseNumber(cellTexts[idx]);
 
-      for (const line of lines) {
-        if (line.includes('source') || line.includes('nt_source')) {
-          ntParams.nt_source = line.split(':').pop()?.trim() || line;
-        } else if (line.includes('medium') || line.includes('nt_medium')) {
-          ntParams.nt_medium = line.split(':').pop()?.trim() || line;
-        } else if (line.includes('detail') || line.includes('nt_detail')) {
-          ntParams.nt_detail = line.split(':').pop()?.trim() || line;
+      // 마지막클릭 기준 vs 기여도추정 구분
+      if (header.includes('고객수')) {
+        visitors = value;
+      } else if (header.includes('유입수') || header === '유입수') {
+        visits = value;
+      } else if (header.includes('결제수') && !header.includes('유입당')) {
+        // 마지막클릭 기준인지 기여도추정인지 확인
+        const parentHeader = headers.slice(0, idx).reverse().find(h =>
+          h.includes('마지막클릭') || h.includes('기여도')
+        );
+        if (parentHeader && parentHeader.includes('기여도')) {
+          ordersEstimated = value;
         } else {
-          const num = parseNumber(line);
-          if (num > 0) numericData.push(num);
+          orders = value;
         }
+      } else if (header.includes('결제금액') && !header.includes('유입당')) {
+        const parentHeader = headers.slice(0, idx).reverse().find(h =>
+          h.includes('마지막클릭') || h.includes('기여도')
+        );
+        if (parentHeader && parentHeader.includes('기여도')) {
+          revenueEstimated = value;
+        } else {
+          revenue = value;
+        }
+      } else if (header.includes('유입당') && header.includes('결제율')) {
+        conversionRate = value;
       }
+    });
 
-      if (!ntParams.nt_source) return null;
+    console.log('[셀러포트] 파싱 결과:', {
+      deviceType, nt_source, nt_medium, visitors, visits, orders, revenue, ordersEstimated, revenueEstimated
+    });
 
-      return {
-        ...ntParams,
-        visits: numericData[0] || 0,
-        orders: numericData[1] || 0,
-        revenue: numericData[2] || 0,
-        conversionRate: numericData[3] || 0
-      };
-    } catch (error) {
-      return null;
-    }
+    return {
+      deviceType,
+      nt_source,
+      nt_medium,
+      nt_detail,
+      visitors,
+      visits,
+      orders,
+      revenue,
+      ordersEstimated,
+      revenueEstimated,
+      conversionRate
+    };
   }
 
   // 스크립트에서 데이터 추출 (Next.js 등)

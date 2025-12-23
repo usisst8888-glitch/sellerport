@@ -34,11 +34,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // API로 데이터 전송
 async function handleSendToAPI(data) {
   try {
+    console.log('[셀러포트] API 전송 시작, 데이터:', data);
+
     const { authToken } = await chrome.storage.local.get(['authToken']);
+    console.log('[셀러포트] authToken 존재:', !!authToken);
 
     if (!authToken) {
-      throw new Error('로그인이 필요합니다.');
+      throw new Error('로그인이 필요합니다. 셀러포트에 먼저 로그인해주세요.');
     }
+
+    const requestBody = {
+      channels: data.channels,
+      dateRange: data.dateRange,
+      collectedAt: new Date().toISOString(),
+      source: 'chrome-extension'
+    };
+    console.log('[셀러포트] 요청 본문:', requestBody);
 
     const response = await fetch(`${API_BASE_URL}/smartstore/conversions`, {
       method: 'POST',
@@ -46,20 +57,25 @@ async function handleSendToAPI(data) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`
       },
-      body: JSON.stringify({
-        channels: data.channels,
-        dateRange: data.dateRange,
-        collectedAt: new Date().toISOString(),
-        source: 'chrome-extension'
-      })
+      body: JSON.stringify(requestBody)
     });
 
+    console.log('[셀러포트] API 응답 상태:', response.status);
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `HTTP ${response.status}`);
+      const errorText = await response.text();
+      console.error('[셀러포트] API 오류 응답:', errorText);
+      let errorData = {};
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        // JSON 파싱 실패
+      }
+      throw new Error(errorData.error || `HTTP ${response.status}: ${errorText.substring(0, 100)}`);
     }
 
     const result = await response.json();
+    console.log('[셀러포트] API 성공 응답:', result);
 
     // 성공 알림
     showNotification('전환 데이터 전송 완료', `${data.channels.length}개 채널 데이터가 전송되었습니다.`);
