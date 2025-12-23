@@ -224,58 +224,69 @@ async function sendInstagramDM(
   accessToken: string
 ): Promise<boolean> {
   try {
-    // Instagram Messaging API (Graph API v21.0)
-    // Instagram Login 방식에서는 graph.instagram.com 또는 graph.facebook.com 둘 다 사용 가능
-    const response = await fetch(
-      `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
+    // Instagram Login API의 Messaging 엔드포인트
+    // /me/messages 엔드포인트 사용 (Instagram-Scoped User ID로 수신자 지정)
+    const endpoints = [
+      // 1. /me/messages 엔드포인트 (Instagram Login 권장)
       {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
+        url: `https://graph.instagram.com/v21.0/me/messages`,
+        body: {
           recipient: { id: recipientIgUserId },
           message: { text: message },
-        }),
+        },
+        useAuth: true,
+      },
+      // 2. /{ig-user-id}/messages 엔드포인트
+      {
+        url: `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
+        body: {
+          recipient: { id: recipientIgUserId },
+          message: { text: message },
+        },
+        useAuth: true,
+      },
+      // 3. graph.facebook.com (Messenger Platform 방식)
+      {
+        url: `https://graph.facebook.com/v21.0/${senderIgUserId}/messages`,
+        body: {
+          recipient: { id: recipientIgUserId },
+          message: { text: message },
+          messaging_type: 'RESPONSE',
+          access_token: accessToken,
+        },
+        useAuth: false,
+      },
+    ]
+
+    for (let i = 0; i < endpoints.length; i++) {
+      const endpoint = endpoints[i]
+      console.log(`Trying DM endpoint ${i + 1}: ${endpoint.url}`)
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
       }
-    )
-
-    const result = await response.json()
-
-    if (result.error) {
-      console.error('Instagram DM API error:', result.error)
-
-      // graph.facebook.com으로 폴백 시도
-      console.log('Trying fallback to graph.facebook.com...')
-      const fallbackResponse = await fetch(
-        `https://graph.facebook.com/v21.0/${senderIgUserId}/messages`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            recipient: { id: recipientIgUserId },
-            message: { text: message },
-            access_token: accessToken,
-          }),
-        }
-      )
-
-      const fallbackResult = await fallbackResponse.json()
-
-      if (fallbackResult.error) {
-        console.error('Instagram DM fallback API error:', fallbackResult.error)
-        return false
+      if (endpoint.useAuth) {
+        headers['Authorization'] = `Bearer ${accessToken}`
       }
 
-      console.log('Instagram DM sent via fallback:', fallbackResult)
-      return true
+      const response = await fetch(endpoint.url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(endpoint.body),
+      })
+
+      const result = await response.json()
+
+      if (!result.error) {
+        console.log(`Instagram DM sent via endpoint ${i + 1}:`, result)
+        return true
+      }
+
+      console.error(`Instagram DM endpoint ${i + 1} error:`, result.error)
     }
 
-    console.log('Instagram DM sent:', result)
-    return true
+    console.error('All Instagram DM endpoints failed')
+    return false
   } catch (error) {
     console.error('Failed to send Instagram DM:', error)
     return false
