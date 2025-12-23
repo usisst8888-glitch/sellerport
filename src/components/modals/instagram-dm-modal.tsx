@@ -220,37 +220,38 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
                   />
                 </div>
 
-                {/* 3. 팔로우 요청 메시지 */}
+                {/* 3. 팔로우 요청 메시지 (첫 번째 DM) */}
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
                     <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-pink-500 text-white text-xs mr-2">3</span>
                     팔로우 요청 메시지
-                    <span className="ml-2 text-xs text-pink-400">(필수)</span>
+                    <span className="ml-2 text-xs text-pink-400">(첫 번째 DM)</span>
                   </label>
-                  <input
-                    type="text"
-                    placeholder="예: 팔로우 후 다시 댓글 달아주세요!"
+                  <textarea
+                    rows={2}
+                    placeholder="안녕하세요! 댓글 감사합니다 🙏&#10;&#10;링크를 받으시려면 팔로우 후 아래 버튼을 눌러주세요!"
                     value={form.followMessage}
                     onChange={(e) => setForm({ ...form, followMessage: e.target.value })}
-                    className="w-full h-11 px-4 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-pink-500"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-pink-500 resize-none"
                   />
-                  <p className="text-xs text-slate-500 mt-1">비팔로워에게 먼저 발송됩니다</p>
+                  <p className="text-xs text-slate-500 mt-1">댓글 작성자에게 먼저 발송됩니다. &quot;팔로우 했어요&quot; 버튼이 자동 포함됩니다.</p>
                 </div>
 
-                {/* 4. DM 메시지 */}
+                {/* 4. 팔로워용 DM 메시지 (두 번째 DM) */}
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
                     <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-pink-500 text-white text-xs mr-2">4</span>
-                    DM 메시지 (팔로워용)
+                    팔로워용 메시지
+                    <span className="ml-2 text-xs text-green-400">(두 번째 DM + 링크)</span>
                   </label>
                   <textarea
-                    rows={3}
-                    placeholder="안녕하세요! 요청하신 링크 보내드립니다 :)"
+                    rows={2}
+                    placeholder="감사합니다! 요청하신 링크 보내드립니다 👇"
                     value={form.dmMessage}
                     onChange={(e) => setForm({ ...form, dmMessage: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-pink-500 resize-none"
                   />
-                  <p className="text-xs text-slate-500 mt-1">메시지 끝에 추적 링크가 자동으로 추가됩니다</p>
+                  <p className="text-xs text-slate-500 mt-1">팔로우 확인 후 발송됩니다. 메시지 끝에 추적 링크가 자동 추가됩니다.</p>
                 </div>
 
                 {/* 5. 목적지 URL */}

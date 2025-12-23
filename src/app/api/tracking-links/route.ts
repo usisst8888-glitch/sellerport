@@ -228,6 +228,8 @@ export async function POST(request: NextRequest) {
         const hasMediaInfo = instagramMediaId && instagramMediaId !== 'pending_selection'
 
         // DM 설정 생성
+        // follow_request_message: 비팔로워에게 보내는 팔로우 요청 메시지
+        // dm_message: 팔로워에게 보내는 메시지 (URL 포함)
         await supabase
           .from('instagram_dm_settings')
           .insert({
@@ -240,8 +242,8 @@ export async function POST(request: NextRequest) {
             instagram_caption: instagramCaption || postName || null,
             trigger_keywords: keywords,
             dm_message: dmMessage,
+            follow_request_message: followMessage || null, // 팔로우 요청 메시지
             include_follow_cta: requireFollow || false,
-            follow_cta_message: followMessage || null,
             is_active: hasMediaInfo, // 게시물 정보가 있으면 활성화
           })
       }
