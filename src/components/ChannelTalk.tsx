@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 declare global {
@@ -13,22 +14,16 @@ declare global {
 const CHANNEL_PLUGIN_KEY = process.env.NEXT_PUBLIC_CHANNEL_PLUGIN_KEY
 
 export default function ChannelTalk() {
+  const pathname = usePathname()
   const supabase = createClient()
 
   useEffect(() => {
-    // 채널톡 버튼 위치 조정 CSS 추가
-    const style = document.createElement('style')
-    style.textContent = `
-      #ch-plugin-launcher {
-        bottom: 24px !important;
-        right: 24px !important;
-      }
-      #ch-plugin-launcher-wrapper {
-        bottom: 24px !important;
-        right: 24px !important;
-      }
-    `
-    document.head.appendChild(style)
+    // /v 경로에서는 채널톡 로드하지 않음
+    if (pathname?.startsWith('/v')) {
+      // /v 경로에서는 채널톡 숨기기
+      window.ChannelIO?.('hideChannelButton')
+      return
+    }
 
     // 환경변수가 없으면 채널톡 로드하지 않음
     if (!CHANNEL_PLUGIN_KEY) {
@@ -36,11 +31,33 @@ export default function ChannelTalk() {
       return
     }
 
-    // 채널톡 스크립트 로드
+    // 채널톡 버튼 위치 조정 CSS 추가 (한 번만)
+    if (!document.getElementById('channeltalk-style')) {
+      const style = document.createElement('style')
+      style.id = 'channeltalk-style'
+      style.textContent = `
+        #ch-plugin-launcher {
+          bottom: 24px !important;
+          right: 24px !important;
+        }
+        #ch-plugin-launcher-wrapper {
+          bottom: 24px !important;
+          right: 24px !important;
+        }
+      `
+      document.head.appendChild(style)
+    }
+
+    // 이미 초기화되어 있으면 버튼만 보이게 하고 리턴
+    if (window.ChannelIOInitialized && window.ChannelIO) {
+      window.ChannelIO('showChannelButton')
+      return
+    }
+
+    // 채널톡 스크립트 로드 (최초 1회만)
     const loadChannelIO = () => {
       if (window.ChannelIO) {
-        console.error('ChannelIO script included twice.')
-        return
+        return // 이미 로드됨
       }
 
       const ch = function(...args: unknown[]) {
@@ -107,11 +124,11 @@ export default function ChannelTalk() {
       window.addEventListener('load', bootChannelIO)
     }
 
-    // 클린업
+    // 클린업: shutdown 대신 버튼만 숨기기 (상태 유지)
     return () => {
-      window.ChannelIO?.('shutdown')
+      window.ChannelIO?.('hideChannelButton')
     }
-  }, [supabase])
+  }, [pathname, supabase])
 
   return null
 }

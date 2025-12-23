@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       channelType, postName, enableDmAutoSend, dmTriggerKeywords, dmMessage,
       requireFollow, followMessage,
       // Instagram 게시물 정보 (DM 자동발송용)
-      instagramMediaId, instagramMediaUrl, instagramMediaType, instagramCaption
+      instagramMediaId, instagramMediaUrl, instagramMediaType, instagramCaption, instagramThumbnailUrl
     } = body
 
     if (!targetUrl) {
@@ -189,7 +189,8 @@ export async function POST(request: NextRequest) {
         revenue: 0,
         ad_spend: adSpend || 0,
         target_roas_green: targetRoasGreen ?? 300,
-        target_roas_yellow: targetRoasYellow ?? 150
+        target_roas_yellow: targetRoasYellow ?? 150,
+        thumbnail_url: instagramThumbnailUrl || null
       })
       .select()
       .single()
@@ -240,6 +241,7 @@ export async function POST(request: NextRequest) {
             instagram_media_url: instagramMediaUrl || null,
             instagram_media_type: instagramMediaType || null,
             instagram_caption: instagramCaption || postName || null,
+            thumbnail_url: instagramThumbnailUrl || null,
             trigger_keywords: keywords,
             dm_message: dmMessage,
             follow_request_message: followMessage || null, // 팔로우 요청 메시지

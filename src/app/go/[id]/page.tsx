@@ -40,9 +40,25 @@ export default async function GoPage({ params }: PageProps) {
 
   // 목적지 URL 생성
   const targetUrl = new URL(trackingLink.target_url)
+
+  // UTM 파라미터 추가
   if (trackingLink.utm_source) targetUrl.searchParams.set('utm_source', trackingLink.utm_source)
   if (trackingLink.utm_medium) targetUrl.searchParams.set('utm_medium', trackingLink.utm_medium)
   if (trackingLink.utm_campaign) targetUrl.searchParams.set('utm_campaign', trackingLink.utm_campaign)
+
+  // 스마트스토어(네이버)인 경우에만 NT 파라미터 추가
+  const isSmartStore = targetUrl.hostname.includes('smartstore.naver.com') ||
+                       targetUrl.hostname.includes('brand.naver.com')
+
+  if (isSmartStore) {
+    // 네이버 전환 추적용 NT 파라미터 추가 (UTM에서 매핑)
+    // nt_source: 광고 매체 (meta, google, naver 등)
+    // nt_medium: 광고 유형 (paid, cpc, organic 등)
+    // nt_detail: 광고 소재/캠페인 상세
+    if (trackingLink.utm_source) targetUrl.searchParams.set('nt_source', trackingLink.utm_source)
+    if (trackingLink.utm_medium) targetUrl.searchParams.set('nt_medium', trackingLink.utm_medium)
+    if (trackingLink.utm_campaign) targetUrl.searchParams.set('nt_detail', trackingLink.utm_campaign)
+  }
 
   // 봇/크롤러인 경우 바로 리다이렉트 (로딩 페이지 없이)
   if (isbot(userAgent)) {

@@ -165,7 +165,8 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
             instagramMediaId: selectedMediaId,
             instagramMediaUrl: selectedMedia?.permalink,
             instagramMediaType: selectedMedia?.media_type,
-            instagramCaption: selectedMedia?.caption
+            instagramCaption: selectedMedia?.caption,
+            instagramThumbnailUrl: selectedMedia?.thumbnail_url || selectedMedia?.media_url
           })
         })
 
@@ -194,10 +195,8 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
           <div className="p-6 border-b border-slate-700 sticky top-0 bg-slate-800 z-10">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-                  </svg>
+                <div className="w-10 h-10 rounded-xl overflow-hidden">
+                  <img src="/channel_logo/insta.png" alt="Instagram" className="w-full h-full object-cover" />
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-white">
@@ -220,7 +219,7 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
             {/* 로딩 상태 */}
             {loading && (
               <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                 <span className="ml-3 text-slate-400">설정을 불러오는 중...</span>
               </div>
             )}
@@ -235,14 +234,14 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
             {/* Instagram 미연결 */}
             {!loading && !isConnected ? (
               <div className="p-6 rounded-xl bg-slate-700/50 border border-slate-600 text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-pink-500/20 flex items-center justify-center">
-                  <svg className="w-8 h-8 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-500/20 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <h4 className="text-white font-medium mb-2">Instagram 연결이 필요합니다</h4>
                 <p className="text-sm text-slate-400 mb-4">DM 자동발송을 사용하려면 먼저 Instagram 비즈니스 계정을 연결해주세요</p>
-                <Link href="/quick-start" className="inline-flex items-center gap-2 px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg text-sm font-medium">
+                <Link href="/quick-start" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium">
                   빠른 시작에서 연결하기
                 </Link>
               </div>
@@ -251,7 +250,7 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
                 {/* 1. 게시물 선택 (수정 모드에서는 변경 불가) */}
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-pink-500 text-white text-xs mr-2">1</span>
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-500 text-white text-xs mr-2">1</span>
                     게시물 선택
                     {isEditMode && <span className="ml-2 text-xs text-slate-500">(변경 불가)</span>}
                   </label>
@@ -298,7 +297,7 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
                     <button
                       onClick={openMediaModal}
                       disabled={isEditMode}
-                      className="w-full p-4 rounded-xl bg-slate-700/50 border-2 border-dashed border-slate-600 text-slate-400 hover:border-pink-500 hover:text-pink-400 transition-colors flex flex-col items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-slate-600 disabled:hover:text-slate-400"
+                      className="w-full p-4 rounded-xl bg-slate-700/50 border-2 border-dashed border-slate-600 text-slate-400 hover:border-blue-500 hover:text-blue-400 transition-colors flex flex-col items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-slate-600 disabled:hover:text-slate-400"
                     >
                       <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -311,7 +310,7 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
                 {/* 2. 트리거 키워드 */}
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-pink-500 text-white text-xs mr-2">2</span>
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-500 text-white text-xs mr-2">2</span>
                     댓글 트리거 키워드
                   </label>
                   <input
@@ -319,23 +318,23 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
                     placeholder="예: 링크, 구매, 정보 (쉼표로 구분)"
                     value={form.triggerKeywords}
                     onChange={(e) => setForm({ ...form, triggerKeywords: e.target.value })}
-                    className="w-full h-11 px-4 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-pink-500"
+                    className="w-full h-11 px-4 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500"
                   />
                 </div>
 
                 {/* 3. 팔로우 요청 메시지 (첫 번째 DM) */}
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-pink-500 text-white text-xs mr-2">3</span>
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-500 text-white text-xs mr-2">3</span>
                     팔로우 요청 메시지
-                    <span className="ml-2 text-xs text-pink-400">(첫 번째 DM)</span>
+                    <span className="ml-2 text-xs text-blue-400">(첫 번째 DM)</span>
                   </label>
                   <textarea
                     rows={2}
                     placeholder="안녕하세요! 댓글 감사합니다 🙏&#10;&#10;링크를 받으시려면 팔로우 후 아래 버튼을 눌러주세요!"
                     value={form.followMessage}
                     onChange={(e) => setForm({ ...form, followMessage: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-pink-500 resize-none"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 resize-none"
                   />
                   <p className="text-xs text-slate-500 mt-1">댓글 작성자에게 먼저 발송됩니다. &quot;팔로우 했어요&quot; 버튼이 자동 포함됩니다.</p>
                 </div>
@@ -343,7 +342,7 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
                 {/* 4. 팔로워용 DM 메시지 (두 번째 DM) */}
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-pink-500 text-white text-xs mr-2">4</span>
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-500 text-white text-xs mr-2">4</span>
                     팔로워용 메시지
                     <span className="ml-2 text-xs text-green-400">(두 번째 DM)</span>
                   </label>
@@ -352,7 +351,7 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
                     placeholder="감사합니다! 요청하신 링크 보내드립니다 👇"
                     value={form.dmMessage}
                     onChange={(e) => setForm({ ...form, dmMessage: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-pink-500 resize-none"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 resize-none"
                   />
                   <p className="text-xs text-slate-500 mt-1">팔로우 확인 후 발송됩니다. 메시지 끝에 목적지 URL이 자동 추가됩니다.</p>
                 </div>
@@ -360,7 +359,7 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
                 {/* 5. 목적지 URL (수정 모드에서는 변경 불가) */}
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-pink-500 text-white text-xs mr-2">5</span>
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-500 text-white text-xs mr-2">5</span>
                     목적지 URL
                     {isEditMode && <span className="ml-2 text-xs text-slate-500">(변경 불가)</span>}
                   </label>
@@ -370,7 +369,7 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
                     value={form.targetUrl}
                     onChange={(e) => setForm({ ...form, targetUrl: e.target.value })}
                     disabled={isEditMode}
-                    className="w-full h-11 px-4 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-pink-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full h-11 px-4 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   {isEditMode && (
                     <p className="text-xs text-slate-500 mt-1">목적지 URL을 변경하려면 새 추적링크를 생성하세요</p>
@@ -389,7 +388,7 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
               <button
                 onClick={handleSubmit}
                 disabled={creating || !form.dmMessage || !form.triggerKeywords || !form.followMessage || (!isEditMode && !form.targetUrl)}
-                className="flex-1 h-11 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-medium disabled:opacity-50"
+                className="flex-1 h-11 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium disabled:opacity-50"
               >
                 {creating ? '저장 중...' : (isEditMode ? '수정 완료' : 'DM 자동발송 설정')}
               </button>
@@ -413,19 +412,40 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
             <div className="p-4 overflow-y-auto max-h-[60vh]">
               {loadingMedia ? (
                 <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                 </div>
               ) : media.length === 0 ? (
                 <p className="text-center text-slate-400 py-8">게시물이 없습니다</p>
               ) : (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="flex flex-col gap-2">
                   {media.map((item) => (
                     <button
                       key={item.id}
                       onClick={() => { setSelectedMediaId(item.id); setShowMediaModal(false) }}
-                      className={`aspect-square rounded-lg overflow-hidden border-2 ${selectedMediaId === item.id ? 'border-pink-500' : 'border-transparent hover:border-slate-500'}`}
+                      className={`flex items-center gap-3 p-3 rounded-xl border ${selectedMediaId === item.id ? 'border-blue-500 bg-blue-500/10' : 'border-slate-600 hover:border-slate-500 hover:bg-slate-700/50'} transition-colors`}
                     >
-                      <img src={item.thumbnail_url || item.media_url} alt="" className="w-full h-full object-cover" />
+                      <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
+                        <img src={item.thumbnail_url || item.media_url} alt="" className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex-1 min-w-0 text-left">
+                        <p className="text-sm text-white truncate">
+                          {item.caption?.slice(0, 60) || '캡션 없음'}
+                          {item.caption && item.caption.length > 60 && '...'}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-slate-500">
+                            {new Date(item.timestamp).toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' })}
+                          </span>
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-slate-600 text-slate-400">
+                            {item.media_type === 'VIDEO' ? '릴스' : item.media_type === 'CAROUSEL_ALBUM' ? '캐러셀' : '피드'}
+                          </span>
+                        </div>
+                      </div>
+                      {selectedMediaId === item.id && (
+                        <svg className="w-5 h-5 text-blue-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      )}
                     </button>
                   ))}
                 </div>

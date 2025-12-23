@@ -112,6 +112,13 @@ export async function DELETE(
       return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 })
     }
 
+    // 1. 연결된 클릭 데이터 삭제
+    await supabase
+      .from('tracking_link_clicks')
+      .delete()
+      .eq('tracking_link_id', id)
+
+    // 2. 추적 링크 삭제
     const { error } = await supabase
       .from('tracking_links')
       .delete()

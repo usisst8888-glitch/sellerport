@@ -35,7 +35,7 @@ const menuItems: MenuItem[] = [
     badge: '시작하기',
   },
   {
-    title: '전환 추적 관리',
+    title: '광고 성과 관리',
     href: '/conversions',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

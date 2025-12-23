@@ -75,6 +75,9 @@ export default function QuickStartPage() {
   const [deletingAdChannel, setDeletingAdChannel] = useState<AdChannelData | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
+  // Google Ads 준비중 팝업
+  const [showGoogleAdsComingSoon, setShowGoogleAdsComingSoon] = useState(false)
+
   useEffect(() => {
     checkExistingData()
   }, [])
@@ -279,6 +282,11 @@ export default function QuickStartPage() {
 
   // 광고 채널 선택 (SNS 채널과 상호 배타적)
   const selectAdChannel = (channel: AdChannel) => {
+    // Google Ads는 준비중
+    if (channel === 'google') {
+      setShowGoogleAdsComingSoon(true)
+      return
+    }
     setAdChannel(channel)
     // SNS 채널 선택 해제
     setSelectedSnsChannel(null)
@@ -1307,6 +1315,32 @@ export default function QuickStartPage() {
         </div>
       )}
 
+      {/* Google Ads 준비중 팝업 */}
+      {showGoogleAdsComingSoon && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl bg-slate-800 border border-white/10 shadow-2xl">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-500/20 flex items-center justify-center">
+                <svg className="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">Google Ads 연동 준비중</h3>
+              <p className="text-sm text-slate-400 mb-6">
+                Google Ads 연동 기능은 현재 개발 중입니다.<br />
+                빠른 시일 내에 제공될 예정입니다.
+              </p>
+              <button
+                onClick={() => setShowGoogleAdsComingSoon(false)}
+                className="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-colors"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 광고 채널 삭제 확인 모달 */}
       {deletingAdChannel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -1364,6 +1398,7 @@ export default function QuickStartPage() {
           </div>
         </div>
       )}
+
     </div>
   )
 }

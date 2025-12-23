@@ -40,6 +40,72 @@ interface RequestBody {
   source: string
 }
 
+// 추적 링크와 스마트스토어 데이터 동기화
+async function syncTrackingLinks(userId: string, channels: ChannelData[]) {
+  try {
+    // 사용자의 추적 링크 조회
+    const { data: trackingLinks, error: tlError } = await supabaseAdmin
+      .from('tracking_links')
+      .select('id, utm_source, utm_medium, utm_campaign')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+
+    if (tlError || !trackingLinks || trackingLinks.length === 0) {
+      return { synced: 0, message: '동기화할 추적 링크가 없습니다.' }
+    }
+
+    // 채널 데이터를 source:medium 키로 그룹화
+    const channelMap = new Map<string, ChannelData>()
+    for (const ch of channels) {
+      const key = `${ch.nt_source}:${ch.nt_medium}`
+      const existing = channelMap.get(key)
+      if (!existing || ch.orders > existing.orders) {
+        channelMap.set(key, ch)
+      }
+    }
+
+    // 추적 링크 업데이트
+    let syncedCount = 0
+    const syncedLinks: Array<{ id: string; source: string; conversions: number; revenue: number }> = []
+
+    for (const tl of trackingLinks) {
+      // utm_source:utm_medium 조합으로 매칭
+      const key = `${tl.utm_source}:${tl.utm_medium}`
+      const matchedChannel = channelMap.get(key)
+
+      if (matchedChannel) {
+        const { error: updateError } = await supabaseAdmin
+          .from('tracking_links')
+          .update({
+            conversions: matchedChannel.orders || 0,
+            revenue: matchedChannel.revenue || 0,
+            clicks: matchedChannel.visits || 0
+          })
+          .eq('id', tl.id)
+
+        if (!updateError) {
+          syncedCount++
+          syncedLinks.push({
+            id: tl.id,
+            source: key,
+            conversions: matchedChannel.orders || 0,
+            revenue: matchedChannel.revenue || 0
+          })
+        }
+      }
+    }
+
+    return {
+      synced: syncedCount,
+      total: trackingLinks.length,
+      links: syncedLinks
+    }
+  } catch (error) {
+    console.error('Sync tracking links error:', error)
+    return { synced: 0, error: 'Sync failed' }
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Authorization 헤더에서 토큰 추출
@@ -146,6 +212,10 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Smartstore Conversions] Inserted ${insertedData?.length || 0} records`)
 
+    // 추적 링크와 자동 동기화
+    const syncResult = await syncTrackingLinks(user.id, validChannels)
+    console.log(`[Smartstore Conversions] Synced ${syncResult.synced} tracking links`)
+
     return NextResponse.json({
       success: true,
       data: {
@@ -154,7 +224,8 @@ export async function POST(request: NextRequest) {
         channels: validChannels.map(ch => ({
           source: ch.nt_source,
           medium: ch.nt_medium
-        }))
+        })),
+        syncResult
       }
     })
 

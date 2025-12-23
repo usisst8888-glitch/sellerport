@@ -22,7 +22,7 @@ export async function GET() {
       .from('tracking_links')
       .select(`
         id,
-        name,
+        post_name,
         utm_source,
         utm_medium,
         utm_campaign,
