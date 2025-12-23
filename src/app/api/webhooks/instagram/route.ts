@@ -216,15 +216,31 @@ async function handleCommentEvent(
   }
 }
 
-// 메시징 이벤트 처리 (DM 수신, Quick Reply 버튼 클릭 등)
+// 메시징 이벤트 처리 (DM 수신, Quick Reply/Postback 버튼 클릭 등)
 async function handleMessagingEvent(event: {
   sender: { id: string }
   recipient: { id: string }
   message?: { mid: string; text: string; quick_reply?: { payload: string } }
+  postback?: { mid: string; title: string; payload: string }
 }) {
   console.log('Messaging event:', JSON.stringify(event, null, 2))
 
-  // Quick Reply 버튼 클릭 처리 (팔로우 확인)
+  // Postback 버튼 클릭 처리 (Button Template의 버튼)
+  if (event.postback?.payload) {
+    const payload = event.postback.payload
+
+    // payload 형식: "follow_confirmed:{dm_setting_id}:{tracking_url}"
+    if (payload.startsWith('follow_confirmed:')) {
+      const parts = payload.split(':')
+      const dmSettingId = parts[1]
+      const trackingUrl = parts.slice(2).join(':') // URL에 : 포함될 수 있음
+
+      await handleFollowConfirmed(event.sender.id, event.recipient.id, dmSettingId, trackingUrl)
+      return
+    }
+  }
+
+  // Quick Reply 버튼 클릭 처리 (팔로우 확인) - 폴백용
   if (event.message?.quick_reply?.payload) {
     const payload = event.message.quick_reply.payload
 
@@ -319,34 +335,99 @@ async function handleFollowConfirmed(
 
     const accessToken = dmSettings.ad_channels.access_token
 
-    // 팔로워용 DM 메시지 생성 (dm_message + URL)
-    let finalMessage: string
+    // 팔로워용 DM 메시지 생성
+    const dmMessageText = dmSettings.dm_message || '감사합니다! 요청하신 링크입니다 👇'
 
-    if (dmSettings.dm_message) {
-      // 셀러가 설정한 메시지 사용
-      if (dmSettings.dm_message.includes('{{link}}')) {
-        finalMessage = dmSettings.dm_message.replace('{{link}}', trackingUrl)
-      } else {
-        // {{link}}가 없으면 메시지 끝에 URL 추가
-        finalMessage = `${dmSettings.dm_message}\n\n${trackingUrl}`
+    // 상품 정보 가져오기 (Generic Template용)
+    let productName = dmSettings.tracking_links?.post_name || '상품 보기'
+    let productImageUrl = dmSettings.instagram_media_url || null
+
+    // tracking_links에서 product 정보 가져오기
+    if (dmSettings.tracking_link_id) {
+      const { data: trackingLinkWithProduct } = await supabase
+        .from('tracking_links')
+        .select('products(name, image_url)')
+        .eq('id', dmSettings.tracking_link_id)
+        .single()
+
+      if (trackingLinkWithProduct?.products) {
+        const product = trackingLinkWithProduct.products as { name?: string; image_url?: string }
+        productName = product.name || productName
+        productImageUrl = product.image_url || productImageUrl
       }
-    } else {
-      // 기본 메시지
-      finalMessage = `감사합니다! 요청하신 링크입니다 👇\n\n${trackingUrl}`
     }
 
-    // DM 발송 시도 (팔로워만 메시지 수신 설정된 경우 에러 발생)
-    const response = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        recipient: { id: senderId },
-        message: { text: finalMessage },
-      }),
-    })
+    // DM 발송 시도 - Generic Template 사용 (이미지 카드 + 버튼)
+    // https://developers.facebook.com/docs/messenger-platform/instagram/features/generic-template
+    let response
+
+    if (productImageUrl) {
+      // 이미지가 있으면 Generic Template 사용 (카드 형식)
+      response = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { id: senderId },
+          message: {
+            attachment: {
+              type: 'template',
+              payload: {
+                template_type: 'generic',
+                elements: [
+                  {
+                    title: productName,
+                    subtitle: dmMessageText,
+                    image_url: productImageUrl,
+                    default_action: {
+                      type: 'web_url',
+                      url: trackingUrl,
+                    },
+                    buttons: [
+                      {
+                        type: 'web_url',
+                        url: trackingUrl,
+                        title: '바로가기',
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        }),
+      })
+    } else {
+      // 이미지가 없으면 Button Template 사용
+      response = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { id: senderId },
+          message: {
+            attachment: {
+              type: 'template',
+              payload: {
+                template_type: 'button',
+                text: dmMessageText,
+                buttons: [
+                  {
+                    type: 'web_url',
+                    url: trackingUrl,
+                    title: '바로가기',
+                  },
+                ],
+              },
+            },
+          },
+        }),
+      })
+    }
 
     const result = await response.json()
 
@@ -358,7 +439,7 @@ async function handleFollowConfirmed(
       const followRequestMessage = dmSettings.follow_request_message ||
         `아직 팔로우가 확인되지 않았어요! 😅\n\n팔로우 후 다시 버튼을 눌러주세요!`
 
-      // 팔로우 요청 메시지 재발송 (Quick Reply 버튼 포함)
+      // 팔로우 요청 메시지 재발송 (Postback 버튼 사용 - 말풍선 안에 버튼)
       await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
         method: 'POST',
         headers: {
@@ -368,19 +449,25 @@ async function handleFollowConfirmed(
         body: JSON.stringify({
           recipient: { id: senderId },
           message: {
-            text: followRequestMessage,
-            quick_replies: [
-              {
-                content_type: 'text',
-                title: '✅ 팔로우 했어요!',
-                payload: `follow_confirmed:${dmSettingId}:${trackingUrl}`,
+            attachment: {
+              type: 'template',
+              payload: {
+                template_type: 'button',
+                text: followRequestMessage,
+                buttons: [
+                  {
+                    type: 'postback',
+                    title: '✅ 팔로우 완료했어요',
+                    payload: `follow_confirmed:${dmSettingId}:${trackingUrl}`,
+                  },
+                ],
               },
-            ],
+            },
           },
         }),
       })
 
-      console.log('Follow request message sent again to:', senderId)
+      console.log('Follow request message with button sent again to:', senderId)
     } else {
       // 성공 = 팔로워임, 링크 발송 완료
       console.log('Link message sent successfully (user is a follower):', result)
@@ -400,8 +487,8 @@ async function handleFollowConfirmed(
   }
 }
 
-// Instagram Private Reply with Quick Reply 버튼
-// 댓글에 대한 비공개 답장 + "팔로우 확인" 버튼 포함
+// Instagram Private Reply with Button Template
+// 댓글에 대한 비공개 답장 + "팔로우 확인" 버튼 포함 (말풍선 안에 버튼)
 // 참고: https://developers.facebook.com/docs/messenger-platform/instagram/features/private-replies
 async function sendInstagramPrivateReplyWithQuickReply(
   commentId: string,
@@ -415,11 +502,51 @@ async function sendInstagramPrivateReplyWithQuickReply(
     // 댓글 ID를 recipient로 사용하여 Private Reply 발송
     const url = `https://graph.instagram.com/v21.0/me/messages`
 
-    console.log('Sending Private Reply with Quick Reply to comment:', commentId)
+    console.log('Sending Private Reply with Button Template to comment:', commentId)
 
-    // Quick Reply 버튼 포함 메시지
-    // payload에 DM 설정 ID와 추적 URL을 포함하여 버튼 클릭 시 링크 발송 가능
+    // Button Template 사용 - 말풍선 안에 버튼 표시
+    // postback 버튼으로 클릭 시 messaging webhook 이벤트 발생
     const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        recipient: {
+          comment_id: commentId,
+        },
+        message: {
+          attachment: {
+            type: 'template',
+            payload: {
+              template_type: 'button',
+              text: message,
+              buttons: [
+                {
+                  type: 'postback',
+                  title: '✅ 팔로우 완료했어요',
+                  payload: `follow_confirmed:${dmSettingId}:${trackingUrl}`,
+                },
+              ],
+            },
+          },
+        },
+      }),
+    })
+
+    const result = await response.json()
+
+    if (!result.error) {
+      console.log('Instagram Private Reply with Button Template sent successfully:', result)
+      return true
+    }
+
+    // Button Template이 지원되지 않는 경우 Quick Reply로 재시도
+    console.error('Instagram Private Reply with Button Template error:', result.error)
+    console.log('Retrying with Quick Reply...')
+
+    const quickReplyResponse = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -442,18 +569,17 @@ async function sendInstagramPrivateReplyWithQuickReply(
       }),
     })
 
-    const result = await response.json()
+    const quickReplyResult = await quickReplyResponse.json()
 
-    if (!result.error) {
-      console.log('Instagram Private Reply with Quick Reply sent successfully:', result)
+    if (!quickReplyResult.error) {
+      console.log('Instagram Private Reply with Quick Reply sent successfully:', quickReplyResult)
       return true
     }
 
-    // Quick Reply가 지원되지 않는 경우 일반 메시지로 재시도
-    console.error('Instagram Private Reply with Quick Reply error:', result.error)
-
-    // Fallback: 일반 텍스트 메시지로 재시도
+    // 마지막 Fallback: 일반 텍스트 메시지
+    console.error('Instagram Private Reply with Quick Reply error:', quickReplyResult.error)
     console.log('Retrying with plain text message...')
+
     const fallbackResponse = await fetch(url, {
       method: 'POST',
       headers: {
