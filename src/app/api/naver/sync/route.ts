@@ -60,6 +60,19 @@ export async function POST(request: NextRequest) {
         console.log('Site ID:', siteId)
         console.log('Application ID:', site.application_id)
 
+        // 기존 상품 삭제 (해당 사이트의 모든 상품)
+        const { error: deleteError } = await supabase
+          .from('products')
+          .delete()
+          .eq('my_site_id', siteId)
+          .eq('user_id', user.id)
+
+        if (deleteError) {
+          console.error('기존 상품 삭제 실패:', deleteError)
+        } else {
+          console.log('기존 상품 삭제 완료')
+        }
+
         // 페이지 1부터 시작 (API 스펙에 따름)
         const productsResponse = await naverClient.getProducts(1, 100)
         console.log('상품 API 응답 - totalElements:', productsResponse.totalElements)
@@ -81,25 +94,36 @@ export async function POST(request: NextRequest) {
             // 할인가가 있으면 할인가 사용, 없으면 정상가 사용
             const actualPrice = channelProduct.discountedPrice ?? channelProduct.salePrice
 
+            // channelProductNo가 스마트스토어 URL에서 사용하는 상품번호
+            // originProductNo는 원상품번호 (API 내부용)
+            const productId = channelProduct.channelProductNo?.toString() || content.originProductNo.toString()
+
+            // 스마트스토어 상품 URL 생성 (store_id가 있는 경우)
+            let productUrl: string | null = null
+            if (site.store_id && productId) {
+              productUrl = `https://smartstore.naver.com/${site.store_id}/products/${productId}`
+            }
+
             await supabase
               .from('products')
               .upsert({
                 user_id: user.id,
                 my_site_id: siteId,
                 site_type: 'naver',
-                external_product_id: content.originProductNo.toString(),
+                external_product_id: productId,
                 name: channelProduct.name,
                 price: actualPrice,
                 stock: channelProduct.stockQuantity,
                 status: channelProduct.statusType || 'unknown',
                 image_url: channelProduct.representativeImage?.url || null,
+                product_url: productUrl,
                 synced_at: new Date().toISOString()
               }, {
                 onConflict: 'my_site_id,external_product_id'
               })
 
             results.products.synced++
-            console.log(`상품 동기화 성공: ${channelProduct.name} (${content.originProductNo})`)
+            console.log(`상품 동기화 성공: ${channelProduct.name} (channelProductNo: ${productId})`)
           } catch (err) {
             console.error('Product sync error:', err)
             results.products.errors++

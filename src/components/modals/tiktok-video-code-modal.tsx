@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
 
 // tracking_links 테이블에서 video_code가 있는 것을 영상번호로 사용
-interface YoutubeVideoCode {
+interface TiktokVideoCode {
   id: string
   video_code: string
   post_name: string | null
@@ -29,7 +29,7 @@ interface Product {
   } | null
 }
 
-interface YoutubeVideoCodeModalProps {
+interface TiktokVideoCodeModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
@@ -66,7 +66,7 @@ function generateNextVideoCode(existingCodes: string[]): string {
   }
 }
 
-export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVideoCodeModalProps) {
+export function TiktokVideoCodeModal({ isOpen, onClose, onSuccess }: TiktokVideoCodeModalProps) {
   const [savedStoreSlug, setSavedStoreSlug] = useState('')
 
   const [form, setForm] = useState({
@@ -77,7 +77,7 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
   const [creating, setCreating] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [loading, setLoading] = useState(true)
-  const [existingCodes, setExistingCodes] = useState<YoutubeVideoCode[]>([])
+  const [existingCodes, setExistingCodes] = useState<TiktokVideoCode[]>([])
   const [copiedUrl, setCopiedUrl] = useState(false)
 
   // 상품 목록
@@ -89,7 +89,7 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
 
   // 검색 페이지 URL (스토어 슬러그 포함)
   const searchPageUrl = typeof window !== 'undefined' && savedStoreSlug
-    ? `${window.location.origin}/v/${savedStoreSlug}`
+    ? `${window.location.origin}/tt/${savedStoreSlug}`
     : ''
 
   // 상품 목록 불러오기
@@ -112,21 +112,20 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
   const fetchExistingCodes = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/youtube/video-codes')
+      const response = await fetch('/api/tiktok/video-codes')
       const result = await response.json()
 
       if (result.success) {
         setExistingCodes(result.data || [])
 
-        // 스토어 슬러그는 항상 API에서 가져옴 (유튜브 채널명 기반 또는 store-{user_id})
-        // 영상번호가 없어도 storeSlug는 항상 존재
+        // 스토어 슬러그는 항상 API에서 가져옴
         if (result.storeSlug) {
           setSavedStoreSlug(result.storeSlug)
         }
 
         if (result.data && result.data.length > 0) {
           // 다음 영상번호 자동 생성
-          const codes = result.data.map((item: YoutubeVideoCode) => item.video_code)
+          const codes = result.data.map((item: TiktokVideoCode) => item.video_code)
           const nextCode = generateNextVideoCode(codes)
           setForm(prev => ({ ...prev, videoCode: nextCode }))
         } else {
@@ -212,7 +211,7 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
 
     setCreating(true)
     try {
-      const response = await fetch('/api/youtube/video-codes', {
+      const response = await fetch('/api/tiktok/video-codes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -259,15 +258,15 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl overflow-hidden">
                 <Image
-                  src="/channel_logo/youtube.png"
-                  alt="YouTube"
+                  src="/channel_logo/tiktok.png"
+                  alt="TikTok"
                   width={40}
                   height={40}
                   className="w-full h-full object-cover"
                 />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">유튜브 쇼츠 영상번호</h3>
+                <h3 className="text-lg font-semibold text-white">틱톡 영상번호</h3>
                 <p className="text-sm text-slate-400">영상번호를 추가하세요</p>
               </div>
             </div>
@@ -283,7 +282,7 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
           {/* 로딩 상태 */}
           {loading && (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
               <span className="ml-3 text-slate-400">불러오는 중...</span>
             </div>
           )}
@@ -299,12 +298,12 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
             <>
               {/* 검색 페이지 URL 표시 (항상) */}
               {searchPageUrl && (
-                <div className="p-4 rounded-xl bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/30">
+                <div className="p-4 rounded-xl bg-gradient-to-r from-pink-500/10 to-cyan-500/10 border border-pink-500/30">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-medium text-white">영상번호 검색 페이지</p>
                     <button
                       onClick={copySearchUrl}
-                      className="text-xs px-2 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded transition-colors"
+                      className="text-xs px-2 py-1 bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 rounded transition-colors"
                     >
                       {copiedUrl ? '복사됨!' : 'URL 복사'}
                     </button>
@@ -321,7 +320,7 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
               {/* 상품 선택 */}
               <div ref={dropdownRef} className="relative">
                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-xs mr-2">1</span>
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-pink-500 text-white text-xs mr-2">1</span>
                   상품 선택
                 </label>
 
@@ -366,7 +365,7 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
                         placeholder="상품명 검색..."
                         value={productSearch}
                         onChange={(e) => setProductSearch(e.target.value)}
-                        className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder:text-slate-500 focus:border-red-500 text-sm"
+                        className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder:text-slate-500 focus:border-pink-500 text-sm"
                         onClick={(e) => e.stopPropagation()}
                       />
                     </div>
@@ -375,7 +374,7 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
                     <div className="max-h-48 overflow-y-auto">
                       {productsLoading ? (
                         <div className="flex items-center justify-center py-4">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-500"></div>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-pink-500"></div>
                           <span className="ml-2 text-sm text-slate-400">상품 불러오는 중...</span>
                         </div>
                       ) : filteredProducts.length === 0 ? (
@@ -396,7 +395,7 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
                               setProductSearch('')
                             }}
                             className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-600/50 border-b border-slate-600 last:border-b-0 text-left ${
-                              form.selectedProductId === product.id ? 'bg-red-500/10' : ''
+                              form.selectedProductId === product.id ? 'bg-pink-500/10' : ''
                             }`}
                           >
                             {product.image_url ? (
@@ -417,7 +416,7 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
                               <p className="text-xs text-slate-400">{product.price.toLocaleString()}원</p>
                             </div>
                             {form.selectedProductId === product.id && (
-                              <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-5 h-5 text-pink-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                               </svg>
                             )}
@@ -437,7 +436,7 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
               {/* 영상번호 입력 */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-xs mr-2">2</span>
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-pink-500 text-white text-xs mr-2">2</span>
                   영상번호
                 </label>
                 <div className="flex gap-2">
@@ -447,7 +446,7 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
                     value={form.videoCode}
                     onChange={(e) => setForm({ ...form, videoCode: e.target.value.toUpperCase() })}
                     maxLength={4}
-                    className="w-32 h-11 px-4 rounded-xl bg-slate-700 border border-slate-600 text-white text-center font-mono text-lg placeholder:text-slate-500 focus:border-red-500"
+                    className="w-32 h-11 px-4 rounded-xl bg-slate-700 border border-slate-600 text-white text-center font-mono text-lg placeholder:text-slate-500 focus:border-pink-500"
                   />
                   <div className="flex-1 flex items-center text-sm text-slate-400">
                     <span>형식: A001 ~ Z999</span>
@@ -458,7 +457,7 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
               {/* 영상 제목 (선택) */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-xs mr-2">
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-pink-500 text-white text-xs mr-2">
 3
                   </span>
                   영상 제목
@@ -469,7 +468,7 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
                   placeholder="예: 겨울 패딩 추천 영상"
                   value={form.videoTitle}
                   onChange={(e) => setForm({ ...form, videoTitle: e.target.value })}
-                  className="w-full h-11 px-4 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-red-500"
+                  className="w-full h-11 px-4 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-pink-500"
                 />
                 <p className="text-xs text-slate-500 mt-1">구분을 위한 메모용입니다</p>
               </div>
@@ -484,7 +483,7 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
                     {existingCodes.map((code) => (
                       <div key={code.id} className="flex items-center justify-between px-4 py-2.5 border-b border-slate-600 last:border-b-0">
                         <div className="flex items-center gap-3">
-                          <span className="font-mono text-lg font-bold text-red-400">{code.video_code}</span>
+                          <span className="font-mono text-lg font-bold text-pink-400">{code.video_code}</span>
                           <span className="text-sm text-slate-400 truncate max-w-[200px]">
                             {code.post_name || '제목 없음'}
                           </span>
@@ -513,7 +512,7 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
             <button
               onClick={handleSubmit}
               disabled={creating || !form.videoCode || !form.selectedProductId}
-              className="flex-1 h-11 rounded-xl bg-red-500 hover:bg-red-600 text-white font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 h-11 rounded-xl bg-pink-500 hover:bg-pink-600 text-white font-medium disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {creating ? (
                 <>
