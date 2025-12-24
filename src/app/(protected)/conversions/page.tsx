@@ -1809,6 +1809,7 @@ export default function ConversionsPage() {
         onClose={() => setShowYoutubeVideoCodeModal(false)}
         onSuccess={() => {
           setShowYoutubeVideoCodeModal(false)
+          fetchTrackingLinks()
           fetchVideoCodes()
         }}
       />
