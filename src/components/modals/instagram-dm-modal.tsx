@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 
 interface InstagramMedia {
@@ -11,6 +11,21 @@ interface InstagramMedia {
   permalink: string
   caption?: string
   timestamp: string
+}
+
+interface Product {
+  id: string
+  name: string
+  price: number
+  image_url: string | null
+  external_product_id: string
+  product_url: string | null
+  my_sites?: {
+    id: string
+    site_type: string
+    site_name: string
+    store_id?: string | null
+  } | null
 }
 
 interface InstagramDmModalProps {
@@ -28,8 +43,10 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
     triggerKeywords: '',
     dmMessage: '',
     followMessage: '',
-    targetUrl: ''
+    targetUrl: '',
+    selectedProductId: ''
   })
+  const [urlInputMode, setUrlInputMode] = useState<'product' | 'manual'>('product')
   const [creating, setCreating] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [loading, setLoading] = useState(false)
@@ -42,10 +59,46 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
   const [showMediaModal, setShowMediaModal] = useState(false)
   const [loadingMedia, setLoadingMedia] = useState(false)
 
+  // 상품 목록
+  const [products, setProducts] = useState<Product[]>([])
+  const [productsLoading, setProductsLoading] = useState(false)
+  const [productSearch, setProductSearch] = useState('')
+  const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
   // 수정 모드용 DM 설정 ID
   const [dmSettingId, setDmSettingId] = useState<string | null>(null)
 
   const isEditMode = !!editingTrackingLinkId
+
+  // 선택된 상품
+  const selectedProduct = products.find(p => p.id === form.selectedProductId)
+
+  // 상품 URL 가져오기
+  const getProductUrl = (product: Product): string => {
+    return product.product_url || ''
+  }
+
+  // 필터된 상품 목록
+  const filteredProducts = products.filter(p =>
+    p.name.toLowerCase().includes(productSearch.toLowerCase())
+  )
+
+  // 상품 목록 불러오기
+  const fetchProducts = useCallback(async () => {
+    setProductsLoading(true)
+    try {
+      const response = await fetch('/api/products')
+      const result = await response.json()
+      if (result.success && result.data) {
+        setProducts(result.data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch products:', error)
+    } finally {
+      setProductsLoading(false)
+    }
+  }, [])
 
   // 기존 DM 설정 불러오기
   const fetchExistingDmSettings = useCallback(async () => {
@@ -77,22 +130,39 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
     }
   }, [editingTrackingLinkId])
 
-  // 모달 열릴 때 수정 모드면 기존 데이터 불러오기
+  // 모달 열릴 때 데이터 불러오기
   useEffect(() => {
-    if (isOpen && editingTrackingLinkId) {
-      fetchExistingDmSettings()
+    if (isOpen) {
+      fetchProducts()
+      if (editingTrackingLinkId) {
+        fetchExistingDmSettings()
+      }
     }
-  }, [isOpen, editingTrackingLinkId, fetchExistingDmSettings])
+  }, [isOpen, editingTrackingLinkId, fetchExistingDmSettings, fetchProducts])
+
+  // 드롭다운 외부 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsProductDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // 모달 닫힐 때 초기화
   useEffect(() => {
     if (!isOpen) {
-      setForm({ triggerKeywords: '', dmMessage: '', followMessage: '', targetUrl: '' })
+      setForm({ triggerKeywords: '', dmMessage: '', followMessage: '', targetUrl: '', selectedProductId: '' })
       setSelectedMediaId(null)
       setSelectedMediaUrl(null)
       setSelectedMediaCaption(null)
       setMessage(null)
       setDmSettingId(null)
+      setUrlInputMode('product')
+      setProductSearch('')
+      setIsProductDropdownOpen(false)
     }
   }, [isOpen])
 
@@ -120,9 +190,29 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
 
   // DM 설정 생성 또는 수정
   const handleSubmit = async () => {
-    if (!form.triggerKeywords || !form.dmMessage || !form.targetUrl || !form.followMessage) {
+    if (!form.triggerKeywords || !form.dmMessage || !form.followMessage) {
       setMessage({ type: 'error', text: '모든 필드를 입력해주세요' })
       return
+    }
+
+    // 목적지 URL 결정
+    let targetUrl = ''
+    if (urlInputMode === 'product') {
+      if (!selectedProduct) {
+        setMessage({ type: 'error', text: '상품을 선택해주세요' })
+        return
+      }
+      targetUrl = getProductUrl(selectedProduct)
+      if (!targetUrl) {
+        setMessage({ type: 'error', text: '상품 URL을 가져올 수 없습니다' })
+        return
+      }
+    } else {
+      if (!form.targetUrl) {
+        setMessage({ type: 'error', text: '목적지 URL을 입력해주세요' })
+        return
+      }
+      targetUrl = form.targetUrl
     }
 
     setCreating(true)
@@ -156,7 +246,7 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
           body: JSON.stringify({
             channelType: 'instagram',
             postName: selectedMedia?.caption?.slice(0, 50) || 'Instagram DM',
-            targetUrl: form.targetUrl,
+            targetUrl: targetUrl,
             enableDmAutoSend: true,
             dmTriggerKeywords: form.triggerKeywords,
             dmMessage: form.dmMessage,
@@ -363,16 +453,179 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
                     목적지 URL
                     {isEditMode && <span className="ml-2 text-xs text-slate-500">(변경 불가)</span>}
                   </label>
-                  <input
-                    type="url"
-                    placeholder="https://smartstore.naver.com/..."
-                    value={form.targetUrl}
-                    onChange={(e) => setForm({ ...form, targetUrl: e.target.value })}
-                    disabled={isEditMode}
-                    className="w-full h-11 px-4 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
+
+                  {/* 모드 선택 탭 (수정 모드가 아닐 때만) */}
+                  {!isEditMode && (
+                    <div className="flex gap-2 mb-3">
+                      <button
+                        type="button"
+                        onClick={() => setUrlInputMode('product')}
+                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                          urlInputMode === 'product'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                        }`}
+                      >
+                        상품 선택
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setUrlInputMode('manual')}
+                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                          urlInputMode === 'manual'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                        }`}
+                      >
+                        직접 입력
+                      </button>
+                    </div>
+                  )}
+
+                  {/* 상품 선택 모드 */}
+                  {urlInputMode === 'product' && !isEditMode && (
+                    <div ref={dropdownRef} className="relative">
+                      {/* 드롭다운 트리거 버튼 */}
+                      <button
+                        type="button"
+                        onClick={() => setIsProductDropdownOpen(!isProductDropdownOpen)}
+                        className={`w-full h-11 px-4 rounded-xl border text-left flex items-center justify-between ${
+                          selectedProduct
+                            ? 'bg-green-500/10 border-green-500/30'
+                            : 'bg-slate-700 border-slate-600 hover:border-slate-500'
+                        }`}
+                      >
+                        {selectedProduct ? (
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {selectedProduct.image_url && (
+                              <img
+                                src={selectedProduct.image_url}
+                                alt={selectedProduct.name}
+                                className="w-8 h-8 rounded-lg object-cover flex-shrink-0"
+                              />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-white truncate">{selectedProduct.name}</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">상품을 선택하세요</span>
+                        )}
+                        <svg className={`w-5 h-5 text-slate-400 transition-transform flex-shrink-0 ${isProductDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {/* 드롭다운 메뉴 */}
+                      {isProductDropdownOpen && (
+                        <div className="absolute z-20 w-full mt-2 rounded-xl bg-slate-700 border border-slate-600 shadow-xl">
+                          {/* 상품 검색 */}
+                          <div className="p-2 border-b border-slate-600">
+                            <input
+                              type="text"
+                              placeholder="상품명 검색..."
+                              value={productSearch}
+                              onChange={(e) => setProductSearch(e.target.value)}
+                              className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 text-sm"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+
+                          {/* 상품 목록 */}
+                          <div className="max-h-48 overflow-y-auto">
+                            {productsLoading ? (
+                              <div className="flex items-center justify-center py-4">
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                                <span className="ml-2 text-sm text-slate-400">상품 불러오는 중...</span>
+                              </div>
+                            ) : filteredProducts.length === 0 ? (
+                              <div className="p-4 text-center text-sm text-slate-400">
+                                {products.length === 0 ? (
+                                  <>연결된 스토어에 상품이 없습니다</>
+                                ) : (
+                                  <>검색 결과가 없습니다</>
+                                )}
+                              </div>
+                            ) : (
+                              filteredProducts.slice(0, 10).map((product) => (
+                                <button
+                                  key={product.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setForm(prev => ({ ...prev, selectedProductId: product.id }))
+                                    setIsProductDropdownOpen(false)
+                                    setProductSearch('')
+                                  }}
+                                  className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-600/50 border-b border-slate-600 last:border-b-0 text-left ${
+                                    form.selectedProductId === product.id ? 'bg-blue-500/10' : ''
+                                  }`}
+                                >
+                                  {product.image_url ? (
+                                    <img
+                                      src={product.image_url}
+                                      alt={product.name}
+                                      className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-10 rounded-lg bg-slate-600 flex items-center justify-center flex-shrink-0">
+                                      <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                      </svg>
+                                    </div>
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-white truncate">{product.name}</p>
+                                    <p className="text-xs text-slate-400">{product.price.toLocaleString()}원</p>
+                                  </div>
+                                  {form.selectedProductId === product.id && (
+                                    <svg className="w-5 h-5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  )}
+                                </button>
+                              ))
+                            )}
+                            {filteredProducts.length > 10 && (
+                              <p className="text-center text-xs text-slate-500 py-2">
+                                +{filteredProducts.length - 10}개 더 (검색으로 찾기)
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 선택된 상품 URL 미리보기 */}
+                      {selectedProduct && (
+                        <p className="text-xs text-slate-500 mt-2 truncate">
+                          URL: {getProductUrl(selectedProduct) || '상품 URL 없음'}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 직접 입력 모드 */}
+                  {urlInputMode === 'manual' && !isEditMode && (
+                    <input
+                      type="url"
+                      placeholder="https://smartstore.naver.com/..."
+                      value={form.targetUrl}
+                      onChange={(e) => setForm({ ...form, targetUrl: e.target.value })}
+                      className="w-full h-11 px-4 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500"
+                    />
+                  )}
+
+                  {/* 수정 모드일 때 */}
                   {isEditMode && (
-                    <p className="text-xs text-slate-500 mt-1">목적지 URL을 변경하려면 새 추적링크를 생성하세요</p>
+                    <>
+                      <input
+                        type="url"
+                        placeholder="https://smartstore.naver.com/..."
+                        value={form.targetUrl}
+                        disabled
+                        className="w-full h-11 px-4 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      <p className="text-xs text-slate-500 mt-1">목적지 URL을 변경하려면 새 추적링크를 생성하세요</p>
+                    </>
                   )}
                 </div>
               </>
@@ -387,7 +640,7 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={creating || !form.dmMessage || !form.triggerKeywords || !form.followMessage || (!isEditMode && !form.targetUrl)}
+                disabled={creating || !form.dmMessage || !form.triggerKeywords || !form.followMessage || (!isEditMode && urlInputMode === 'product' && !form.selectedProductId) || (!isEditMode && urlInputMode === 'manual' && !form.targetUrl)}
                 className="flex-1 h-11 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium disabled:opacity-50"
               >
                 {creating ? '저장 중...' : (isEditMode ? '수정 완료' : 'DM 자동발송 설정')}
