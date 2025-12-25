@@ -237,6 +237,15 @@ export default function SignupPage() {
       // 전환 추적 실패해도 회원가입은 성공으로 처리
     }
 
+    // 메타 픽셀 전환 이벤트 발동
+    if (typeof window !== 'undefined' && (window as any).fbq) {
+      (window as any).fbq('track', 'CompleteRegistration', {
+        content_name: '셀러포트 회원가입',
+        status: 'success',
+        user_type: userType
+      })
+    }
+
     // 회원가입 성공 시 바로 대시보드로 이동
     setMessage({
       type: 'success',
