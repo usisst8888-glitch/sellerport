@@ -155,14 +155,17 @@ function MySitesContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const expandParam = searchParams.get('expand')
+  const channelParam = searchParams.get('channel')
   const [expandedSite, setExpandedSite] = useState<string | null>(null)
 
-  // URL 파라미터로 드롭다운 자동 펼치기
+  // URL 파라미터로 드롭다운 자동 펼치기 (expand 또는 channel 파라미터 지원)
   useEffect(() => {
     if (expandParam) {
       setExpandedSite(expandParam)
+    } else if (channelParam) {
+      setExpandedSite(channelParam)
     }
-  }, [expandParam])
+  }, [expandParam, channelParam])
 
   const toggleSite = (siteId: string) => {
     setExpandedSite(expandedSite === siteId ? null : siteId)

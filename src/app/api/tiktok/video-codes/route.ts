@@ -1,6 +1,6 @@
 /**
- * 유튜브 쇼츠 영상번호 API
- * GET: 영상번호 목록 조회 (tracking_links에서 video_code가 있는 것만)
+ * 틱톡 영상번호 API
+ * GET: 영상번호 목록 조회 (tracking_links에서 channel_type='tiktok'이고 video_code가 있는 것만)
  * POST: 영상번호 생성 (tracking_links에 video_code 포함해서 생성)
  */
 
@@ -27,14 +27,13 @@ export async function GET() {
       }, { status: 401 })
     }
 
-    // tracking_links에서 video_code가 있고, channel_type이 'tiktok'이 아닌 것만 조회
-    // (기존 데이터 호환성: channel_type이 없거나 'youtube'인 경우)
+    // tracking_links에서 channel_type='tiktok'이고 video_code가 있는 것만 조회
     const { data, error } = await supabaseAdmin
       .from('tracking_links')
       .select('*')
       .eq('user_id', user.id)
+      .eq('channel_type', 'tiktok')
       .not('video_code', 'is', null)
-      .neq('channel_type', 'tiktok')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -51,9 +50,9 @@ export async function GET() {
     let storeSlug = itemsWithSlug.length > 0 ? itemsWithSlug[itemsWithSlug.length - 1].store_slug : null
 
     if (!storeSlug) {
-      // 새로운 slug 생성: yt-난수 형태 (채널별 고유값)
+      // 새로운 slug 생성: tt-난수 형태 (채널별 고유값)
       const randomId = Math.random().toString(36).substring(2, 10)
-      storeSlug = `yt-${randomId}`
+      storeSlug = `tt-${randomId}`
     }
 
     return NextResponse.json({
@@ -63,7 +62,7 @@ export async function GET() {
     })
 
   } catch (error) {
-    console.error('YouTube video codes GET error:', error)
+    console.error('TikTok video codes GET error:', error)
     return NextResponse.json({
       success: false,
       error: '서버 오류가 발생했습니다.'
@@ -105,15 +104,15 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // store_slug 결정: 기존 YouTube 데이터에서 가져오거나 새로 생성
+    // store_slug 결정: 기존 TikTok 데이터에서 가져오거나 새로 생성
     let finalStoreSlug: string | null = null
 
-    // 1. 기존 YouTube tracking_links에서 가장 오래된(첫 번째 생성된) store_slug 가져오기
+    // 1. 기존 TikTok tracking_links에서 가장 오래된(첫 번째 생성된) store_slug 가져오기
     const { data: existingData } = await supabaseAdmin
       .from('tracking_links')
       .select('store_slug, created_at')
       .eq('user_id', user.id)
-      .eq('channel_type', 'youtube')
+      .eq('channel_type', 'tiktok')
       .not('store_slug', 'is', null)
       .order('created_at', { ascending: true })
       .limit(1)
@@ -121,16 +120,17 @@ export async function POST(request: NextRequest) {
     if (existingData && existingData.length > 0) {
       finalStoreSlug = existingData[0].store_slug
     } else {
-      // 2. 새로운 slug 생성: yt-난수 형태 (채널별 고유값)
+      // 2. 새로운 slug 생성: tt-난수 형태 (채널별 고유값)
       const randomId = Math.random().toString(36).substring(2, 10)
-      finalStoreSlug = `yt-${randomId}`
+      finalStoreSlug = `tt-${randomId}`
     }
 
-    // 중복 체크 (같은 유저, 같은 영상번호)
+    // 중복 체크 (같은 유저, 같은 채널타입, 같은 영상번호)
     const { data: existing } = await supabaseAdmin
       .from('tracking_links')
       .select('id')
       .eq('user_id', user.id)
+      .eq('channel_type', 'tiktok')
       .eq('video_code', videoCode)
       .limit(1)
 
@@ -145,26 +145,26 @@ export async function POST(request: NextRequest) {
     const isSmartStore = targetUrl.includes('smartstore.naver.com') || targetUrl.includes('brand.naver.com')
 
     // tracking_links에 직접 생성
-    const trackingLinkId = `yt_${videoCode.toLowerCase()}_${Date.now().toString(36)}`
+    const trackingLinkId = `tt_${videoCode.toLowerCase()}_${Date.now().toString(36)}`
     const trackingLinkData: Record<string, unknown> = {
       id: trackingLinkId,
       user_id: user.id,
-      channel_type: 'youtube',
-      post_name: `쇼츠 ${videoCode}${videoTitle ? ` - ${videoTitle}` : ''}`,
+      channel_type: 'tiktok',
+      post_name: `틱톡 ${videoCode}${videoTitle ? ` - ${videoTitle}` : ''}`,
       target_url: targetUrl,
       video_code: videoCode,
       store_slug: finalStoreSlug,
       status: 'active',
       // utm_source는 항상 설정 (UI 표시용)
-      utm_source: 'youtube',
-      utm_medium: 'shorts',
+      utm_source: 'tiktok',
+      utm_medium: 'video',
       utm_campaign: `video_${videoCode.toLowerCase()}`
     }
 
     if (isSmartStore) {
       // 네이버 스마트스토어: NT 파라미터 추가 사용
-      trackingLinkData.nt_source = 'youtube'
-      trackingLinkData.nt_medium = 'shorts'
+      trackingLinkData.nt_source = 'tiktok'
+      trackingLinkData.nt_medium = 'video'
       trackingLinkData.nt_detail = `video_${videoCode.toLowerCase()}`
       trackingLinkData.nt_keyword = videoTitle || videoCode
     }
@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('YouTube video codes POST error:', error)
+    console.error('TikTok video codes POST error:', error)
     return NextResponse.json({
       success: false,
       error: '서버 오류가 발생했습니다.'

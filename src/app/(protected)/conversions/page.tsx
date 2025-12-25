@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { InstagramDmModal } from '@/components/modals/instagram-dm-modal'
 import { YoutubeVideoCodeModal } from '@/components/modals/youtube-video-code-modal'
+import { TiktokVideoCodeModal } from '@/components/modals/tiktok-video-code-modal'
 
 interface TrackingLink {
   id: string
@@ -150,6 +151,7 @@ function getSignalLight(
 
 export default function ConversionsPage() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const fromQuickStart = searchParams.get('from') === 'quick-start'
   const openModal = searchParams.get('openModal') === 'true'
 
@@ -207,6 +209,9 @@ export default function ConversionsPage() {
   } | null>(null)
   const [syncingSmartstore, setSyncingSmartstore] = useState(false)
 
+  // 상품 동기화 상태
+  const [syncingProducts, setSyncingProducts] = useState<string | null>(null)
+
   // 유튜브 영상번호 관련 상태
   const [showYoutubeVideoCodeModal, setShowYoutubeVideoCodeModal] = useState(false)
   const [videoCodes, setVideoCodes] = useState<{
@@ -220,6 +225,11 @@ export default function ConversionsPage() {
     status: string
   }[]>([])
   const [videoCodesStoreSlug, setVideoCodesStoreSlug] = useState<string | null>(null)
+
+  // 틱톡 영상번호 관련 상태
+  const [showTiktokVideoCodeModal, setShowTiktokVideoCodeModal] = useState(false)
+  const [tiktokVideoCodesStoreSlug, setTiktokVideoCodesStoreSlug] = useState<string | null>(null)
+
 
   // 플랫폼이 검색광고인지 확인
   const isSearchAdPlatform = (channelType: string) => {
@@ -399,6 +409,19 @@ export default function ConversionsPage() {
     }
   }
 
+  // 틱톡 영상번호 storeSlug 조회
+  const fetchTiktokVideoCodes = async () => {
+    try {
+      const response = await fetch('/api/tiktok/video-codes')
+      const result = await response.json()
+      if (result.success) {
+        setTiktokVideoCodesStoreSlug(result.storeSlug || null)
+      }
+    } catch (error) {
+      console.error('Failed to fetch tiktok video codes:', error)
+    }
+  }
+
   // 스마트스토어 전환 데이터 수동 동기화
   const handleSyncSmartstore = async () => {
     setSyncingSmartstore(true)
@@ -478,6 +501,44 @@ export default function ConversionsPage() {
       setMessage({ type: 'error', text: '동기화 중 오류가 발생했습니다' })
     } finally {
       setSyncingChannel(null)
+    }
+  }
+
+  // 상품 동기화 (연결된 쇼핑몰에서 상품 가져오기)
+  const handleSyncProducts = async (siteId: string, siteType: string) => {
+    setSyncingProducts(siteId)
+    try {
+      let endpoint = ''
+      let body: Record<string, string> = {}
+
+      if (siteType === 'smartstore') {
+        endpoint = '/api/naver/sync'
+        body = { siteId, syncType: 'products' }
+      } else if (siteType === 'cafe24') {
+        endpoint = '/api/cafe24/sync'
+        body = { siteId }
+      } else {
+        setMessage({ type: 'error', text: '이 쇼핑몰은 상품 동기화를 지원하지 않습니다' })
+        return
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+
+      const result = await response.json()
+      if (result.success) {
+        const syncedCount = result.results?.products?.synced || result.syncedCount || 0
+        setMessage({ type: 'success', text: `상품 ${syncedCount}개가 동기화되었습니다` })
+      } else {
+        setMessage({ type: 'error', text: result.error || '상품 동기화에 실패했습니다' })
+      }
+    } catch {
+      setMessage({ type: 'error', text: '상품 동기화 중 오류가 발생했습니다' })
+    } finally {
+      setSyncingProducts(null)
     }
   }
 
@@ -716,6 +777,7 @@ export default function ConversionsPage() {
     fetchConnectedData()
     fetchSmartstoreSyncStatus()
     fetchVideoCodes()
+    fetchTiktokVideoCodes()
   }, [])
 
   // URL 파라미터로 모달 열기
@@ -1043,27 +1105,88 @@ export default function ConversionsPage() {
                 {/* 동기화/관리 버튼 영역 */}
                 <div className="mt-4 pt-3 border-t border-white/5">
                   {isBrandChannel ? (
-                    channel.channel_type === 'youtube' ? (
+                    <>
+                    <div className="flex gap-2">
+                      {/* 상품 동기화 버튼 */}
+                      {linkedSite && (linkedSite.site_type === 'naver' || linkedSite.site_type === 'cafe24') && (
+                        <button
+                          onClick={() => handleSyncProducts(linkedSite.id, linkedSite.site_type === 'naver' ? 'smartstore' : 'cafe24')}
+                          disabled={syncingProducts === linkedSite.id}
+                          className="flex-1 px-3 py-2 text-xs font-medium rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                          title="연결된 쇼핑몰에서 상품 동기화"
+                        >
+                          {syncingProducts === linkedSite.id ? (
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                          ) : (
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                          )}
+                          <span>상품</span>
+                        </button>
+                      )}
+                      {/* 영상번호 추가 / DM 자동발송 버튼 */}
+                      {channel.channel_type === 'youtube' ? (
+                        <button
+                          onClick={() => setShowYoutubeVideoCodeModal(true)}
+                          className="flex-1 px-3 py-2 text-xs font-medium rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                          영상번호
+                        </button>
+                      ) : channel.channel_type === 'tiktok' ? (
+                        <button
+                          onClick={() => setShowTiktokVideoCodeModal(true)}
+                          className="flex-1 px-3 py-2 text-xs font-medium rounded-lg bg-pink-500/20 text-pink-400 hover:bg-pink-500/30 transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                          영상번호
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setShowCreateModal(true)}
+                          className="flex-1 px-3 py-2 text-xs font-medium rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                          DM 추가
+                        </button>
+                      )}
+                    </div>
+                    {/* 유튜브: 검색 랜딩 페이지 수정 버튼 */}
+                    {channel.channel_type === 'youtube' && videoCodesStoreSlug && (
                       <button
-                        onClick={() => setShowYoutubeVideoCodeModal(true)}
-                        className="w-full px-3 py-2 text-xs font-medium rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors flex items-center justify-center gap-1.5"
+                        onClick={() => {
+                          router.push(`/conversions/customize/youtube/${videoCodesStoreSlug}`)
+                        }}
+                        className="w-full mt-2 px-3 py-2 text-xs font-medium rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors flex items-center justify-center gap-1.5"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
-                        영상번호 추가
+                        검색랜딩수정
                       </button>
-                    ) : (
+                    )}
+                    {/* 틱톡: 검색 랜딩 페이지 수정 버튼 */}
+                    {channel.channel_type === 'tiktok' && tiktokVideoCodesStoreSlug && (
                       <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="w-full px-3 py-2 text-xs font-medium rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors flex items-center justify-center gap-1.5"
+                        onClick={() => {
+                          router.push(`/conversions/customize/tiktok/${tiktokVideoCodesStoreSlug}`)
+                        }}
+                        className="w-full mt-2 px-3 py-2 text-xs font-medium rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors flex items-center justify-center gap-1.5"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
-                        DM 자동발송 추가하기
+                        검색랜딩수정
                       </button>
-                    )
+                    )}
+                    </>
                   ) : (
                     <button
                       onClick={() => handleSyncChannel(channel)}
@@ -1272,11 +1395,13 @@ export default function ConversionsPage() {
                         const effectiveChannelType = link.channel_type || link.utm_source
                         const channelBadge = getChannelBadgeStyle(effectiveChannelType)
 
-                        // 유튜브 영상번호: video_code가 직접 있거나, channel_type이 youtube인 경우
-                        const isYoutubeVideoCode = link.channel_type === 'youtube' || link.video_code
-                        const matchedVideoCode = isYoutubeVideoCode
-                          ? { video_code: link.video_code || '', video_title: link.post_name?.replace(/^쇼츠 [A-Z]\d{3} - /, '') || '' }
+                        // 영상번호 (유튜브 또는 틱톡): video_code가 있고, channel_type이 youtube 또는 tiktok인 경우
+                        const isVideoCode = (link.channel_type === 'youtube' || link.channel_type === 'tiktok') && link.video_code
+                        const matchedVideoCode = isVideoCode
+                          ? { video_code: link.video_code || '', video_title: link.post_name?.replace(/^(쇼츠|틱톡) [A-Z]\d{3} - /, '') || '' }
                           : null
+                        // 영상번호 URL 경로 (유튜브: /v/, 틱톡: /tt/)
+                        const videoCodePath = link.channel_type === 'tiktok' ? 'tt' : 'v'
 
                         return (
                           <tr key={`link-${link.id}`} className="hover:bg-white/5">
@@ -1303,10 +1428,10 @@ export default function ConversionsPage() {
                                       {link.status === 'active' ? '활성' : '비활성'}
                                     </span>
                                   </div>
-                                  {/* 유튜브 영상번호인 경우 코드 + 제목 표시 */}
-                                  {isYoutubeVideoCode && matchedVideoCode ? (
+                                  {/* 영상번호(유튜브/틱톡)인 경우 코드 + 제목 표시 */}
+                                  {isVideoCode && matchedVideoCode ? (
                                     <div className="flex items-center gap-2">
-                                      <span className="font-mono text-lg font-bold text-red-400">{matchedVideoCode.video_code}</span>
+                                      <span className={`font-mono text-lg font-bold ${link.channel_type === 'tiktok' ? 'text-pink-400' : 'text-red-400'}`}>{matchedVideoCode.video_code}</span>
                                       <span className="text-base text-white truncate max-w-[300px]" title={matchedVideoCode.video_title || ''}>
                                         {matchedVideoCode.video_title || ''}
                                       </span>
@@ -1316,19 +1441,19 @@ export default function ConversionsPage() {
                                       {link.utm_campaign || link.post_name || ''}
                                     </span>
                                   )}
-                                  {/* 유튜브 영상번호: 검색 페이지 URL + 상품 URL 표시 (가로) */}
-                                  {isYoutubeVideoCode && (link.store_slug || videoCodesStoreSlug) && matchedVideoCode ? (
+                                  {/* 영상번호(유튜브/틱톡): 검색 페이지 URL + 상품 URL 표시 (가로) */}
+                                  {isVideoCode && link.store_slug && matchedVideoCode ? (
                                     <div className="flex items-center gap-6 flex-wrap">
                                       {/* 검색 페이지 URL */}
                                       <div className="flex items-center gap-1.5">
                                         <span className="text-xs text-slate-500 px-1.5 py-0.5 rounded bg-slate-700/50 flex-shrink-0">검색</span>
                                         <span className="text-sm text-slate-400">
-                                          {typeof window !== 'undefined' ? window.location.origin : ''}/v/{link.store_slug || videoCodesStoreSlug}
+                                          {typeof window !== 'undefined' ? window.location.origin : ''}/{videoCodePath}/{link.store_slug}
                                         </span>
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation()
-                                            const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/v/${link.store_slug || videoCodesStoreSlug}`
+                                            const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/${videoCodePath}/${link.store_slug}`
                                             copyToClipboard(url, `${link.id}-search`)
                                           }}
                                           className="p-1 rounded hover:bg-white/10 transition-colors flex-shrink-0"
@@ -1349,12 +1474,12 @@ export default function ConversionsPage() {
                                       <div className="flex items-center gap-1.5">
                                         <span className="text-xs text-slate-500 px-1.5 py-0.5 rounded bg-slate-700/50 flex-shrink-0">상품</span>
                                         <span className="text-sm text-slate-400">
-                                          {typeof window !== 'undefined' ? window.location.origin : ''}/v/{link.store_slug || videoCodesStoreSlug}/{matchedVideoCode.video_code}
+                                          {typeof window !== 'undefined' ? window.location.origin : ''}/{videoCodePath}/{link.store_slug}/{matchedVideoCode.video_code}
                                         </span>
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation()
-                                            const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/v/${link.store_slug || videoCodesStoreSlug}/${matchedVideoCode.video_code}`
+                                            const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/${videoCodePath}/${link.store_slug}/${matchedVideoCode.video_code}`
                                             copyToClipboard(url, `${link.id}-product`)
                                           }}
                                           className="p-1 rounded hover:bg-white/10 transition-colors flex-shrink-0"
@@ -1813,6 +1938,18 @@ export default function ConversionsPage() {
           fetchVideoCodes()
         }}
       />
+
+      {/* 틱톡 영상번호 모달 */}
+      <TiktokVideoCodeModal
+        isOpen={showTiktokVideoCodeModal}
+        onClose={() => setShowTiktokVideoCodeModal(false)}
+        onSuccess={() => {
+          setShowTiktokVideoCodeModal(false)
+          fetchTrackingLinks()
+          fetchTiktokVideoCodes()
+        }}
+      />
+
     </div>
   )
 }

@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: '*.cafe24.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'cdn.sellerport.app',
+      },
     ],
   },
 };

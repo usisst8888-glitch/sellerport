@@ -7,31 +7,39 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 
-const supabaseAdmin = createClient(
+const supabaseAdmin = createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
 export async function POST(request: NextRequest) {
   try {
-    // Authorization 헤더에서 토큰 추출
-    const authHeader = request.headers.get('Authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // 쿠키 기반 인증 또는 Authorization 헤더 인증
+    let user = null
+
+    // 먼저 쿠키 기반 인증 시도
+    const supabase = await createClient()
+    const { data: { user: cookieUser } } = await supabase.auth.getUser()
+
+    if (cookieUser) {
+      user = cookieUser
+    } else {
+      // 쿠키 인증 실패 시 Authorization 헤더 확인
+      const authHeader = request.headers.get('Authorization')
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.replace('Bearer ', '')
+        const { data: { user: tokenUser } } = await supabaseAdmin.auth.getUser(token)
+        user = tokenUser
+      }
+    }
+
+    if (!user) {
       return NextResponse.json({
         success: false,
         error: '인증이 필요합니다.'
-      }, { status: 401 })
-    }
-
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-
-    if (authError || !user) {
-      return NextResponse.json({
-        success: false,
-        error: '유효하지 않은 토큰입니다.'
       }, { status: 401 })
     }
 
@@ -165,21 +173,27 @@ export async function POST(request: NextRequest) {
 // GET: 매칭 현황 조회
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('Authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // 쿠키 기반 인증 또는 Authorization 헤더 인증
+    let user = null
+
+    const supabase = await createClient()
+    const { data: { user: cookieUser } } = await supabase.auth.getUser()
+
+    if (cookieUser) {
+      user = cookieUser
+    } else {
+      const authHeader = request.headers.get('Authorization')
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.replace('Bearer ', '')
+        const { data: { user: tokenUser } } = await supabaseAdmin.auth.getUser(token)
+        user = tokenUser
+      }
+    }
+
+    if (!user) {
       return NextResponse.json({
         success: false,
         error: '인증이 필요합니다.'
-      }, { status: 401 })
-    }
-
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-
-    if (authError || !user) {
-      return NextResponse.json({
-        success: false,
-        error: '유효하지 않은 토큰입니다.'
       }, { status: 401 })
     }
 

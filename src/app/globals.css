@@ -362,3 +362,32 @@
     background-position: 0% 50%;
   }
 }
+
+/* 커스텀 스크롤바 - 미리보기용 */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 5px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 16px 0;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.4);
+  border-radius: 10px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+}
+
+/* 커스텀 Color Picker 스타일 */
+.color-picker-hex::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-picker-hex::-webkit-color-swatch {
+  border: none;
+  border-radius: 8px;
+}

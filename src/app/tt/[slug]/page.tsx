@@ -1,9 +1,9 @@
 'use client'
 
 /**
- * 스토어별 영상번호 검색 페이지
- * /v/tripjoy 형식으로 접근
- * 시청자가 쇼츠에서 본 영상번호를 입력하여 상품 페이지로 이동
+ * 틱톡 스토어별 영상번호 검색 페이지
+ * /tt/tiktok-store 형식으로 접근
+ * 시청자가 틱톡에서 본 영상번호를 입력하여 상품 페이지로 이동
  */
 
 import { useState, useEffect } from 'react'
@@ -50,7 +50,7 @@ interface StoreCustomization {
   business_contact_text_color_hex?: string
 }
 
-export default function StoreVideoCodeSearchPage() {
+export default function TiktokStoreVideoCodeSearchPage() {
   const params = useParams()
   const slug = params.slug as string
   const [code, setCode] = useState('')
@@ -65,7 +65,7 @@ export default function StoreVideoCodeSearchPage() {
   useEffect(() => {
     const checkStore = async () => {
       try {
-        const response = await fetch(`/api/youtube/video-codes/store/${slug}`)
+        const response = await fetch(`/api/tiktok/video-codes/store/${slug}`)
         const result = await response.json()
         if (result.success) {
           setStoreValid(true)
@@ -73,7 +73,7 @@ export default function StoreVideoCodeSearchPage() {
 
           // 커스터마이징 로드
           try {
-            const customRes = await fetch(`/api/store-customization?channel_type=youtube&store_slug=${slug}`)
+            const customRes = await fetch(`/api/store-customization?channel_type=tiktok&store_slug=${slug}`)
             const customResult = await customRes.json()
             console.log('Customization loaded:', customResult)
             if (customResult.success && customResult.data) {
@@ -109,7 +109,7 @@ export default function StoreVideoCodeSearchPage() {
     setLoading(true)
 
     // 영상번호 페이지로 이동 (서버에서 리다이렉트 처리)
-    router.push(`/v/${slug}/${normalizedCode}`)
+    router.push(`/tt/${slug}/${normalizedCode}`)
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -122,8 +122,8 @@ export default function StoreVideoCodeSearchPage() {
   }
 
   // 기본값 (hex 색상)
-  const bgColor = customization?.bg_color_hex || '#FECACA'
-  const buttonColor = customization?.button_color_hex || '#F97316'
+  const bgColor = customization?.bg_color_hex || '#FECDD3'
+  const buttonColor = customization?.button_color_hex || '#F43F5E'
   const titleColor = customization?.title_color_hex || '#1E293B'
   const subtitleColor = customization?.subtitle_color_hex || '#475569'
   const buttonTextColor = customization?.button_text_color_hex || '#FFFFFF'
@@ -135,8 +135,8 @@ export default function StoreVideoCodeSearchPage() {
   const inputBorderColor = customization?.input_border_color_hex || '#E2E8F0'
   const inputShowBorder = customization?.input_show_border !== false
   const quickLinks = customization?.quick_links || []
-  const quickLinkBgColor = customization?.quick_link_bg_color_hex || 'rgba(255,255,255,0.4)'
-  const quickLinkTextColor = customization?.quick_link_text_color_hex || '#334155'
+  const quickLinkBgColor = customization?.quick_link_bg_color_hex || '#FFFFFF'
+  const quickLinkTextColor = customization?.quick_link_text_color_hex || '#1E293B'
   const quickLinkLayout = customization?.quick_link_layout || 'single'
 
   // 상단 이미지 높이 클래스 (더 높게 조정)
@@ -146,7 +146,7 @@ export default function StoreVideoCodeSearchPage() {
   if (storeValid === null) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-4">
-        <div className="w-12 h-12 border-4 border-red-500/30 border-t-red-500 rounded-full animate-spin" />
+        <div className="w-12 h-12 border-4 border-pink-500/30 border-t-pink-500 rounded-full animate-spin" />
         <p className="mt-4 text-slate-400">로딩 중...</p>
       </div>
     )
@@ -217,7 +217,7 @@ export default function StoreVideoCodeSearchPage() {
           <div className="mb-8 text-center">
             <h1 className="text-2xl font-bold mb-2" style={{ color: titleColor }}>{titleText}</h1>
             <p className="text-sm" style={{ color: subtitleColor }}>
-              {subtitleText || '쇼츠에서 안내받은 영상번호를 입력하세요'}
+              {subtitleText || '틱톡에서 안내받은 영상번호를 입력하세요'}
             </p>
           </div>
 
@@ -261,7 +261,7 @@ export default function StoreVideoCodeSearchPage() {
           </form>
 
           {/* 안내 */}
-          <div className="mt-8 text-center">
+          <div className="mt-12 text-center">
             <p className="text-slate-500 text-xs">
               영상에서 &quot;A001&quot; 같은 번호를 찾아 입력해주세요
             </p>
@@ -269,66 +269,55 @@ export default function StoreVideoCodeSearchPage() {
 
           {/* 빠른 링크 */}
           {quickLinks.length > 0 && (
-            <div className={`w-full mt-8 ${
-              quickLinkLayout === 'double'
-                ? 'grid grid-cols-2 gap-2'
-                : 'space-y-2.5'
-            }`}>
-              {quickLinks.map((link) => (
-                <a
-                  key={link.id}
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`flex rounded-xl backdrop-blur-sm transition-opacity hover:opacity-80 overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.08)] ${
-                    quickLinkLayout === 'double'
-                      ? 'flex-col'
-                      : 'flex-row items-center gap-3 px-3 py-3'
-                  }`}
-                  style={{ backgroundColor: quickLinkBgColor }}
-                >
-                  {link.imageUrl ? (
-                    <img
-                      src={link.imageUrl}
-                      alt={link.title}
-                      className={`object-cover flex-shrink-0 ${
-                        quickLinkLayout === 'double' ? 'w-full aspect-square' : 'w-16 h-16 rounded-xl'
-                      }`}
-                    />
-                  ) : (
-                    <div
-                      className={`bg-white/60 flex items-center justify-center flex-shrink-0 ${
-                        quickLinkLayout === 'double' ? 'w-full aspect-square' : 'w-16 h-16 rounded-xl'
-                      }`}
-                    >
-                      <svg className="w-7 h-7 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                      </svg>
-                    </div>
-                  )}
-                  <span
-                    className={`font-medium leading-snug ${
+            <div className="mt-8 w-full">
+              <div className={quickLinkLayout === 'double' ? 'grid grid-cols-2 gap-2' : 'space-y-2.5'}>
+                {quickLinks.map((link: QuickLink) => (
+                  <a
+                    key={link.id}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`flex rounded-xl transition-all hover:opacity-80 overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.08)] ${
                       quickLinkLayout === 'double'
-                        ? 'text-sm w-full text-center p-2'
-                        : 'text-base line-clamp-2 flex-1'
+                        ? 'flex-col'
+                        : 'flex-row items-center gap-3 px-3 py-3'
                     }`}
-                    style={{ color: quickLinkTextColor }}
+                    style={{ backgroundColor: quickLinkBgColor }}
                   >
-                    {link.title}
-                  </span>
-                  {quickLinkLayout !== 'double' && (
-                    <svg
-                      className="w-5 h-5 flex-shrink-0"
+                    {link.imageUrl ? (
+                      <Image
+                        src={link.imageUrl}
+                        alt={link.title}
+                        width={120}
+                        height={120}
+                        className={`object-cover flex-shrink-0 ${
+                          quickLinkLayout === 'double' ? 'w-full aspect-square' : 'w-14 h-14 rounded-xl'
+                        }`}
+                      />
+                    ) : (
+                      <div
+                        className={`bg-white/60 flex items-center justify-center flex-shrink-0 ${
+                          quickLinkLayout === 'double' ? 'w-full aspect-square' : 'w-14 h-14 rounded-xl'
+                        }`}
+                      >
+                        <svg className="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                      </div>
+                    )}
+                    <span
+                      className={`font-medium leading-snug ${
+                        quickLinkLayout === 'double'
+                          ? 'text-sm w-full text-center p-2'
+                          : 'text-sm line-clamp-2 flex-1'
+                      }`}
                       style={{ color: quickLinkTextColor }}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  )}
-                </a>
-              ))}
+                      {link.title}
+                    </span>
+                  </a>
+                ))}
+              </div>
             </div>
           )}
         </div>

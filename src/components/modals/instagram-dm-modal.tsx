@@ -115,7 +115,8 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
           triggerKeywords: settings.trigger_keywords?.join(', ') || '',
           dmMessage: settings.dm_message || '',
           followMessage: settings.follow_cta_message || '',
-          targetUrl: settings.tracking_links?.target_url || ''
+          targetUrl: settings.tracking_links?.target_url || '',
+          selectedProductId: ''
         })
         setSelectedMediaId(settings.instagram_media_id || null)
         setSelectedMediaUrl(settings.instagram_media_url || null)
@@ -518,79 +519,73 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
 
                       {/* 드롭다운 메뉴 */}
                       {isProductDropdownOpen && (
-                        <div className="absolute z-20 w-full mt-2 rounded-xl bg-slate-700 border border-slate-600 shadow-xl">
-                          {/* 상품 검색 */}
-                          <div className="p-2 border-b border-slate-600">
-                            <input
-                              type="text"
-                              placeholder="상품명 검색..."
-                              value={productSearch}
-                              onChange={(e) => setProductSearch(e.target.value)}
-                              className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 text-sm"
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </div>
+                        <div className="absolute z-[60] w-full mt-2 rounded-xl bg-slate-700 border border-slate-600 shadow-xl">
+                            {/* 상품 검색 */}
+                            <div className="p-2 border-b border-slate-600">
+                              <input
+                                type="text"
+                                placeholder="상품명 검색..."
+                                value={productSearch}
+                                onChange={(e) => setProductSearch(e.target.value)}
+                                className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 text-sm"
+                              />
+                            </div>
 
-                          {/* 상품 목록 */}
-                          <div className="max-h-48 overflow-y-auto">
-                            {productsLoading ? (
-                              <div className="flex items-center justify-center py-4">
-                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-                                <span className="ml-2 text-sm text-slate-400">상품 불러오는 중...</span>
-                              </div>
-                            ) : filteredProducts.length === 0 ? (
-                              <div className="p-4 text-center text-sm text-slate-400">
-                                {products.length === 0 ? (
-                                  <>연결된 스토어에 상품이 없습니다</>
-                                ) : (
-                                  <>검색 결과가 없습니다</>
-                                )}
-                              </div>
-                            ) : (
-                              filteredProducts.slice(0, 10).map((product) => (
-                                <button
-                                  key={product.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setForm(prev => ({ ...prev, selectedProductId: product.id }))
-                                    setIsProductDropdownOpen(false)
-                                    setProductSearch('')
-                                  }}
-                                  className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-600/50 border-b border-slate-600 last:border-b-0 text-left ${
-                                    form.selectedProductId === product.id ? 'bg-blue-500/10' : ''
-                                  }`}
-                                >
-                                  {product.image_url ? (
-                                    <img
-                                      src={product.image_url}
-                                      alt={product.name}
-                                      className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-                                    />
+                            {/* 상품 목록 */}
+                            <div className="max-h-64 overflow-y-auto">
+                              {productsLoading ? (
+                                <div className="flex items-center justify-center py-4">
+                                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                                  <span className="ml-2 text-sm text-slate-400">상품 불러오는 중...</span>
+                                </div>
+                              ) : filteredProducts.length === 0 ? (
+                                <div className="p-4 text-center text-sm text-slate-400">
+                                  {products.length === 0 ? (
+                                    <>연결된 스토어에 상품이 없습니다</>
                                   ) : (
-                                    <div className="w-10 h-10 rounded-lg bg-slate-600 flex items-center justify-center flex-shrink-0">
-                                      <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                      </svg>
+                                    <>검색 결과가 없습니다</>
+                                  )}
+                                </div>
+                              ) : (
+                                filteredProducts.map((product) => (
+                                  <button
+                                    key={product.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setForm(prev => ({ ...prev, selectedProductId: product.id }))
+                                      setIsProductDropdownOpen(false)
+                                      setProductSearch('')
+                                    }}
+                                    className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-600/50 border-b border-slate-600 last:border-b-0 text-left ${
+                                      form.selectedProductId === product.id ? 'bg-blue-500/10' : ''
+                                    }`}
+                                  >
+                                    {product.image_url ? (
+                                      <img
+                                        src={product.image_url}
+                                        alt={product.name}
+                                        className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                                      />
+                                    ) : (
+                                      <div className="w-10 h-10 rounded-lg bg-slate-600 flex items-center justify-center flex-shrink-0">
+                                        <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                      </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm text-white truncate">{product.name}</p>
+                                      <p className="text-xs text-slate-400">{product.price.toLocaleString()}원</p>
                                     </div>
-                                  )}
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm text-white truncate">{product.name}</p>
-                                    <p className="text-xs text-slate-400">{product.price.toLocaleString()}원</p>
-                                  </div>
-                                  {form.selectedProductId === product.id && (
-                                    <svg className="w-5 h-5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                  )}
-                                </button>
-                              ))
-                            )}
-                            {filteredProducts.length > 10 && (
-                              <p className="text-center text-xs text-slate-500 py-2">
-                                +{filteredProducts.length - 10}개 더 (검색으로 찾기)
-                              </p>
-                            )}
-                          </div>
+                                    {form.selectedProductId === product.id && (
+                                      <svg className="w-5 h-5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    )}
+                                  </button>
+                                ))
+                              )}
+                            </div>
                         </div>
                       )}
 

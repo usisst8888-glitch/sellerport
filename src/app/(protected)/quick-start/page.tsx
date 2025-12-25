@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
@@ -78,9 +79,21 @@ export default function QuickStartPage() {
   // Google Ads 준비중 팝업
   const [showGoogleAdsComingSoon, setShowGoogleAdsComingSoon] = useState(false)
 
+  // URL 파라미터
+  const searchParams = useSearchParams()
+
   useEffect(() => {
     checkExistingData()
   }, [])
+
+  // URL 파라미터로 사이트 타입 자동 선택 (예: ?site=naver)
+  useEffect(() => {
+    const siteParam = searchParams.get('site')
+    if (siteParam && ['naver', 'cafe24', 'imweb'].includes(siteParam)) {
+      setSiteType(siteParam as SiteType)
+      setShowSiteForm(true)
+    }
+  }, [searchParams])
 
   const checkExistingData = async () => {
     const supabase = createClient()
@@ -680,7 +693,7 @@ export default function QuickStartPage() {
                       />
                     </div>
                     <Link
-                      href="/guide?tab=sites&channel=naver"
+                      href="/guide?tab=mysites&expand=naver"
                       className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

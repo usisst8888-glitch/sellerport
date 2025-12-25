@@ -72,8 +72,10 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
   const [form, setForm] = useState({
     videoCode: '',
     videoTitle: '',
-    selectedProductId: ''
+    selectedProductId: '',
+    targetUrl: ''
   })
+  const [urlInputMode, setUrlInputMode] = useState<'product' | 'manual'>('product')
   const [creating, setCreating] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [loading, setLoading] = useState(true)
@@ -152,11 +154,12 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
   // 모달 닫힐 때 초기화 (savedStoreSlug는 유지)
   useEffect(() => {
     if (!isOpen) {
-      setForm({ videoCode: '', videoTitle: '', selectedProductId: '' })
+      setForm({ videoCode: '', videoTitle: '', selectedProductId: '', targetUrl: '' })
       setMessage(null)
       setCopiedUrl(false)
       setProductSearch('')
       setIsProductDropdownOpen(false)
+      setUrlInputMode('product')
       // savedStoreSlug는 초기화하지 않음 - 항상 유지
     }
   }, [isOpen])
@@ -192,15 +195,29 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
       return
     }
 
-    if (!form.selectedProductId || !selectedProduct) {
-      setMessage({ type: 'error', text: '상품을 선택해주세요' })
-      return
-    }
+    // 목적지 URL 결정
+    let targetUrl = ''
+    let videoTitle = form.videoTitle
 
-    const targetUrl = getProductUrl(selectedProduct)
-    if (!targetUrl) {
-      setMessage({ type: 'error', text: '상품 URL을 생성할 수 없습니다' })
-      return
+    if (urlInputMode === 'product') {
+      if (!form.selectedProductId || !selectedProduct) {
+        setMessage({ type: 'error', text: '상품을 선택해주세요' })
+        return
+      }
+      targetUrl = getProductUrl(selectedProduct)
+      if (!targetUrl) {
+        setMessage({ type: 'error', text: '상품 URL을 가져올 수 없습니다' })
+        return
+      }
+      if (!videoTitle) {
+        videoTitle = selectedProduct.name
+      }
+    } else {
+      if (!form.targetUrl) {
+        setMessage({ type: 'error', text: '목적지 URL을 입력해주세요' })
+        return
+      }
+      targetUrl = form.targetUrl
     }
 
     // 영상번호 형식 검증 (A001~Z999)
@@ -217,7 +234,7 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           videoCode: form.videoCode,
-          videoTitle: form.videoTitle || selectedProduct.name,
+          videoTitle: videoTitle,
           targetUrl: targetUrl
         })
       })
@@ -228,7 +245,7 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
         // 목록 새로고침
         await fetchExistingCodes()
         // 폼 초기화 (영상번호는 다음 번호로)
-        setForm(prev => ({ ...prev, videoTitle: '', selectedProductId: '' }))
+        setForm(prev => ({ ...prev, videoTitle: '', selectedProductId: '', targetUrl: '' }))
         setProductSearch('')
         onSuccess()
       } else {
@@ -318,119 +335,163 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
                 </div>
               )}
 
-              {/* 상품 선택 */}
-              <div ref={dropdownRef} className="relative">
+              {/* 상품 선택 / 직접 입력 */}
+              <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-xs mr-2">1</span>
-                  상품 선택
+                  목적지 URL
                 </label>
 
-                {/* 드롭다운 트리거 버튼 */}
-                <button
-                  type="button"
-                  onClick={() => setIsProductDropdownOpen(!isProductDropdownOpen)}
-                  className={`w-full h-11 px-4 rounded-xl border text-left flex items-center justify-between ${
-                    selectedProduct
-                      ? 'bg-green-500/10 border-green-500/30'
-                      : 'bg-slate-700 border-slate-600 hover:border-slate-500'
-                  }`}
-                >
-                  {selectedProduct ? (
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      {selectedProduct.image_url && (
-                        <img
-                          src={selectedProduct.image_url}
-                          alt={selectedProduct.name}
-                          className="w-8 h-8 rounded-lg object-cover flex-shrink-0"
-                        />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white truncate">{selectedProduct.name}</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <span className="text-slate-400">상품을 선택하세요</span>
-                  )}
-                  <svg className={`w-5 h-5 text-slate-400 transition-transform flex-shrink-0 ${isProductDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
+                {/* 모드 선택 탭 */}
+                <div className="flex gap-2 mb-3">
+                  <button
+                    type="button"
+                    onClick={() => setUrlInputMode('product')}
+                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                      urlInputMode === 'product'
+                        ? 'bg-red-500 text-white'
+                        : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                    }`}
+                  >
+                    상품 선택
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUrlInputMode('manual')}
+                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                      urlInputMode === 'manual'
+                        ? 'bg-red-500 text-white'
+                        : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                    }`}
+                  >
+                    직접 입력
+                  </button>
+                </div>
 
-                {/* 드롭다운 메뉴 */}
-                {isProductDropdownOpen && (
-                  <div className="absolute z-20 w-full mt-2 rounded-xl bg-slate-700 border border-slate-600 shadow-xl">
-                    {/* 상품 검색 */}
-                    <div className="p-2 border-b border-slate-600">
-                      <input
-                        type="text"
-                        placeholder="상품명 검색..."
-                        value={productSearch}
-                        onChange={(e) => setProductSearch(e.target.value)}
-                        className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder:text-slate-500 focus:border-red-500 text-sm"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </div>
-
-                    {/* 상품 목록 */}
-                    <div className="max-h-48 overflow-y-auto">
-                      {productsLoading ? (
-                        <div className="flex items-center justify-center py-4">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-500"></div>
-                          <span className="ml-2 text-sm text-slate-400">상품 불러오는 중...</span>
-                        </div>
-                      ) : filteredProducts.length === 0 ? (
-                        <div className="p-4 text-center text-sm text-slate-400">
-                          {products.length === 0 ? (
-                            <>연결된 스토어에 상품이 없습니다</>
-                          ) : (
-                            <>검색 결과가 없습니다</>
+                {/* 상품 선택 모드 */}
+                {urlInputMode === 'product' && (
+                  <div ref={dropdownRef} className="relative">
+                    {/* 드롭다운 트리거 버튼 */}
+                    <button
+                      type="button"
+                      onClick={() => setIsProductDropdownOpen(!isProductDropdownOpen)}
+                      className={`w-full h-11 px-4 rounded-xl border text-left flex items-center justify-between ${
+                        selectedProduct
+                          ? 'bg-green-500/10 border-green-500/30'
+                          : 'bg-slate-700 border-slate-600 hover:border-slate-500'
+                      }`}
+                    >
+                      {selectedProduct ? (
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {selectedProduct.image_url && (
+                            <img
+                              src={selectedProduct.image_url}
+                              alt={selectedProduct.name}
+                              className="w-8 h-8 rounded-lg object-cover flex-shrink-0"
+                            />
                           )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-white truncate">{selectedProduct.name}</p>
+                          </div>
                         </div>
                       ) : (
-                        filteredProducts.slice(0, 10).map((product) => (
-                          <button
-                            key={product.id}
-                            onClick={() => {
-                              setForm(prev => ({ ...prev, selectedProductId: product.id }))
-                              setIsProductDropdownOpen(false)
-                              setProductSearch('')
-                            }}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-600/50 border-b border-slate-600 last:border-b-0 text-left ${
-                              form.selectedProductId === product.id ? 'bg-red-500/10' : ''
-                            }`}
-                          >
-                            {product.image_url ? (
-                              <img
-                                src={product.image_url}
-                                alt={product.name}
-                                className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-lg bg-slate-600 flex items-center justify-center flex-shrink-0">
-                                <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
+                        <span className="text-slate-400">상품을 선택하세요</span>
+                      )}
+                      <svg className={`w-5 h-5 text-slate-400 transition-transform flex-shrink-0 ${isProductDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {/* 드롭다운 메뉴 */}
+                    {isProductDropdownOpen && (
+                      <div className="absolute z-[60] w-full mt-2 rounded-xl bg-slate-700 border border-slate-600 shadow-xl">
+                          {/* 상품 검색 */}
+                          <div className="p-2 border-b border-slate-600">
+                            <input
+                              type="text"
+                              placeholder="상품명 검색..."
+                              value={productSearch}
+                              onChange={(e) => setProductSearch(e.target.value)}
+                              className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder:text-slate-500 focus:border-red-500 text-sm"
+                            />
+                          </div>
+
+                          {/* 상품 목록 */}
+                          <div className="max-h-64 overflow-y-auto">
+                            {productsLoading ? (
+                              <div className="flex items-center justify-center py-4">
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-500"></div>
+                                <span className="ml-2 text-sm text-slate-400">상품 불러오는 중...</span>
                               </div>
+                            ) : filteredProducts.length === 0 ? (
+                              <div className="p-4 text-center text-sm text-slate-400">
+                                {products.length === 0 ? (
+                                  <>연결된 스토어에 상품이 없습니다</>
+                                ) : (
+                                  <>검색 결과가 없습니다</>
+                                )}
+                              </div>
+                            ) : (
+                              filteredProducts.map((product) => (
+                                <button
+                                  key={product.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setForm(prev => ({ ...prev, selectedProductId: product.id }))
+                                    setIsProductDropdownOpen(false)
+                                    setProductSearch('')
+                                  }}
+                                  className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-600/50 border-b border-slate-600 last:border-b-0 text-left ${
+                                    form.selectedProductId === product.id ? 'bg-red-500/10' : ''
+                                  }`}
+                                >
+                                  {product.image_url ? (
+                                    <img
+                                      src={product.image_url}
+                                      alt={product.name}
+                                      className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-10 rounded-lg bg-slate-600 flex items-center justify-center flex-shrink-0">
+                                      <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                      </svg>
+                                    </div>
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-white truncate">{product.name}</p>
+                                    <p className="text-xs text-slate-400">{product.price.toLocaleString()}원</p>
+                                  </div>
+                                  {form.selectedProductId === product.id && (
+                                    <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  )}
+                                </button>
+                              ))
                             )}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-white truncate">{product.name}</p>
-                              <p className="text-xs text-slate-400">{product.price.toLocaleString()}원</p>
-                            </div>
-                            {form.selectedProductId === product.id && (
-                              <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </button>
-                        ))
-                      )}
-                      {filteredProducts.length > 10 && (
-                        <p className="text-center text-xs text-slate-500 py-2">
-                          +{filteredProducts.length - 10}개 더 (검색으로 찾기)
-                        </p>
-                      )}
-                    </div>
+                          </div>
+                      </div>
+                    )}
+
+                    {/* 선택된 상품 URL 미리보기 */}
+                    {selectedProduct && (
+                      <p className="text-xs text-slate-500 mt-2 truncate">
+                        URL: {getProductUrl(selectedProduct) || '상품 URL 없음'}
+                      </p>
+                    )}
                   </div>
+                )}
+
+                {/* 직접 입력 모드 */}
+                {urlInputMode === 'manual' && (
+                  <input
+                    type="url"
+                    placeholder="https://smartstore.naver.com/..."
+                    value={form.targetUrl}
+                    onChange={(e) => setForm({ ...form, targetUrl: e.target.value })}
+                    className="w-full h-11 px-4 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:border-red-500"
+                  />
                 )}
               </div>
 
@@ -512,7 +573,7 @@ export function YoutubeVideoCodeModal({ isOpen, onClose, onSuccess }: YoutubeVid
             </button>
             <button
               onClick={handleSubmit}
-              disabled={creating || !form.videoCode || !form.selectedProductId}
+              disabled={creating || !form.videoCode || (urlInputMode === 'product' && !form.selectedProductId) || (urlInputMode === 'manual' && !form.targetUrl)}
               className="flex-1 h-11 rounded-xl bg-red-500 hover:bg-red-600 text-white font-medium disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {creating ? (
