@@ -183,25 +183,41 @@ async function downloadExcel() {
       return { success: false, error: '로그인이 필요합니다.' };
     }
 
+    console.log('[에이블리 수집기] CSV 다운로드 요청');
+
     const response = await fetch(`${API_BASE_URL}/ably/sellers?format=csv`, {
       headers: {
         'Authorization': `Bearer ${authToken}`
       }
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      return { success: false, error: errorText || '다운로드 실패' };
+    console.log('[에이블리 수집기] CSV 응답 상태:', response.status);
+    console.log('[에이블리 수집기] Content-Type:', response.headers.get('Content-Type'));
+
+    // 응답 텍스트 가져오기
+    const responseText = await response.text();
+    console.log('[에이블리 수집기] 응답 길이:', responseText.length);
+    console.log('[에이블리 수집기] 응답 미리보기:', responseText.substring(0, 100));
+
+    // JSON 에러 응답인지 확인
+    if (responseText.startsWith('{')) {
+      try {
+        const jsonError = JSON.parse(responseText);
+        return { success: false, error: jsonError.error || '다운로드 실패' };
+      } catch (e) {
+        // JSON 파싱 실패하면 그냥 진행
+      }
     }
 
-    // CSV 데이터를 Blob으로 변환
-    const csvContent = await response.text();
+    if (!response.ok) {
+      return { success: false, error: responseText || '다운로드 실패' };
+    }
 
-    if (!csvContent || csvContent.length < 50) {
+    if (!responseText || responseText.length < 50) {
       return { success: false, error: '저장된 셀러 정보가 없습니다.' };
     }
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([responseText], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
 
     const date = new Date().toISOString().split('T')[0];
@@ -214,7 +230,7 @@ async function downloadExcel() {
     });
 
     // 행 수 계산 (헤더 제외)
-    const rowCount = csvContent.split('\n').length - 1;
+    const rowCount = responseText.split('\n').length - 1;
 
     console.log('[에이블리 수집기] 다운로드 시작:', filename);
 

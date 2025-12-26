@@ -198,11 +198,13 @@ export async function GET(request: NextRequest) {
       ].join('\n')
 
       const date = new Date().toISOString().split('T')[0]
+      const filename = `sellers_${date}.csv`
+      const encodedFilename = encodeURIComponent(`셀러정보_${date}.csv`)
 
       return new NextResponse(csvContent, {
         headers: {
           'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="셀러정보_${date}.csv"`
+          'Content-Disposition': `attachment; filename="${filename}"; filename*=UTF-8''${encodedFilename}`
         }
       })
     }
