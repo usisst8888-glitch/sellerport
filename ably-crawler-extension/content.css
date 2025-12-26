@@ -1,0 +1,106 @@
+/* 에이블리 셀러 정보 수집기 - 스타일 */
+
+/* 저장 버튼 */
+.ably-seller-btn {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+  transition: all 0.3s ease;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.ably-seller-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+}
+
+.ably-seller-btn:active {
+  transform: translateY(0);
+}
+
+.ably-seller-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.ably-seller-btn svg {
+  flex-shrink: 0;
+}
+
+/* 로딩 애니메이션 */
+.ably-seller-btn .spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 알림 */
+.ably-notification {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 999999;
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  animation: slideDown 0.3s ease;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.ably-notification.fade-out {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-20px);
+  transition: all 0.3s ease;
+}
+
+.ably-notification-success {
+  background: #10b981;
+  color: white;
+}
+
+.ably-notification-error {
+  background: #ef4444;
+  color: white;
+}
+
+.ably-notification-warning {
+  background: #f59e0b;
+  color: white;
+}
+
+.ably-notification-info {
+  background: #3b82f6;
+  color: white;
+}

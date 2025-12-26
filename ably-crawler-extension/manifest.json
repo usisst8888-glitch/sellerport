@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "에이블리 셀러 정보 수집기",
+  "version": "1.0.1",
+  "description": "에이블리 상품 페이지에서 판매자 정보를 수집하여 엑셀로 저장합니다.",
+  "permissions": [
+    "storage",
+    "downloads"
+  ],
+  "host_permissions": [
+    "https://m.a-bly.com/*",
+    "https://a-bly.com/*",
+    "https://*.a-bly.com/*",
+    "https://sellerport.app/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://m.a-bly.com/goods/*",
+        "https://a-bly.com/goods/*"
+      ],
+      "js": ["content.js"],
+      "css": ["content.css"]
+    },
+    {
+      "matches": [
+        "https://sellerport.app/*"
+      ],
+      "js": ["sellerport-auth.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
