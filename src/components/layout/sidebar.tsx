@@ -25,6 +25,34 @@ const menuItems: MenuItem[] = [
     badge: '🚦',
   },
   {
+    title: '광고 성과 관리',
+    href: '/conversions',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+    ),
+    badge: '핵심',
+  },
+  {
+    title: '셀러샵',
+    href: '/seller-shop',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+      </svg>
+    ),
+  },
+  {
+    title: 'Instagram DM',
+    href: '/instagram-dm',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+      </svg>
+    ),
+  },
+  {
     title: '빠른 시작',
     href: '/quick-start',
     icon: (
@@ -32,17 +60,7 @@ const menuItems: MenuItem[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
       </svg>
     ),
-    badge: '시작하기',
-  },
-  {
-    title: '광고 성과 관리',
-    href: '/conversions',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-      </svg>
-    ),
-    badge: '분석핵심',
+    badge: '연동',
   },
 // 광고 채널 관리 - 빠른 시작에서 모두 처리 가능하므로 삭제
   // {
@@ -214,10 +232,10 @@ export function Sidebar() {
                 {'badge' in item && item.badge && (
                   <span className={cn(
                     "ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full",
-                    item.badge === '분석핵심'
+                    item.badge === '핵심'
                       ? 'bg-red-500 text-white'
-                      : item.badge === '시작하기'
-                        ? 'bg-green-500 text-white'
+                      : item.badge === '연동'
+                        ? 'bg-blue-500 text-white'
                         : ''
                   )}>
                     {item.badge}

@@ -2,6 +2,15 @@
 
 const API_BASE_URL = 'https://sellerport.app/api';
 
+// Uint8Array를 Base64 문자열로 변환 (Service Worker에서 사용)
+function uint8ArrayToBase64(uint8Array) {
+  let binary = '';
+  for (let i = 0; i < uint8Array.length; i++) {
+    binary += String.fromCharCode(uint8Array[i]);
+  }
+  return btoa(binary);
+}
+
 // 메시지 리스너
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'saveSellerInfo') {
@@ -217,14 +226,23 @@ async function downloadExcel() {
       return { success: false, error: '저장된 셀러 정보가 없습니다.' };
     }
 
-    const blob = new Blob([responseText], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    // Service Worker에서는 URL.createObjectURL 사용 불가
+    // UTF-8 BOM + CSV 내용을 Base64로 인코딩
+    // BOM이 없으면 엑셀에서 한글이 깨짐
+    const BOM = '\uFEFF';
+    const csvWithBom = responseText.startsWith(BOM) ? responseText : BOM + responseText;
+
+    // UTF-8 문자열을 바이트 배열로 변환 후 Base64 인코딩
+    const encoder = new TextEncoder();
+    const uint8Array = encoder.encode(csvWithBom);
+    const base64 = uint8ArrayToBase64(uint8Array);
+    const dataUrl = `data:text/csv;base64,${base64}`;
 
     const date = new Date().toISOString().split('T')[0];
     const filename = `셀러정보_${date}.csv`;
 
     await chrome.downloads.download({
-      url: url,
+      url: dataUrl,
       filename: filename,
       saveAs: true
     });

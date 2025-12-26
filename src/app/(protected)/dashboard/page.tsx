@@ -8,6 +8,9 @@ import { createClient } from '@/lib/supabase/client'
 // 정식 오픈일 (2026년 1월 1일)
 const LAUNCH_DATE = new Date('2026-01-01T00:00:00')
 
+// 사전 오픈 예외 계정 (Meta 심사용 등)
+const ALLOWED_TEST_EMAILS = ['test@naver.com']
+
 interface TrackingLink {
   id: string
   name: string
@@ -115,8 +118,9 @@ export default function DashboardPage() {
         const type = profile?.user_type || 'seller'
         setUserType(type)
 
-        // admin이 아니고 정식 오픈 전이면 팝업 표시
-        if (type !== 'admin' && new Date() < LAUNCH_DATE) {
+        // admin이 아니고, 예외 계정이 아니고, 정식 오픈 전이면 팝업 표시
+        const isAllowedTestAccount = ALLOWED_TEST_EMAILS.includes(user.email || '')
+        if (type !== 'admin' && !isAllowedTestAccount && new Date() < LAUNCH_DATE) {
           setShowPreLaunchModal(true)
         }
       }
