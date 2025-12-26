@@ -55,21 +55,19 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // 중복 체크
+    // 중복 체크 (전체 유저 대상)
     const { data: existing } = await supabaseAdmin
       .from('ably_sellers')
       .select('id')
-      .eq('user_id', user.id)
       .eq('company_name', body.상호)
       .eq('business_number', body.사업자등록번호 || '')
       .single()
 
     if (existing) {
-      // 기존 데이터 개수 조회
+      // 전체 데이터 개수 조회
       const { count } = await supabaseAdmin
         .from('ably_sellers')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
 
       return NextResponse.json({
         success: true,
@@ -113,11 +111,10 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // 전체 개수 조회
+    // 전체 개수 조회 (모든 유저)
     const { count } = await supabaseAdmin
       .from('ably_sellers')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
 
     console.log(`[Ably Sellers] Saved: ${body.상호}, Total: ${count}`)
 
@@ -161,11 +158,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const format = searchParams.get('format')
 
-    // 데이터 조회
+    // 데이터 조회 (전체 유저 데이터)
     const { data: sellers, error } = await supabaseAdmin
       .from('ably_sellers')
       .select('*')
-      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
     if (error) {

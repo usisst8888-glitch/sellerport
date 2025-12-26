@@ -63,7 +63,8 @@ export async function GET(request: NextRequest) {
           id,
           channel_name,
           account_name,
-          metadata
+          metadata,
+          access_token
         ),
         tracking_links (
           id,
@@ -83,7 +84,53 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, data: settings })
+    // 썸네일이 없는 설정들에 대해 Instagram API에서 가져와서 업데이트
+    if (settings && settings.length > 0) {
+      const settingsToUpdate = settings.filter(s => !s.instagram_thumbnail_url && s.instagram_media_id && s.ad_channels?.access_token)
+
+      for (const setting of settingsToUpdate) {
+        try {
+          const accessToken = setting.ad_channels?.access_token
+          if (!accessToken) continue
+
+          // Instagram API에서 미디어 정보 가져오기
+          const mediaUrl = new URL(`https://graph.instagram.com/v21.0/${setting.instagram_media_id}`)
+          mediaUrl.searchParams.set('access_token', accessToken)
+          mediaUrl.searchParams.set('fields', 'id,media_type,media_url,thumbnail_url,permalink')
+
+          const response = await fetch(mediaUrl.toString())
+          const mediaData = await response.json()
+
+          if (!mediaData.error && (mediaData.thumbnail_url || mediaData.media_url)) {
+            const thumbnailUrl = mediaData.thumbnail_url || mediaData.media_url
+
+            // DB 업데이트
+            await supabase
+              .from('instagram_dm_settings')
+              .update({ instagram_thumbnail_url: thumbnailUrl })
+              .eq('id', setting.id)
+
+            // 현재 응답에도 반영
+            setting.instagram_thumbnail_url = thumbnailUrl
+          }
+        } catch (e) {
+          console.error('Failed to fetch thumbnail for setting:', setting.id, e)
+        }
+      }
+    }
+
+    // access_token 제거 후 반환
+    const sanitizedSettings = settings?.map(s => ({
+      ...s,
+      ad_channels: s.ad_channels ? {
+        id: s.ad_channels.id,
+        channel_name: s.ad_channels.channel_name,
+        account_name: s.ad_channels.account_name,
+        metadata: s.ad_channels.metadata
+      } : null
+    }))
+
+    return NextResponse.json({ success: true, data: sanitizedSettings })
   } catch (error) {
     console.error('DM settings API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -108,6 +155,7 @@ export async function POST(request: NextRequest) {
       instagramMediaUrl,
       instagramMediaType,
       instagramCaption,
+      instagramThumbnailUrl,
       triggerKeywords,
       dmMessage,
       includeFollowCta,
@@ -158,6 +206,7 @@ export async function POST(request: NextRequest) {
         instagram_media_url: instagramMediaUrl,
         instagram_media_type: instagramMediaType,
         instagram_caption: instagramCaption,
+        instagram_thumbnail_url: instagramThumbnailUrl || null,
         trigger_keywords: triggerKeywords || ['링크', '구매', '정보', '가격'],
         dm_message: dmMessage,
         include_follow_cta: includeFollowCta || false,
