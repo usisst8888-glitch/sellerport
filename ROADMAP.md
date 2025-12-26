@@ -19,11 +19,8 @@
 ```
 
 | 광고플랫폼 | 스마트스토어 | 아임웹 | 카페24 |
-|------------|:------------:|:------:|:------:|:--------:|
-| **네이버 검색광고** | ✅ API | 네이버 스크립트(자동) | 네이버 스크립트(자동) |
-| **네이버 GFA** | ✅ API | 네이버 스크립트(자동) | 네이버 스크립트(자동) |
+|------------|:------------:|:------:|:------:|
 | **메타** | 셀러포트 랜딩 | 메타 픽셀(자동) | 메타 픽셀(자동) |
-| **구글 애즈** | 셀러포트 랜딩 | 구글 태그(자동) | 구글 태그(자동) |
 | **브랜드 블로그** | 셀러포트 링크 | 셀러포트 링크 | 셀러포트 링크 |
 | **브랜드 인스타그램** | 셀러포트 링크 | 셀러포트 링크 | 셀러포트 링크 |
 | **브랜드 유튜브** | 셀러포트 링크 | 셀러포트 링크 | 셀러포트 링크 |
@@ -31,7 +28,6 @@
 
 ## 범례
 
-- **✅ API** = 네이버 API로 전환 데이터 직접 수집
 - **셀러포트 랜딩** = 스크립트 설치 불가 → 셀러포트 랜딩페이지로 추적
 - **셀러포트 링크** = 셀러포트 추적 링크 사용
 - **(자동)** = 셀러포트가 API로 스크립트 자동 설치
@@ -326,9 +322,9 @@ tracking_link_clicks (추적 링크 클릭 로그)
 ├── is_converted, converted_at
 └── created_at
 
-ad_channels (광고 채널 연동 - Meta/네이버/구글 등 광고 플랫폼)
+ad_channels (광고 채널 연동 - Meta 광고 플랫폼)
 ├── id, user_id
-├── channel_type (meta, google, naver_search, naver_gfa...)
+├── channel_type (meta)
 ├── access_token, refresh_token
 ├── account_id, account_name
 └── status, last_sync_at
@@ -500,7 +496,7 @@ instagram_dm_logs (Instagram DM 발송 로그)
 | 수익 계산 (`/profit`) | ✅ 완료 | 마진 계산기 UI |
 | 알림 관리 (`/alerts`) | ✅ 완료 | 빨간불/노란불 알림 내역, 알림 설정 |
 | 빠른시작 (`/quick-start`) | ✅ 완료 | 5단계 온보딩, 사이트/광고채널 연동, 추적링크 생성 |
-| 광고 채널 연동 (`/ad-channels`) | ✅ 완료 | Meta, 네이버 검색광고 연동 완료 (Google, 카카오 등 추가 예정) |
+| 광고 채널 연동 (`/ad-channels`) | ✅ 완료 | Meta 연동 완료 |
 | 디자이너 연결 (`/designers`) | ✅ 완료 | 디자이너 목록, 문의 모달 |
 | 결제 관리 (`/billing`) | ✅ 완료 | 구독 관리, 알림 충전 (15원/건) |
 | 설정 (`/settings`) | ✅ 완료 | 프로필 설정 (알리고 API 설정 제거됨) |
@@ -551,7 +547,6 @@ instagram_dm_logs (Instagram DM 발송 로그)
 | AI 최적화 분석 | ✅ 완료 | `/api/cron/ai-analysis`, `/api/campaigns/[id]/analyze`, `lib/ai/optimization-tips.ts` |
 | 디자이너 마켓플레이스 API | ✅ 완료 | `/api/designers`, `/api/designers/[id]`, `/api/design-requests` |
 | Meta 광고 OAuth 연동 | ✅ 완료 | `/api/auth/meta`, `/api/auth/meta/callback`, `/api/ad-channels/meta/sync` (보안 검토 대기) |
-| 네이버 검색광고 API 연동 | ✅ 완료 | `/lib/naver/search-ads-api.ts`, `/api/auth/naver-search-ads`, `/api/ad-channels/naver-search/sync` |
 | Instagram DM 자동발송 | ✅ 완료 | `/api/auth/instagram`, `/api/webhooks/instagram`, `/api/instagram/dm-settings`, `/api/instagram/media` |
 
 ---
@@ -658,7 +653,7 @@ INSTAGRAM_WEBHOOK_VERIFY_TOKEN=sellerport_webhook_2025
 1. **3등분 레이아웃으로 변경**
    - 왼쪽: 사이트 로고 (smartstore, cafe24, imweb 등)
    - 가운데: 체인 링크 아이콘 (연결 상태 표시)
-   - 오른쪽: 광고 채널 로고 (meta, google_ads, naver_search 등)
+   - 오른쪽: 광고 채널 로고 (meta 등)
 
 2. **실제 로고 이미지 사용**
    - `/public/site_logo/` - 사이트 로고
@@ -680,8 +675,8 @@ INSTAGRAM_WEBHOOK_VERIFY_TOKEN=sellerport_webhook_2025
    - 하나의 테이블에서 캠페인 → 키워드/광고소재 레벨까지 관리 가능
 
 3. **광고 성과 UI 단순화**
-   - 검색광고/소셜광고 섹션별 단순 캠페인 테이블로 변경
-   - 설명 텍스트 변경: "네이버, 구글, 카카오" / "메타, 틱톡, GFA"
+   - 캠페인 테이블 단순화
+   - Meta 광고 연동 중심
 
 #### 내 사이트 관리 페이지 삭제
 
@@ -723,8 +718,7 @@ FLOW.md 기반으로 5단계 온보딩 마법사를 구현 중입니다.
    - 자체몰 스크립트 설치 가이드
 
 4. **STEP 3: 광고 채널 선택**
-   - 추적 링크 생성 채널: META, 구글, 틱톡, 카카오, 블로그, 인플루언서, 기타
-   - API 연동만: 네이버 검색광고, 네이버 GFA (추적 링크 불필요)
+   - 추적 링크 생성 채널: META, 틱톡, 블로그, 인플루언서, 기타
 
 5. **STEP 4: 추적 링크 생성**
    - 쇼핑 전환 시 상품 선택
@@ -795,16 +789,12 @@ FLOW.md 기반으로 5단계 온보딩 마법사를 구현 중입니다.
 
 | 파일 | 추가된 설명 |
 |------|------------|
-| `/components/ad-channels/google-ads-connect-dialog.tsx` | Google Ads 광고비 자동 수집, YouTube 광고 데이터, 전환/ROAS 추적, 캠페인 제어 |
-| `/components/ad-channels/naver-gfa-connect-dialog.tsx` | GFA 광고비 자동 수집, 타겟팅별 성과 데이터, 전환/ROAS 추적 |
-| `/components/ad-channels/kakao-moment-connect-dialog.tsx` | 카카오모먼트 광고비 자동 수집, 카카오톡/다음 포털 데이터, 전환/ROAS 추적 |
 | `/components/ad-channels/tiktok-ads-connect-dialog.tsx` | TikTok 광고비 자동 수집, 전환/ROAS 추적, 캠페인 제어 |
 | `/components/ad-channels/youtube-connect-dialog.tsx` | 채널 조회수/구독자 추적, 영상별 성과, 자연 유입 분석 |
 | `/components/ad-channels/instagram-connect-dialog.tsx` | 팔로워/도달 추적, 게시물별 인게이지먼트, 자연 유입 분석 |
 | `/components/ad-channels/tiktok-connect-dialog.tsx` | 팔로워/조회수 추적, 영상별 인게이지먼트, 자연 유입 분석 |
 | `/components/ad-channels/threads-connect-dialog.tsx` | 팔로워/좋아요 추적, 게시물별 인게이지먼트, 자연 유입 분석 |
 | `/components/ad-channels/naver-blog-connect-dialog.tsx` | 방문자 수 추적, 포스트별 조회수/댓글, 자연 유입 분석 |
-| `/app/(protected)/ad-channels/page.tsx` | 네이버 검색광고 모달에 광고비/클릭/노출 수집 설명 추가 |
 
 ---
 
@@ -937,13 +927,13 @@ K/M 표기법(예: 60K)을 사용하지 않고 전체 숫자로 표시하도록 
 | 항목 | 이전 | 이후 |
 |------|------|------|
 | 사이트 선택 라벨 | "판매 사이트 선택" | "내 사이트 선택" |
-| 트래픽 출처 선택 | 고정 목록 (네이버, 구글, 메타 등) | 광고 채널 선택으로 대체 |
+| 트래픽 출처 선택 | 고정 목록 (메타 등) | 광고 채널 선택으로 대체 |
 | 광고 유형 선택 | "paid" / "direct" 선택 | 제거됨 |
 | 채널 선택 방식 | - | "API 연동 채널" / "수동 채널" 버튼 선택 후 드롭다운에서 등록된 채널 선택 |
 
 #### 채널 분리 구현
 
-- `apiChannels`: is_manual=false인 채널 (Meta, Google, 네이버 검색광고 등 API 연동 채널)
+- `apiChannels`: is_manual=false인 채널 (Meta 등 API 연동 채널)
 - `manualChannels`: is_manual=true인 채널 (인플루언서, 체험단, 블로그 등 수동 채널)
 - 각각 별도 드롭다운으로 사용자가 등록한 채널 목록 표시
 
@@ -957,11 +947,8 @@ K/M 표기법(예: 60K)을 사용하지 않고 전체 숫자로 표시하도록 
 
 | 파일 | 설명 |
 |------|------|
-| `/components/ad-channels/google-ads-connect-dialog.tsx` | Google Ads 연동 다이얼로그 |
 | `/components/ad-channels/instagram-connect-dialog.tsx` | Instagram 연동 다이얼로그 |
-| `/components/ad-channels/kakao-moment-connect-dialog.tsx` | 카카오모먼트 연동 다이얼로그 |
 | `/components/ad-channels/naver-blog-connect-dialog.tsx` | 네이버 블로그 연동 다이얼로그 |
-| `/components/ad-channels/naver-gfa-connect-dialog.tsx` | 네이버 GFA 연동 다이얼로그 |
 | `/components/ad-channels/threads-connect-dialog.tsx` | Threads 연동 다이얼로그 |
 | `/components/ad-channels/tiktok-ads-connect-dialog.tsx` | TikTok Ads 연동 다이얼로그 |
 | `/components/ad-channels/tiktok-connect-dialog.tsx` | TikTok 계정 연동 다이얼로그 |
@@ -1154,7 +1141,7 @@ YouTube 채널 자동 연동을 위한 Google OAuth 인증 흐름을 구현했�
 | 이전 | 이후 |
 |------|------|
 | 유료 광고 채널 | 자체 채널 (인스타그램, 유튜브, 네이버 블로그) |
-| 소셜/오가닉 채널 | 유료 광고 (Google Ads, Meta, 네이버 검색광고 등) |
+| 소셜/오가닉 채널 | 유료 광고 (Meta 등) |
 | - | 기타 (인플루언서, 체험단) |
 
 #### 수정된 파일
@@ -1247,61 +1234,6 @@ YouTube 채널 자동 연동을 위한 Google OAuth 인증 흐름을 구현했�
 - `/api/products/route.ts` - platform_id → my_site_id
 - `/api/orders/sync/route.ts` - platforms → sites
 - `/api/cron/sync-orders/route.ts` - platforms → sites
-
----
-
-### 네이버 검색광고 API 연동 구현
-
-#### 구현된 기능
-
-| 기능 | 파일 | 설명 |
-|------|------|------|
-| NaverSearchAdsAPI 클라이언트 | `/lib/naver/search-ads-api.ts` | HMAC-SHA256 서명 기반 인증, 캠페인/통계 조회 |
-| API 키 검증 엔드포인트 | `/api/auth/naver-search-ads/route.ts` | 고객 ID, API Key, Secret Key 검증 후 저장 |
-| 광고비 동기화 엔드포인트 | `/api/ad-channels/naver-search/sync/route.ts` | 캠페인별 일별 광고비/클릭/노출 동기화 |
-| UI 연동 모달 | `/app/(protected)/ad-channels/page.tsx` | API 키 입력 폼, 연동 성공/실패 처리 |
-
-#### NaverSearchAdsAPI 클라이언트 주요 메서드
-
-```typescript
-// 캠페인 목록 조회
-getCampaigns(): Promise<NaverCampaign[]>
-
-// 캠페인별 일별 통계 조회
-getCampaignStats(campaignIds, dateStart, dateEnd): Promise<NaverStatRecord[]>
-
-// API 키 검증
-validateCredentials(): Promise<{ valid: boolean; message?: string }>
-
-// 계정 잔액 조회
-getBizMoney(): Promise<NaverBizMoney>
-```
-
-#### 데이터 저장 구조
-
-```json
-// ad_channels 테이블
-{
-  "channel_type": "naver_search",
-  "access_token": "apiKey",
-  "metadata": { "secretKey": "...", "customerId": "..." }
-}
-
-// ad_spend_daily 테이블
-{
-  "campaign_id": "cmp-xxx",
-  "date": "2024-12-14",
-  "spend": 50000,
-  "impressions": 10000,
-  "clicks": 500
-}
-```
-
-#### ⚠️ 제한사항
-
-- **스마트스토어 랜딩 시 키워드별 전환 추적 불가** (네이버 정책)
-- 광고비, 클릭수, 노출수만 수집 가능
-- 키워드별 전환 추적은 자체 사이트(브랜드스토어) 랜딩 시에만 가능
 
 ---
 
@@ -1517,14 +1449,6 @@ getBizMoney(): Promise<NaverBizMoney>
 | 채널 | 연동 방식 | 가져오는 데이터 | 상태 |
 |------|----------|----------------|------|
 | **Meta (Facebook/Instagram)** | Marketing API (OAuth) | 광고비, 캠페인 성과, 광고 on/off | ✅ 완료 (보안 검토 대기) |
-| **Google Ads** | Google Ads API (OAuth) | 광고비, 전환 데이터, 광고 on/off | ⬜ |
-| **네이버 검색광고** | 네이버 광고 API (HMAC 서명) | 광고비, 클릭수, 노출수 | ✅ 완료 |
-| **네이버 GFA** | 네이버 GFA API | 광고비, 노출/클릭수, 타겟팅 성과 | ⬜ |
-| **카카오모먼트** | 카카오 광고 API | 광고비, 성과 데이터 | ⬜ |
-| **당근 비즈니스** | 당근 광고 API | 광고비, 노출/클릭수, 지역 타겟팅 성과 | ⬜ |
-| **토스** | 토스 광고 API | 광고비, 성과 데이터, 전환 추적 | ⬜ |
-| **TikTok Ads** | TikTok Marketing API | 광고비, 쇼트폼 광고 성과, MZ 타겟팅 | ⬜ |
-| **데이블** | 데이블 API | 광고비, 네이티브 광고 성과, 콘텐츠 추천 | ⬜ |
 
 **핵심 기능:**
 
@@ -1538,7 +1462,7 @@ getBizMoney(): Promise<NaverBizMoney>
 ```
 ad_channels (광고 채널 연동 정보)
 ├── id, user_id
-├── channel_type (meta, google, naver_search, naver_gfa, kakao, karrot, toss, tiktok, dable)
+├── channel_type (meta)
 ├── channel_name (사용자 지정 이름)
 ├── access_token, refresh_token (OAuth 토큰)
 ├── account_id (광고 계정 ID)
@@ -1555,47 +1479,16 @@ ad_spend_daily (일별 광고비)
 └── synced_at
 ```
 
-#### 3-1. 구글 광고 전환 추적
+#### 3-1. 판매 채널 확장
 
 | 작업 | 상세 | 상태 |
 |------|------|------|
-| Google 태그 (gtag.js) | 픽셀샵에 삽입 | ⬜ |
-| GCLID 추적 | Google 클릭 ID 저장 | ⬜ |
-| Google Ads API 연동 | 광고비 자동 수집 | ⬜ |
-
-#### 3-2. 네이버 검색광고 연동 ✅ 완료
-
-| 작업 | 상세 | 상태 |
-|------|------|------|
-| 네이버 검색광고 API 클라이언트 | HMAC-SHA256 서명 기반 인증 | ✅ 완료 |
-| API 키 검증 엔드포인트 | 고객 ID, API Key, Secret Key 검증 | ✅ 완료 |
-| 광고비/클릭/노출 동기화 | 캠페인별 일별 통계 수집 | ✅ 완료 |
-| UI 연동 모달 | API 키 입력 폼 | ✅ 완료 |
-| ⚠️ 제한사항 | 스마트스토어 랜딩 시 키워드별 전환 추적 불가 (네이버 정책) | -
-
-#### 3-3. 네이버 GFA (성과형 디스플레이 광고) 연동
-
-| 작업 | 상세 | 상태 |
-|------|------|------|
-| 네이버 GFA API 연동 | 광고비, 노출수, 클릭수 수집 | ⬜ |
-| GFA 전환 추적 | 배너 클릭 → 전환 매칭 | ⬜ |
-| 타겟팅 성과 분석 | 연령/성별/관심사별 ROAS 분석 | ⬜ |
-
-#### 3-4. 카카오모먼트 + 판매 채널 확장
-
-| 작업 | 상세 | 상태 |
-|------|------|------|
-| 카카오 픽셀 | 픽셀샵에 삽입 | ⬜ |
-| 카카오 광고 API | 광고비 자동 수집 | ⬜ |
-| 쿠팡 Wing API | 주문 데이터 수집 | ⬜ |
 | 카페24 API | 주문 데이터 수집 (OAuth 연동) | ✅ 완료 |
-| 아임웹 API | 주문 데이터 수집 | ⬜ |
-| 고도몰 API | 주문 데이터 수집 | ⬜ |
-| 메이크샵 API | 주문 데이터 수집 | ⬜ |
 | 자체 제작 사이트 | 추적 코드 설치 방식 (워드프레스, Wix, Shopify 등) | ✅ 완료 |
-| 멀티 스토어 통합 | 여러 스토어 한 대시보드에서 관리 | ⬜ |
+| 쿠팡 Wing API | 주문 데이터 수집 | ⬜ |
+| 아임웹 API | 주문 데이터 수집 | ⬜ |
 
-#### 3-5. 정산 API 연동 (수수료 자동 반영) ✅ 완료
+#### 3-2. 정산 API 연동 (수수료 자동 반영) ✅ 완료
 
 | 작업 | 상세 | 상태 |
 |------|------|------|
@@ -1748,10 +1641,6 @@ ad_spend_daily (일별 광고비)
 - [x] 네이버 Commerce API Center 등록 (솔루션 애플리케이션)
 - [x] Meta CAPI 연동 (사용자별 Pixel ID/Token 입력)
 - [x] Meta Marketing API 연동 (OAuth, 보안 검토 대기)
-- [ ] Google Ads API 등록
-- [x] 네이버 검색광고 API 연동 (HMAC-SHA256 서명 방식)
-- [ ] 네이버 GFA API 발급 (성과형 디스플레이 광고)
-- [ ] 카카오 광고 API 등록
 - [x] 알리고 API 키 발급 (사용자별 설정)
 - [x] 토스페이먼츠 PG 계약
 
