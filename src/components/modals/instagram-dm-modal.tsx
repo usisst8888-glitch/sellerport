@@ -32,13 +32,13 @@ interface InstagramDmModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
-  channelId: string | null
+  instagramAccountId: string | null
   isConnected: boolean
   // 수정 모드용
   editingTrackingLinkId?: string | null
 }
 
-export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConnected, editingTrackingLinkId }: InstagramDmModalProps) {
+export function InstagramDmModal({ isOpen, onClose, onSuccess, instagramAccountId, isConnected, editingTrackingLinkId }: InstagramDmModalProps) {
   const [form, setForm] = useState({
     triggerKeywords: '',
     dmMessage: '',
@@ -169,10 +169,10 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, channelId, isConn
 
   // 게시물 목록 불러오기
   const fetchMedia = async () => {
-    if (!channelId) return
+    if (!instagramAccountId) return
     setLoadingMedia(true)
     try {
-      const response = await fetch(`/api/instagram/media?channelId=${channelId}`)
+      const response = await fetch(`/api/instagram/media?instagramAccountId=${instagramAccountId}`)
       const result = await response.json()
       if (result.success) {
         setMedia(result.data || [])

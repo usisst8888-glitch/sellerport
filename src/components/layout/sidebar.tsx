@@ -45,13 +45,15 @@ const menuItems: MenuItem[] = [
     badge: '핵심',
   },
   {
-    title: '셀러샵',
-    href: '/seller-shop',
+    title: '셀러트리',
+    href: '/seller-tree',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
       </svg>
     ),
+    badge: '무료',
+    badgeColor: 'green',
   },
   {
     title: '인스타그램 자동 DM',
@@ -61,6 +63,8 @@ const menuItems: MenuItem[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
       </svg>
     ),
+    badge: '무료',
+    badgeColor: 'green',
   },
 // 광고 채널 관리 - 빠른 시작에서 모두 처리 가능하므로 삭제
   // {
@@ -190,7 +194,7 @@ export function Sidebar() {
   })
 
   return (
-    <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-50">
+    <aside className="hidden md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 z-50">
       <div className="flex flex-col flex-grow bg-slate-900/80 backdrop-blur-xl border-r border-white/5 pt-5 pb-4 overflow-y-auto">
         {/* 로고 */}
         <div className="flex items-center flex-shrink-0 px-5">
@@ -216,7 +220,7 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200',
+                  'group flex items-center px-3 py-2.5 text-[15px] font-medium rounded-xl transition-all duration-200',
                   isActive
                     ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/25'
                     : 'text-slate-400 hover:text-white hover:bg-white/5'
@@ -231,12 +235,14 @@ export function Sidebar() {
                 {item.title}
                 {'badge' in item && item.badge && (
                   <span className={cn(
-                    "ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full",
-                    item.badge === '핵심'
-                      ? 'bg-red-500 text-white'
-                      : item.badge === '연동'
-                        ? 'bg-blue-500 text-white'
-                        : ''
+                    "ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full",
+                    'badgeColor' in item && item.badgeColor === 'green'
+                      ? 'bg-green-700 text-green-100'
+                      : item.badge === '핵심'
+                        ? 'bg-red-700 text-red-100'
+                        : item.badge === '연동'
+                          ? 'bg-blue-700 text-blue-100'
+                          : ''
                   )}>
                     {item.badge}
                   </span>

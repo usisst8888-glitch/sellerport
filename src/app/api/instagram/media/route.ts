@@ -27,29 +27,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 쿼리 파라미터에서 채널 ID 가져오기
+    // 쿼리 파라미터에서 Instagram Account ID 가져오기
     const searchParams = request.nextUrl.searchParams
-    const channelId = searchParams.get('channelId')
+    const instagramAccountId = searchParams.get('instagramAccountId')
 
-    if (!channelId) {
-      return NextResponse.json({ error: 'channelId is required' }, { status: 400 })
+    if (!instagramAccountId) {
+      return NextResponse.json({ error: 'instagramAccountId is required' }, { status: 400 })
     }
 
-    // 해당 채널 정보 가져오기
-    const { data: channel } = await supabase
-      .from('ad_channels')
-      .select('id, access_token, metadata')
-      .eq('id', channelId)
+    // 해당 Instagram 계정 정보 가져오기
+    const { data: account } = await supabase
+      .from('instagram_accounts')
+      .select('id, access_token, instagram_user_id')
+      .eq('id', instagramAccountId)
       .eq('user_id', user.id)
-      .eq('channel_type', 'instagram')
       .single()
 
-    if (!channel) {
-      return NextResponse.json({ error: 'Instagram channel not found' }, { status: 404 })
+    if (!account) {
+      return NextResponse.json({ error: 'Instagram account not found' }, { status: 404 })
     }
 
-    const accessToken = channel.access_token
-    const instagramUserId = channel.metadata?.instagram_user_id
+    const accessToken = account.access_token
+    const instagramUserId = account.instagram_user_id
 
     if (!accessToken || !instagramUserId) {
       return NextResponse.json({ error: 'Instagram credentials not found' }, { status: 400 })

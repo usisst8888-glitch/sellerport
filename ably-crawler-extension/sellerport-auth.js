@@ -14,9 +14,10 @@
 
         // 5분 이내의 토큰만 유효
         if (parsed.timestamp && Date.now() - parsed.timestamp < 5 * 60 * 1000) {
-          // 확장 프로그램 스토리지에 저장
+          // 확장 프로그램 스토리지에 저장 (refreshToken 포함)
           chrome.storage.local.set({
             authToken: parsed.authToken,
+            refreshToken: parsed.refreshToken,
             userInfo: parsed.userInfo
           }, () => {
             console.log('[에이블리 수집기] 확장 프로그램 로그인 연동 완료');

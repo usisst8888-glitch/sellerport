@@ -10,11 +10,11 @@ import { createClient } from '@/lib/supabase/client'
 type SiteType = 'naver' | 'cafe24' | 'imweb' | 'custom' | null
 
 // 광고 채널 타입 (API 연동으로 광고비 자동 수집)
-type AdChannel = 'naver_search' | 'naver_gfa' | 'meta' | 'google' | 'kakao' | null
+type AdChannel = 'meta' | null
 
 // SNS/브랜드 채널 타입 (추적 링크로 전환 추적)
-// instagram은 DM 자동발송을 위해 API 연동 필요
-type SnsChannel = 'instagram' | 'youtube' | 'tiktok' | 'naver_blog' | 'influencer'
+type SnsChannel = 'youtube' | 'tiktok' | 'instagram' | 'naver_blog' | 'influencer'
+
 
 interface MySite {
   id: string
@@ -58,15 +58,10 @@ export default function QuickStartPage() {
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null) // 연결할 사이트 선택
   const [adChannel, setAdChannel] = useState<AdChannel>(null)
   const [showAdForm, setShowAdForm] = useState(false)
-  const [naverCustomerId, setNaverCustomerId] = useState('')
-  const [naverApiKey, setNaverApiKey] = useState('')
-  const [naverSecretKey, setNaverSecretKey] = useState('')
-  const [naverAccountName, setNaverAccountName] = useState('')
   const [adConnectLoading, setAdConnectLoading] = useState(false)
   const [adConnectError, setAdConnectError] = useState('')
 
   // SNS 채널 (추적 링크로 전환 추적) - 단일 선택
-  // instagram은 DM 자동발송을 위해 API 연동 필요
   const [selectedSnsChannel, setSelectedSnsChannel] = useState<SnsChannel | null>(null)
   const [snsAccountName, setSnsAccountName] = useState('')
   const [snsChannelLoading, setSnsChannelLoading] = useState(false)
@@ -75,9 +70,6 @@ export default function QuickStartPage() {
   const [deletingSite, setDeletingSite] = useState<MySite | null>(null)
   const [deletingAdChannel, setDeletingAdChannel] = useState<AdChannelData | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
-
-  // Google Ads 준비중 팝업
-  const [showGoogleAdsComingSoon, setShowGoogleAdsComingSoon] = useState(false)
 
   // URL 파라미터
   const searchParams = useSearchParams()
@@ -208,48 +200,8 @@ export default function QuickStartPage() {
     setAdConnectError('')
 
     try {
-      if (adChannel === 'naver_search' || adChannel === 'naver_gfa') {
-        // 네이버 검색광고/GFA API 연동
-        if (!naverCustomerId || !naverApiKey || !naverSecretKey) {
-          setAdConnectError('모든 필수 항목을 입력해주세요.')
-          setAdConnectLoading(false)
-          return
-        }
-
-        const endpoint = adChannel === 'naver_search'
-          ? '/api/auth/naver-search-ads'
-          : '/api/auth/naver-gfa'
-
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customerId: naverCustomerId,
-            apiKey: naverApiKey,
-            secretKey: naverSecretKey,
-            accountName: naverAccountName || undefined,
-            mySiteId: selectedSiteId, // 연결할 사이트 ID 전달
-          }),
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          setAdConnectError(data.error || '연동에 실패했습니다.')
-          setAdConnectLoading(false)
-          return
-        }
-
-        // 성공
-        await checkExistingData()
-        setShowAdForm(false)
-        resetAdForm()
-
-      } else if (adChannel === 'meta') {
+      if (adChannel === 'meta') {
         window.location.href = `/api/auth/meta?from=quick-start&siteId=${selectedSiteId}`
-        return
-      } else if (adChannel === 'google') {
-        window.location.href = `/api/auth/google?from=quick-start&siteId=${selectedSiteId}`
         return
       }
     } catch {
@@ -272,54 +224,34 @@ export default function QuickStartPage() {
   const resetAdForm = () => {
     setSelectedSiteId(null)
     setAdChannel(null)
-    setNaverCustomerId('')
-    setNaverApiKey('')
-    setNaverSecretKey('')
-    setNaverAccountName('')
     setAdConnectError('')
   }
 
   // SNS 채널 선택 (단일 선택, 광고 채널과 상호 배타적)
   const selectSnsChannel = (channel: SnsChannel) => {
     if (selectedSnsChannel === channel) {
-      // 이미 선택된 채널을 다시 클릭하면 선택 해제
       setSelectedSnsChannel(null)
       setSnsAccountName('')
     } else {
       setSelectedSnsChannel(channel)
       setSnsAccountName('')
-      // 광고 채널 선택 해제
       setAdChannel(null)
     }
   }
 
   // 광고 채널 선택 (SNS 채널과 상호 배타적)
   const selectAdChannel = (channel: AdChannel) => {
-    // Google Ads는 준비중
-    if (channel === 'google') {
-      setShowGoogleAdsComingSoon(true)
-      return
-    }
     setAdChannel(channel)
-    // SNS 채널 선택 해제
     setSelectedSnsChannel(null)
     setSnsAccountName('')
   }
 
   // SNS 채널 DB 저장
-  // instagram은 API 연동 필요 (DM 자동발송), 나머지는 추적 링크만
   const saveSnsChannel = async () => {
     if (!selectedSnsChannel) return
 
-    // 사이트 선택 필수
     if (!selectedSiteId) {
       setAdConnectError('연결할 쇼핑몰을 선택해주세요.')
-      return
-    }
-
-    // 인스타그램은 API 연동으로 처리
-    if (selectedSnsChannel === 'instagram') {
-      window.location.href = `/api/auth/instagram?from=quick-start&siteId=${selectedSiteId}`
       return
     }
 
@@ -354,9 +286,9 @@ export default function QuickStartPage() {
 
   const getSnsChannelLabel = (type: SnsChannel) => {
     switch (type) {
-      case 'instagram': return '인스타그램'
       case 'youtube': return '유튜브'
       case 'tiktok': return '틱톡'
+      case 'instagram': return '인스타그램'
       case 'naver_blog': return '네이버 블로그'
       case 'influencer': return '인플루언서/블로그 협찬'
       default: return type
@@ -441,13 +373,7 @@ export default function QuickStartPage() {
   // 광고/SNS 채널 로고 이미지 경로
   const getChannelLogo = (type: string) => {
     const logos: Record<string, string> = {
-      // 광고 채널
-      'naver_search': '/channel_logo/naver_search.png',
-      'naver_gfa': '/channel_logo/naver_gfa.png',
       'meta': '/channel_logo/meta.png',
-      'google': '/channel_logo/google_ads.png',
-      'kakao': '/channel_logo/toss.png',
-      // SNS 채널
       'instagram': '/channel_logo/insta.png',
       'youtube': '/channel_logo/youtube.png',
       'tiktok': '/channel_logo/tiktok.png',
@@ -459,13 +385,7 @@ export default function QuickStartPage() {
 
   const getChannelLabel = (type: string) => {
     switch (type) {
-      // 광고 채널
-      case 'naver_search': return '네이버 검색광고'
-      case 'naver_gfa': return '네이버 GFA'
       case 'meta': return 'Meta 광고'
-      case 'google': return 'Google Ads'
-      case 'kakao': return '카카오모먼트'
-      // SNS 채널
       case 'instagram': return '인스타그램'
       case 'youtube': return '유튜브'
       case 'tiktok': return '틱톡'
@@ -497,31 +417,32 @@ export default function QuickStartPage() {
 
       {/* 진행 단계 표시 */}
       <div className="flex items-center justify-center gap-2 mb-8">
-        {[1, 2, 3].map((step) => (
+        {[1, 2, 3, 4].map((step) => (
           <div key={step} className="flex items-center">
             <button
               onClick={() => {
                 if (step === 1) setCurrentStep(1)
                 else if (step === 2 && canGoToStep2) setCurrentStep(2)
                 else if (step === 3 && canGoToStep3) setCurrentStep(3)
+                else if (step === 4 && canGoToStep3) setCurrentStep(4)
               }}
               className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-colors ${
                 currentStep === step
                   ? 'bg-blue-600 text-white'
-                  : currentStep > step || (step === 2 && canGoToStep2) || (step === 3 && canGoToStep3)
+                  : currentStep > step || (step === 2 && canGoToStep2) || (step === 3 && canGoToStep3) || (step === 4 && canGoToStep3)
                     ? 'bg-green-600 text-white cursor-pointer hover:bg-green-500'
                     : 'bg-slate-700 text-slate-400'
               }`}
             >
-              {(currentStep > step || (step === 2 && canGoToStep2 && currentStep !== 2) || (step === 3 && canGoToStep3 && currentStep !== 3)) ? (
+              {(currentStep > step || (step === 2 && canGoToStep2 && currentStep !== 2) || (step === 3 && canGoToStep3 && currentStep !== 3) || (step === 4 && canGoToStep3 && currentStep !== 4)) ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               ) : step}
             </button>
-            {step < 3 && (
-              <div className={`w-16 h-1 mx-1 rounded ${
-                currentStep > step || (step === 1 && canGoToStep2) ? 'bg-green-600' : 'bg-slate-700'
+            {step < 4 && (
+              <div className={`w-12 h-1 mx-1 rounded ${
+                currentStep > step || (step === 1 && canGoToStep2) || (step === 2 && canGoToStep3) ? 'bg-green-600' : 'bg-slate-700'
               }`} />
             )}
           </div>
@@ -533,7 +454,9 @@ export default function QuickStartPage() {
         <span className="mx-2">→</span>
         <span className={currentStep === 2 ? 'text-blue-400 font-medium' : ''}>광고 채널 연동</span>
         <span className="mx-2">→</span>
-        <span className={currentStep === 3 ? 'text-blue-400 font-medium' : ''}>완료</span>
+        <span className={currentStep === 3 ? 'text-blue-400 font-medium' : ''}>추가 기능</span>
+        <span className="mx-2">→</span>
+        <span className={currentStep === 4 ? 'text-blue-400 font-medium' : ''}>완료</span>
       </div>
 
       {/* STEP 1: 쇼핑몰 연동 */}
@@ -878,195 +801,127 @@ export default function QuickStartPage() {
               </button>
             ) : (
               <div className="space-y-4">
-                {/* 선택된 쇼핑몰 타입에 따른 광고 채널 목록 */}
-                {(() => {
-                  // 기본 광고 채널 (모든 쇼핑몰 공통)
-                  const baseAdChannels: { type: AdChannel; label: string }[] = [
-                    { type: 'naver_search', label: '네이버 검색광고' },
-                    { type: 'naver_gfa', label: '네이버 GFA' },
-                    { type: 'meta', label: 'Meta 광고' },
-                    { type: 'google', label: 'Google Ads' },
-                  ]
-
-                  // SNS 채널 (추적 링크로 전환 추적, instagram은 DM 자동발송 API 연동)
-                  const snsChannels: { type: SnsChannel; label: string; needsApi: boolean }[] = [
-                    { type: 'instagram', label: '인스타그램', needsApi: true },
-                    { type: 'youtube', label: '유튜브', needsApi: false },
-                    { type: 'tiktok', label: '틱톡', needsApi: false },
-                    { type: 'naver_blog', label: '네이버 블로그', needsApi: false },
-                    { type: 'influencer', label: '인플루언서/블로그 협찬', needsApi: false },
-                  ]
-
-                  return (
-                    <>
-                      {/* 광고 채널 (API 연동) */}
-                      <div>
-                        <p className="text-sm font-medium text-white mb-2">광고 채널 (API 연동)</p>
-                        <p className="text-xs text-slate-500 mb-3">광고비를 자동으로 수집합니다. 같은 채널도 여러 계정 추가 가능</p>
-                        <div className="grid grid-cols-2 gap-3">
-                          {baseAdChannels.map(({ type, label }) => {
-                            const isSelected = adChannel === type
-                            return (
-                              <button
-                                key={type}
-                                onClick={() => selectAdChannel(type)}
-                                className={`p-3 rounded-xl border-2 transition-all text-left flex items-center gap-3 ${
-                                  isSelected
-                                    ? 'border-blue-500 bg-blue-500/10'
-                                    : 'border-slate-700 hover:border-slate-600'
-                                }`}
-                              >
-                                <div className="w-8 h-8 rounded-lg overflow-hidden bg-white flex items-center justify-center shrink-0">
-                                  <Image
-                                    src={getChannelLogo(type || '')}
-                                    alt={label}
-                                    width={32}
-                                    height={32}
-                                    className="object-contain"
-                                  />
-                                </div>
-                                <div>
-                                  <p className={`font-medium text-sm ${isSelected ? 'text-blue-400' : 'text-white'}`}>{label}</p>
-                                </div>
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-
-                      {/* SNS 채널 (추적 링크로 전환 추적) */}
-                      <div className="pt-4 border-t border-slate-700">
-                        <p className="text-sm font-medium text-white mb-2">SNS/브랜드 채널</p>
-                        <p className="text-xs text-slate-500 mb-3">추적 링크로 전환을 추적합니다. 인스타그램은 DM 자동발송을 위해 API 연동이 필요합니다.</p>
-                        <div className="grid grid-cols-2 gap-3">
-                          {snsChannels.map(({ type, label, needsApi }) => {
-                            const isSelected = selectedSnsChannel === type
-
-                            return (
-                              <button
-                                key={type}
-                                onClick={() => selectSnsChannel(type)}
-                                className={`p-3 rounded-xl border-2 transition-all text-left flex items-center gap-3 ${
-                                  isSelected
-                                    ? 'border-purple-500 bg-purple-500/10'
-                                    : 'border-slate-700 hover:border-slate-600'
-                                }`}
-                              >
-                                <div className="w-8 h-8 rounded-lg overflow-hidden bg-white flex items-center justify-center shrink-0">
-                                  <Image
-                                    src={getChannelLogo(type)}
-                                    alt={label}
-                                    width={32}
-                                    height={32}
-                                    className="object-contain"
-                                  />
-                                </div>
-                                <div>
-                                  <p className={`font-medium text-sm ${isSelected ? 'text-purple-400' : 'text-white'}`}>
-                                    {label}
-                                  </p>
-                                  {needsApi && (
-                                    <p className="text-xs text-blue-400">DM 자동발송</p>
-                                  )}
-                                </div>
-                              </button>
-                            )
-                          })}
-                        </div>
-
-                        {/* SNS 채널 선택 시 (인스타그램 제외) 계정 이름 입력 */}
-                        {selectedSnsChannel && selectedSnsChannel !== 'instagram' && (
-                          <div className="mt-4 p-4 bg-slate-900/50 rounded-xl">
-                            <div>
-                              <label className="block text-sm text-slate-300 mb-1">계정 이름 (선택)</label>
-                              <input
-                                type="text"
-                                value={snsAccountName}
-                                onChange={(e) => setSnsAccountName(e.target.value)}
-                                placeholder={getSnsChannelLabel(selectedSnsChannel) + ' 계정명'}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
-                              />
-                              <p className="text-xs text-slate-500 mt-1">
-                                채널을 구분하기 위한 이름을 입력하세요 (예: 내 유튜브 채널)
-                              </p>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* 인스타그램 선택 시 API 연동 안내 */}
-                        {selectedSnsChannel === 'instagram' && (
-                          <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-                            <p className="text-sm text-blue-400 font-medium mb-1">Instagram API 연동</p>
-                            <p className="text-xs text-slate-400">
-                              인스타그램 비즈니스 계정을 연동하면 댓글 달면 DM으로 추적 링크를 자동 발송할 수 있습니다.
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )
-                })()}
-
-                {/* 네이버 검색광고/GFA 폼 */}
-                {(adChannel === 'naver_search' || adChannel === 'naver_gfa') && (
-                  <div className="space-y-3 p-4 bg-slate-900/50 rounded-xl">
-                    <div>
-                      <label className="block text-sm text-slate-300 mb-1">계정 별칭 (선택)</label>
-                      <input
-                        type="text"
-                        value={naverAccountName}
-                        onChange={(e) => setNaverAccountName(e.target.value)}
-                        placeholder="예: 내 검색광고 계정"
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm text-slate-300 mb-1">고객 ID *</label>
-                      <input
-                        type="text"
-                        value={naverCustomerId}
-                        onChange={(e) => setNaverCustomerId(e.target.value)}
-                        placeholder="예: 1234567"
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm text-slate-300 mb-1">API Key *</label>
-                      <input
-                        type="text"
-                        value={naverApiKey}
-                        onChange={(e) => setNaverApiKey(e.target.value)}
-                        placeholder="API 키 입력"
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm text-slate-300 mb-1">Secret Key *</label>
-                      <input
-                        type="password"
-                        value={naverSecretKey}
-                        onChange={(e) => setNaverSecretKey(e.target.value)}
-                        placeholder="비밀키 입력"
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
-                      />
-                    </div>
-                    <Link
-                      href={`/guide?tab=adchannels&channel=${adChannel === 'naver_search' ? 'naver-search' : 'naver-gfa'}`}
-                      className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                {/* 채널 목록 - 구분 없이 모두 나열 */}
+                <div>
+                  <p className="text-xs text-slate-500 mb-3">연동할 채널을 선택하세요</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Meta 광고 */}
+                    <button
+                      onClick={() => selectAdChannel('meta')}
+                      className={`p-3 rounded-xl border-2 transition-all text-left flex items-center gap-3 ${
+                        adChannel === 'meta'
+                          ? 'border-blue-500 bg-blue-500/10'
+                          : 'border-slate-700 hover:border-slate-600'
+                      }`}
                     >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      연동 방법 자세히 보기
-                    </Link>
+                      <div className="w-8 h-8 rounded-lg overflow-hidden bg-white flex items-center justify-center shrink-0">
+                        <Image src={getChannelLogo('meta')} alt="Meta 광고" width={32} height={32} className="object-contain" />
+                      </div>
+                      <div>
+                        <p className={`font-medium text-sm ${adChannel === 'meta' ? 'text-blue-400' : 'text-white'}`}>Meta 광고</p>
+                        <p className="text-xs text-blue-400">(API 자동연결)</p>
+                      </div>
+                    </button>
+
+                    {/* 유튜브 */}
+                    <button
+                      onClick={() => selectSnsChannel('youtube')}
+                      className={`p-3 rounded-xl border-2 transition-all text-left flex items-center gap-3 ${
+                        selectedSnsChannel === 'youtube'
+                          ? 'border-blue-500 bg-blue-500/10'
+                          : 'border-slate-700 hover:border-slate-600'
+                      }`}
+                    >
+                      <div className="w-8 h-8 rounded-lg overflow-hidden bg-white flex items-center justify-center shrink-0">
+                        <Image src={getChannelLogo('youtube')} alt="유튜브" width={32} height={32} className="object-contain" />
+                      </div>
+                      <p className={`font-medium text-sm ${selectedSnsChannel === 'youtube' ? 'text-blue-400' : 'text-white'}`}>유튜브</p>
+                    </button>
+
+                    {/* 틱톡 */}
+                    <button
+                      onClick={() => selectSnsChannel('tiktok')}
+                      className={`p-3 rounded-xl border-2 transition-all text-left flex items-center gap-3 ${
+                        selectedSnsChannel === 'tiktok'
+                          ? 'border-blue-500 bg-blue-500/10'
+                          : 'border-slate-700 hover:border-slate-600'
+                      }`}
+                    >
+                      <div className="w-8 h-8 rounded-lg overflow-hidden bg-white flex items-center justify-center shrink-0">
+                        <Image src={getChannelLogo('tiktok')} alt="틱톡" width={32} height={32} className="object-contain" />
+                      </div>
+                      <p className={`font-medium text-sm ${selectedSnsChannel === 'tiktok' ? 'text-blue-400' : 'text-white'}`}>틱톡</p>
+                    </button>
+
+                    {/* 인스타그램 */}
+                    <button
+                      onClick={() => selectSnsChannel('instagram')}
+                      className={`p-3 rounded-xl border-2 transition-all text-left flex items-center gap-3 ${
+                        selectedSnsChannel === 'instagram'
+                          ? 'border-blue-500 bg-blue-500/10'
+                          : 'border-slate-700 hover:border-slate-600'
+                      }`}
+                    >
+                      <div className="w-8 h-8 rounded-lg overflow-hidden bg-white flex items-center justify-center shrink-0">
+                        <Image src={getChannelLogo('instagram')} alt="인스타그램" width={32} height={32} className="object-contain" />
+                      </div>
+                      <p className={`font-medium text-sm ${selectedSnsChannel === 'instagram' ? 'text-blue-400' : 'text-white'}`}>인스타그램</p>
+                    </button>
+
+                    {/* 네이버 블로그 */}
+                    <button
+                      onClick={() => selectSnsChannel('naver_blog')}
+                      className={`p-3 rounded-xl border-2 transition-all text-left flex items-center gap-3 ${
+                        selectedSnsChannel === 'naver_blog'
+                          ? 'border-blue-500 bg-blue-500/10'
+                          : 'border-slate-700 hover:border-slate-600'
+                      }`}
+                    >
+                      <div className="w-8 h-8 rounded-lg overflow-hidden bg-white flex items-center justify-center shrink-0">
+                        <Image src={getChannelLogo('naver_blog')} alt="네이버 블로그" width={32} height={32} className="object-contain" />
+                      </div>
+                      <p className={`font-medium text-sm ${selectedSnsChannel === 'naver_blog' ? 'text-blue-400' : 'text-white'}`}>네이버 블로그</p>
+                    </button>
+
+                    {/* 인플루언서 */}
+                    <button
+                      onClick={() => selectSnsChannel('influencer')}
+                      className={`p-3 rounded-xl border-2 transition-all text-left flex items-center gap-3 ${
+                        selectedSnsChannel === 'influencer'
+                          ? 'border-blue-500 bg-blue-500/10'
+                          : 'border-slate-700 hover:border-slate-600'
+                      }`}
+                    >
+                      <div className="w-8 h-8 rounded-lg overflow-hidden bg-white flex items-center justify-center shrink-0">
+                        <Image src={getChannelLogo('influencer')} alt="인플루언서" width={32} height={32} className="object-contain" />
+                      </div>
+                      <p className={`font-medium text-sm ${selectedSnsChannel === 'influencer' ? 'text-blue-400' : 'text-white'}`}>인플루언서</p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Meta 선택 시 안내 */}
+                {adChannel === 'meta' && (
+                  <div className="p-4 bg-slate-900/50 rounded-xl">
+                    <p className="text-sm text-slate-300">
+                      Facebook/Instagram 로그인으로 자동 연동됩니다.
+                    </p>
                   </div>
                 )}
 
-                {/* Meta/Google OAuth 안내 */}
-                {(adChannel === 'meta' || adChannel === 'google') && (
+                {/* SNS 채널 선택 시 계정 이름 입력 */}
+                {selectedSnsChannel && (
                   <div className="p-4 bg-slate-900/50 rounded-xl">
-                    <p className="text-sm text-slate-300">
-                      {adChannel === 'meta' ? 'Facebook/Instagram' : 'Google'} 로그인으로 자동 연동됩니다.
+                    <label className="block text-sm text-slate-300 mb-1">계정 이름 (선택)</label>
+                    <input
+                      type="text"
+                      value={snsAccountName}
+                      onChange={(e) => setSnsAccountName(e.target.value)}
+                      placeholder={getSnsChannelLabel(selectedSnsChannel) + ' 계정명'}
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      채널을 구분하기 위한 이름을 입력하세요
                     </p>
                   </div>
                 )}
@@ -1098,7 +953,7 @@ export default function QuickStartPage() {
                       disabled={adConnectLoading}
                       className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50"
                     >
-                      {adConnectLoading ? '연동 중...' : '광고 채널 연동'}
+                      {adConnectLoading ? '연동 중...' : '채널 연동'}
                     </button>
                   )}
 
@@ -1107,30 +962,15 @@ export default function QuickStartPage() {
                     <button
                       onClick={saveSnsChannel}
                       disabled={snsChannelLoading}
-                      className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors disabled:opacity-50"
+                      className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50"
                     >
-                      {snsChannelLoading ? '연동 중...' : (selectedSnsChannel === 'instagram' ? 'Instagram 연동' : 'SNS 채널 추가')}
+                      {snsChannelLoading ? '추가 중...' : '채널 추가'}
                     </button>
                   )}
                 </div>
               </div>
             )}
 
-            {/* 스마트스토어 + 네이버 광고 자동 매칭 안내 */}
-            {connectedSites.some(s => s.site_type === 'naver') &&
-             connectedAdChannels.some(c => c.channel_type === 'naver_search' || c.channel_type === 'naver_gfa') && (
-              <div className="mt-4 p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
-                <div className="flex items-center gap-2 text-green-400">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <p className="text-sm font-medium">자동 매칭 활성화!</p>
-                </div>
-                <p className="text-xs text-slate-400 mt-1">
-                  스마트스토어와 네이버 광고가 연동되어 ROAS가 자동으로 계산됩니다.
-                </p>
-              </div>
-            )}
           </div>
 
           {/* 이전/다음 버튼 */}
@@ -1158,8 +998,96 @@ export default function QuickStartPage() {
         </div>
       )}
 
-      {/* STEP 3: 완료 */}
+      {/* STEP 3: 추가 기능 (선택) */}
       {currentStep === 3 && (
+        <div className="space-y-6">
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
+            <div className="flex items-center gap-2 mb-2">
+              <h2 className="text-lg font-semibold text-white">STEP 3. 추가 기능</h2>
+              <span className="px-2 py-0.5 text-xs bg-slate-600 text-slate-300 rounded">선택</span>
+            </div>
+            <p className="text-sm text-slate-400 mb-6">필요한 추가 기능을 설정하세요. 건너뛸 수도 있습니다.</p>
+
+            {/* 추가 기능 목록 */}
+            <div className="space-y-4">
+              {/* 인스타 DM 자동화 */}
+              <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-700 hover:border-purple-500/50 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-white flex items-center justify-center shrink-0">
+                    <Image src={getChannelLogo('instagram')} alt="인스타그램" width={48} height={48} className="object-contain" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-white">인스타 DM 자동화</p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      인스타그램 게시물에 댓글을 달면 DM으로 추적 링크를 자동 발송합니다.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (selectedSiteId) {
+                        window.location.href = `/api/auth/instagram?from=quick-start&siteId=${selectedSiteId}`
+                      } else if (connectedSites.length > 0) {
+                        window.location.href = `/api/auth/instagram?from=quick-start&siteId=${connectedSites[0].id}`
+                      }
+                    }}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+                  >
+                    연동하기
+                  </button>
+                </div>
+              </div>
+
+              {/* 셀러트리 만들기 */}
+              <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-700 hover:border-green-500/50 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shrink-0">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-white">셀러트리 만들기</p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      나만의 브랜드 링크 페이지를 만들어 인스타 프로필에 연결하세요.
+                    </p>
+                  </div>
+                  <Link
+                    href="/seller-tree"
+                    className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+                  >
+                    만들기
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 이전/다음 버튼 */}
+          <div className="flex justify-between">
+            <button
+              onClick={() => setCurrentStep(2)}
+              className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition-colors flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              이전 단계
+            </button>
+            <button
+              onClick={() => setCurrentStep(4)}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl transition-colors flex items-center gap-2"
+            >
+              건너뛰고 완료
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* STEP 4: 완료 */}
+      {currentStep === 4 && (
         <div className="space-y-6">
           <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-xl p-8 text-center">
             <div className="text-6xl mb-4">🎉</div>
@@ -1200,38 +1128,8 @@ export default function QuickStartPage() {
             </div>
           </div>
 
-          {/* 브랜드 채널이 있으면 추적 링크 생성 안내 (강조) */}
-          {connectedAdChannels.some(c => c.channel_type.startsWith('brand_')) && (
-            <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-5">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-white text-lg">다음 단계: 추적 링크 만들기</p>
-                  <p className="text-sm text-slate-300 mt-1">
-                    브랜드 채널에서 전환을 추적하려면 추적 링크를 생성해서 게시물에 사용하세요.
-                  </p>
-                </div>
-              </div>
-              <Link
-                href="/conversions?openModal=true"
-                className="mt-4 w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                추적 링크 만들러 가기
-              </Link>
-            </div>
-          )}
-
-          {/* 외부 광고 사용 시 안내 (브랜드 채널 없을 때만) */}
-          {!connectedAdChannels.some(c => c.channel_type.startsWith('brand_')) &&
-           (!connectedSites.some(s => s.site_type === 'naver') ||
-            connectedAdChannels.some(c => c.channel_type === 'meta' || c.channel_type === 'google')) && (
+          {/* 외부 광고 사용 시 안내 */}
+          {connectedAdChannels.some(c => c.channel_type === 'meta') && (
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
@@ -1241,7 +1139,7 @@ export default function QuickStartPage() {
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-white">외부 광고 연결이 필요한가요?</p>
-                  <p className="text-sm text-slate-300">Meta, Google 등 외부 광고를 사용할 경우 추적 링크가 필요합니다.</p>
+                  <p className="text-sm text-slate-300">Meta 등 외부 광고를 사용할 경우 추적 링크가 필요합니다.</p>
                 </div>
                 <Link
                   href="/conversions?openModal=true"
@@ -1322,32 +1220,6 @@ export default function QuickStartPage() {
                 ) : (
                   '연결 해제'
                 )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Google Ads 준비중 팝업 */}
-      {showGoogleAdsComingSoon && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl bg-slate-800 border border-white/10 shadow-2xl">
-            <div className="p-6 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-500/20 flex items-center justify-center">
-                <svg className="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">Google Ads 연동 준비중</h3>
-              <p className="text-sm text-slate-400 mb-6">
-                Google Ads 연동 기능은 현재 개발 중입니다.<br />
-                빠른 시일 내에 제공될 예정입니다.
-              </p>
-              <button
-                onClick={() => setShowGoogleAdsComingSoon(false)}
-                className="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-colors"
-              >
-                확인
               </button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 # 셀러포트 (SellerPort) 개발 로드맵
 
-> **마지막 업데이트:** 2025-12-22 (클릭ID 기반 1:1 구매자 매칭 기술 차별점 추가)
+> **마지막 업데이트:** 2025-12-27 (Instagram 계정 테이블 분리 및 셀러트리 기능 추가)
 
 ## 프로젝트 개요
 
@@ -377,9 +377,23 @@ influencer_stats (인플루언서 효율 DB)
 ├── avg_conversion_rate (평균 전환율)
 └── last_updated_at
 
+instagram_accounts (Instagram 계정 연동 정보)
+├── id, user_id
+├── my_site_id → my_sites.id (연결된 쇼핑몰)
+├── instagram_user_id (Instagram 사용자 ID)
+├── instagram_username (Instagram 사용자명 @username)
+├── instagram_name (Instagram 표시 이름)
+├── profile_picture_url (프로필 사진 URL)
+├── facebook_page_id, facebook_page_name (FB 페이지 연결 정보)
+├── access_token (Instagram Graph API 토큰)
+├── token_expires_at (토큰 만료일, 장기 토큰 60일)
+├── status (connected, disconnected, token_expired, error)
+├── followers_count, media_count (계정 통계)
+└── created_at, updated_at
+
 instagram_dm_settings (Instagram DM 자동발송 설정)
 ├── id, user_id
-├── ad_channel_id → ad_channels.id (Instagram 채널)
+├── instagram_account_id → instagram_accounts.id (Instagram 계정)
 ├── tracking_link_id → tracking_links.id (추적 링크)
 ├── instagram_media_id (게시물 ID)
 ├── instagram_media_url, instagram_media_type, instagram_caption
@@ -491,6 +505,8 @@ instagram_dm_logs (Instagram DM 발송 로그)
 | 결제 관리 (`/billing`) | ✅ 완료 | 구독 관리, 알림 충전 (15원/건) |
 | 설정 (`/settings`) | ✅ 완료 | 프로필 설정 (알리고 API 설정 제거됨) |
 | 사용 가이드 (`/guide`) | ✅ 완료 | 추적 링크 사용법, 대시보드 이해하기, FAQ |
+| 인스타그램 DM (`/instagram-dm`) | ✅ 완료 | Instagram 계정 연결, DM 자동발송 설정, 게시물 선택 |
+| 셀러트리 (`/seller-tree`) | ✅ 완료 | 검색 랜딩페이지 커스터마이징, YouTube/TikTok 스토어 관리 |
 
 ### 사이드바/네비게이션
 
@@ -540,7 +556,47 @@ instagram_dm_logs (Instagram DM 발송 로그)
 
 ---
 
-## 최근 변경 사항 (2025-12-20)
+## 최근 변경 사항 (2025-12-27)
+
+### Instagram 계정 테이블 분리 및 셀러트리 기능 추가
+
+#### Instagram 계정 독립 테이블 생성
+
+Instagram 계정 정보를 `ad_channels` 테이블에서 분리하여 독립적인 `instagram_accounts` 테이블로 관리합니다.
+
+| 기능 | 파일 | 설명 |
+|------|------|------|
+| DB 마이그레이션 | `065_instagram_accounts.sql` | instagram_accounts 테이블 생성, instagram_dm_settings FK 변경 |
+| Instagram OAuth 수정 | `/api/auth/instagram/callback/route.ts` | instagram_accounts 테이블에 계정 정보 저장 (Instagram Login 방식) |
+| DM 설정 API 수정 | `/api/instagram/dm-settings/route.ts` | instagram_accounts 테이블 조인으로 변경 |
+| 미디어 API 수정 | `/api/instagram/media/route.ts` | instagramAccountId 파라미터로 계정 조회 |
+| DM 모달 수정 | `/components/modals/instagram-dm-modal.tsx` | instagramAccountId 기반 미디어 조회 |
+| Instagram DM 페이지 | `/app/(protected)/instagram-dm/page.tsx` | instagram_accounts 테이블에서 계정 조회, OAuth 버튼 직접 연결 |
+
+#### 셀러트리 페이지 기능 추가
+
+| 기능 | 파일 | 설명 |
+|------|------|------|
+| 새 셀러트리 만들기 모달 | `/app/(protected)/seller-tree/page.tsx` | 채널 타입 (YouTube/TikTok) 선택, 스토어 슬러그 입력, URL 미리보기 |
+
+#### Instagram Login 방식으로 전환
+
+기존 Facebook Login 방식에서 Instagram Login 방식으로 전환했습니다.
+
+- **이전**: Facebook 페이지 → Instagram 비즈니스 계정 연결
+- **이후**: Instagram 프로페셔널 계정으로 직접 인증 (Facebook 페이지 불필요)
+
+```
+Instagram Login 흐름:
+1. Instagram OAuth 인증 (api.instagram.com)
+2. Short-lived Token 발급
+3. Long-lived Token으로 교환 (60일)
+4. instagram_accounts 테이블에 저장
+```
+
+---
+
+## 이전 변경 사항 (2025-12-20)
 
 ### Instagram DM 자동발송 기능 추가
 
@@ -1668,6 +1724,10 @@ ad_spend_daily (일별 광고비)
 - [x] designer_reviews 테이블 (디자이너 리뷰 - 고객 평점 및 후기)
 - [x] design_requests 테이블 (디자인 의뢰 - 상세페이지 제작 요청 내역)
 - [x] design_messages 테이블 (디자인 의뢰 메시지 - 의뢰자와 디자이너 간 채팅)
+- [x] instagram_accounts 테이블 (Instagram 계정 연동 - DM 자동화용, ad_channels에서 분리)
+- [x] instagram_dm_settings 테이블 (Instagram DM 자동발송 설정)
+- [x] instagram_dm_logs 테이블 (Instagram DM 발송 로그)
+- [x] store_customization 테이블 (셀러트리 커스터마이징 설정)
 - [ ] influencer_stats 테이블 (인플루언서 효율 DB)
 - [x] RLS 정책 설정
 - [x] Auth 이메일 인증 설정

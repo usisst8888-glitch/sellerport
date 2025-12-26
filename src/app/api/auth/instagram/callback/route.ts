@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 4. Supabase에 저장
+    // 4. Supabase에 저장 (instagram_accounts 테이블 사용)
     // Admin 클라이언트 사용 (RLS 우회) - OAuth 콜백에서는 세션 쿠키가 없을 수 있음
     const adminSupabase = createAdminClient()
     const supabase = await createClient()
@@ -159,58 +159,47 @@ export async function GET(request: NextRequest) {
       userId = user.id
     }
 
-    // 기존 Instagram 채널 확인 (Admin 클라이언트 사용)
-    const { data: existingChannel } = await adminSupabase
-      .from('ad_channels')
+    // 기존 Instagram 계정 확인 (Admin 클라이언트 사용)
+    const { data: existingAccount } = await adminSupabase
+      .from('instagram_accounts')
       .select('id')
       .eq('user_id', userId)
-      .eq('channel_type', 'instagram')
-      .eq('account_id', instagramUserId.toString())
+      .eq('instagram_user_id', instagramUserId.toString())
       .single()
 
-    const channelData = {
+    const accountData = {
       user_id: userId,
-      channel_type: 'instagram',
-      channel_name: userInfo?.username || userInfo?.name || 'Instagram',
-      account_id: instagramUserId.toString(),
-      account_name: userInfo?.username || null,
+      instagram_user_id: instagramUserId.toString(),
+      instagram_username: userInfo?.username || null,
+      instagram_name: userInfo?.name || null,
+      profile_picture_url: userInfo?.profile_picture_url || null,
       access_token: accessToken,
       token_expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
       status: 'connected',
       last_sync_at: new Date().toISOString(),
       my_site_id: siteId,
-      metadata: {
-        instagram_user_id: instagramUserId.toString(),
-        username: userInfo?.username || null,
-        name: userInfo?.name || null,
-        profile_picture_url: userInfo?.profile_picture_url || null,
-        followers_count: userInfo?.followers_count || null,
-        account_type: userInfo?.account_type || null,
-        // Instagram Login 방식에서는 Facebook Page 불필요
-        auth_method: 'instagram_login',
-        dm_enabled: true,
-      },
+      followers_count: userInfo?.followers_count || null,
     }
 
-    if (existingChannel) {
+    if (existingAccount) {
       const { error: updateError } = await adminSupabase
-        .from('ad_channels')
-        .update(channelData)
-        .eq('id', existingChannel.id)
+        .from('instagram_accounts')
+        .update(accountData)
+        .eq('id', existingAccount.id)
 
       if (updateError) {
-        console.error('Failed to update Instagram channel:', updateError)
+        console.error('Failed to update Instagram account:', updateError)
         return NextResponse.redirect(
           `${process.env.NEXT_PUBLIC_APP_URL}/${redirectPath}?error=save_failed`
         )
       }
     } else {
       const { error: insertError } = await adminSupabase
-        .from('ad_channels')
-        .insert(channelData)
+        .from('instagram_accounts')
+        .insert(accountData)
 
       if (insertError) {
-        console.error('Failed to save Instagram channel:', insertError)
+        console.error('Failed to save Instagram account:', insertError)
         return NextResponse.redirect(
           `${process.env.NEXT_PUBLIC_APP_URL}/${redirectPath}?error=save_failed`
         )
@@ -221,11 +210,11 @@ export async function GET(request: NextRequest) {
     // Instagram 제품 > Webhooks에서 comments, messages 필드 구독 필요
     // 앱 레벨에서 설정되므로 여기서 별도 API 호출 불필요
 
-    console.log('Instagram connected successfully:', {
+    console.log('Instagram account connected successfully:', {
       userId,
       instagramUserId,
-      username: userInfo.username,
-      accountType: userInfo.account_type,
+      username: userInfo?.username,
+      accountType: userInfo?.account_type,
     })
 
     // 성공

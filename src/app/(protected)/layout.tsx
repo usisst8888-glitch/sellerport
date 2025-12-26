@@ -24,7 +24,7 @@ export default async function ProtectedLayout({
       </div>
 
       <Sidebar />
-      <div className="md:pl-64 relative">
+      <div className="md:pl-72 relative">
         <Header email={user.email} />
         <main className="p-4 md:p-6">
           {children}

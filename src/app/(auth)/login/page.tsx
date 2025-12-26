@@ -43,8 +43,10 @@ function LoginForm() {
 
         if (sessionData.session) {
           // 확장 프로그램이 읽을 수 있도록 localStorage에 저장
+          // refresh_token도 함께 저장하여 토큰 갱신 가능하도록
           localStorage.setItem('sellerport_extension_auth', JSON.stringify({
             authToken: sessionData.session.access_token,
+            refreshToken: sessionData.session.refresh_token,
             userInfo: {
               email: sessionData.session.user.email,
               id: sessionData.session.user.id

@@ -1,6 +1,8 @@
 // 에이블리 셀러 정보 수집기 - Background Service Worker
 
 const API_BASE_URL = 'https://sellerport.app/api';
+const SUPABASE_URL = 'https://fvlgtpeueruofjlgvuup.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2bGd0cGV1ZXJ1b2ZqbGd2dXVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzI2MjAxMzQsImV4cCI6MjA0ODE5NjEzNH0.e89lfBrNqLWUxfOOjBPU0GH7k9U_bUvPl0qJYOF_nqk';
 
 // Uint8Array를 Base64 문자열로 변환 (Service Worker에서 사용)
 function uint8ArrayToBase64(uint8Array) {
@@ -9,6 +11,80 @@ function uint8ArrayToBase64(uint8Array) {
     binary += String.fromCharCode(uint8Array[i]);
   }
   return btoa(binary);
+}
+
+// 토큰 갱신 함수
+async function refreshAuthToken() {
+  try {
+    const { refreshToken } = await chrome.storage.local.get(['refreshToken']);
+
+    if (!refreshToken) {
+      console.log('[에이블리 수집기] refresh token 없음');
+      return null;
+    }
+
+    console.log('[에이블리 수집기] 토큰 갱신 시도...');
+
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY
+      },
+      body: JSON.stringify({
+        refresh_token: refreshToken
+      })
+    });
+
+    if (!response.ok) {
+      console.error('[에이블리 수집기] 토큰 갱신 실패:', response.status);
+      // refresh token도 만료된 경우 로그아웃 처리
+      await chrome.storage.local.remove(['authToken', 'refreshToken', 'userInfo']);
+      return null;
+    }
+
+    const data = await response.json();
+
+    // 새 토큰 저장
+    await chrome.storage.local.set({
+      authToken: data.access_token,
+      refreshToken: data.refresh_token
+    });
+
+    console.log('[에이블리 수집기] 토큰 갱신 성공!');
+    return data.access_token;
+  } catch (error) {
+    console.error('[에이블리 수집기] 토큰 갱신 오류:', error);
+    return null;
+  }
+}
+
+// 유효한 토큰 가져오기 (만료 시 자동 갱신)
+async function getValidAuthToken() {
+  const { authToken } = await chrome.storage.local.get(['authToken']);
+
+  if (!authToken) {
+    return null;
+  }
+
+  // JWT 토큰 만료 확인
+  try {
+    const payload = JSON.parse(atob(authToken.split('.')[1]));
+    const expiresAt = payload.exp * 1000; // 초 -> 밀리초
+    const now = Date.now();
+
+    // 만료 5분 전이면 갱신
+    if (expiresAt - now < 5 * 60 * 1000) {
+      console.log('[에이블리 수집기] 토큰 만료 임박, 갱신 중...');
+      const newToken = await refreshAuthToken();
+      return newToken || authToken; // 갱신 실패 시 기존 토큰 반환
+    }
+
+    return authToken;
+  } catch (e) {
+    console.error('[에이블리 수집기] 토큰 파싱 오류:', e);
+    return authToken;
+  }
 }
 
 // 메시지 리스너
@@ -52,7 +128,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // 셀러 정보 저장 (Supabase API 호출)
 async function handleSaveSellerInfo(sellerInfo) {
   try {
-    const { authToken } = await chrome.storage.local.get(['authToken']);
+    const authToken = await getValidAuthToken();
 
     if (!authToken) {
       throw new Error('로그인이 필요합니다. 셀러포트에 먼저 로그인해주세요.');
@@ -105,7 +181,7 @@ async function handleSaveSellerInfo(sellerInfo) {
 
 // 셀러 목록 가져오기 (Supabase API 호출)
 async function getSellerList() {
-  const { authToken } = await chrome.storage.local.get(['authToken']);
+  const authToken = await getValidAuthToken();
 
   if (!authToken) {
     return [];
@@ -162,7 +238,7 @@ async function getSellerList() {
 
 // 모든 데이터 삭제
 async function clearAllData() {
-  const { authToken } = await chrome.storage.local.get(['authToken']);
+  const authToken = await getValidAuthToken();
 
   if (!authToken) {
     throw new Error('로그인이 필요합니다.');
@@ -186,7 +262,7 @@ async function clearAllData() {
 // 엑셀 다운로드 (API에서 CSV 받아서 다운로드)
 async function downloadExcel() {
   try {
-    const { authToken } = await chrome.storage.local.get(['authToken']);
+    const authToken = await getValidAuthToken();
 
     if (!authToken) {
       return { success: false, error: '로그인이 필요합니다.' };

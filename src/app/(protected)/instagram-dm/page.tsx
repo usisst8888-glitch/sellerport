@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { InstagramDmModal } from '@/components/modals/instagram-dm-modal'
 
@@ -20,11 +19,10 @@ interface DmSetting {
   created_at: string
   updated_at: string
   tracking_link_id: string | null
-  ad_channels: {
+  instagram_accounts: {
     id: string
-    channel_name: string
-    account_name: string | null
-    metadata: Record<string, unknown>
+    instagram_username: string | null
+    instagram_name: string | null
   } | null
   tracking_links: {
     id: string
@@ -37,20 +35,18 @@ interface DmSetting {
   } | null
 }
 
-interface InstagramChannel {
+interface InstagramAccount {
   id: string
-  channel_name: string
-  account_name: string | null
-  metadata: {
-    username?: string
-    instagram_user_id?: string
-  }
+  instagram_username: string | null
+  instagram_name: string | null
+  instagram_user_id: string
+  status: string
 }
 
 export default function InstagramDmPage() {
   const [loading, setLoading] = useState(true)
   const [dmSettings, setDmSettings] = useState<DmSetting[]>([])
-  const [instagramChannels, setInstagramChannels] = useState<InstagramChannel[]>([])
+  const [instagramAccounts, setInstagramAccounts] = useState<InstagramAccount[]>([])
   const [showDmModal, setShowDmModal] = useState(false)
   const [editingSettingId, setEditingSettingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -65,20 +61,15 @@ export default function InstagramDmPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Instagram 채널 가져오기 (status가 'connected'이거나 metadata에 instagram_user_id가 있는 경우)
-      const { data: channels } = await supabase
-        .from('ad_channels')
-        .select('id, channel_name, account_name, metadata')
+      // Instagram 계정 가져오기 (새로운 instagram_accounts 테이블에서)
+      const { data: accounts } = await supabase
+        .from('instagram_accounts')
+        .select('id, instagram_username, instagram_name, instagram_user_id, status')
         .eq('user_id', user.id)
         .eq('status', 'connected')
 
-      // Instagram 채널만 필터링
-      const instagramChannels = channels?.filter(c =>
-        c.metadata?.instagram_user_id || c.metadata?.username
-      ) || []
-
-      if (instagramChannels.length > 0) {
-        setInstagramChannels(instagramChannels)
+      if (accounts && accounts.length > 0) {
+        setInstagramAccounts(accounts)
       }
 
       // DM 설정 가져오기
@@ -146,21 +137,21 @@ export default function InstagramDmPage() {
       <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-white">연결된 Instagram 계정</h2>
-          <Link
-            href="/quick-start"
+          <a
+            href="/api/auth/instagram?from=instagram-dm"
             className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white text-sm font-medium rounded-lg transition-all"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            {instagramChannels.length > 0 ? '추가 연결' : 'Instagram 연결하기'}
-          </Link>
+            {instagramAccounts.length > 0 ? '추가 연결' : 'Instagram 연결하기'}
+          </a>
         </div>
-        {instagramChannels.length > 0 ? (
+        {instagramAccounts.length > 0 ? (
           <div className="flex flex-wrap gap-2">
-            {instagramChannels.map(channel => (
+            {instagramAccounts.map(account => (
               <div
-                key={channel.id}
+                key={account.id}
                 className="flex items-center gap-2 px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg"
               >
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center">
@@ -169,7 +160,7 @@ export default function InstagramDmPage() {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">@{channel.metadata?.username || channel.account_name || 'Instagram'}</p>
+                  <p className="text-sm font-medium text-white">@{account.instagram_username || account.instagram_name || 'Instagram'}</p>
                   <p className="text-xs text-green-400">연결됨</p>
                 </div>
               </div>
@@ -184,7 +175,7 @@ export default function InstagramDmPage() {
       </div>
 
       {/* 안내 배너 */}
-      {instagramChannels.length > 0 && dmSettings.length === 0 && (
+      {instagramAccounts.length > 0 && dmSettings.length === 0 && (
         <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 rounded-xl p-4">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center flex-shrink-0">
@@ -205,7 +196,7 @@ export default function InstagramDmPage() {
       )}
 
       {/* DM 설정 목록 */}
-      {instagramChannels.length > 0 && (
+      {instagramAccounts.length > 0 && (
         <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-white">DM 자동발송 설정 {dmSettings.length > 0 && `(${dmSettings.length}개)`}</h2>
@@ -342,7 +333,7 @@ export default function InstagramDmPage() {
       )}
 
       {/* DM 설정 모달 */}
-      {showDmModal && instagramChannels.length > 0 && (
+      {showDmModal && instagramAccounts.length > 0 && (
         <InstagramDmModal
           isOpen={showDmModal}
           onClose={handleModalClose}
@@ -350,7 +341,7 @@ export default function InstagramDmPage() {
             handleModalClose()
             fetchData()
           }}
-          channelId={instagramChannels[0].id}
+          instagramAccountId={instagramAccounts[0].id}
           isConnected={true}
           editingTrackingLinkId={editingSettingId}
         />
