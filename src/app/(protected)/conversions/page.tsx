@@ -279,7 +279,7 @@ export default function ConversionsPage() {
       .from('instagram_accounts')
       .select('id')
       .eq('user_id', user.id)
-      .eq('is_active', true)
+      .eq('status', 'connected')
       .limit(1)
 
     if (instagramAccounts && instagramAccounts.length > 0) {

@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
         .from('instagram_accounts')
         .select('id')
         .eq('user_id', user.id)
-        .eq('is_active', true)
+        .eq('status', 'connected')
         .limit(1)
         .single()
 
