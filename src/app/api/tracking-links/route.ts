@@ -210,16 +210,16 @@ export async function POST(request: NextRequest) {
 
     // Instagram DM 자동발송 설정 (Instagram 채널 + 옵션 활성화 시)
     if (channelType === 'instagram' && enableDmAutoSend && dmMessage) {
-      // 사용자의 Instagram 채널 찾기
-      const { data: instagramChannel } = await supabase
-        .from('ad_channels')
-        .select('id, metadata')
+      // 사용자의 Instagram 계정 찾기 (instagram_accounts 테이블에서)
+      const { data: instagramAccount } = await supabase
+        .from('instagram_accounts')
+        .select('id')
         .eq('user_id', user.id)
-        .eq('channel_type', 'instagram')
-        .eq('status', 'connected')
+        .eq('is_active', true)
+        .limit(1)
         .single()
 
-      if (instagramChannel) {
+      if (instagramAccount) {
         // 키워드 파싱 (쉼표로 구분된 문자열 → 배열)
         const keywords = dmTriggerKeywords
           ? dmTriggerKeywords.split(',').map((k: string) => k.trim()).filter((k: string) => k)
@@ -235,13 +235,13 @@ export async function POST(request: NextRequest) {
           .from('instagram_dm_settings')
           .insert({
             user_id: user.id,
-            ad_channel_id: instagramChannel.id,
+            instagram_account_id: instagramAccount.id,
             tracking_link_id: trackingLinkId,
             instagram_media_id: instagramMediaId || 'pending_selection',
             instagram_media_url: instagramMediaUrl || null,
             instagram_media_type: instagramMediaType || null,
             instagram_caption: instagramCaption || postName || null,
-            thumbnail_url: instagramThumbnailUrl || null,
+            instagram_thumbnail_url: instagramThumbnailUrl || null,
             trigger_keywords: keywords,
             dm_message: dmMessage,
             follow_request_message: followMessage || null, // 팔로우 요청 메시지
