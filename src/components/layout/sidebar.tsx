@@ -10,6 +10,7 @@ interface MenuItem {
   href: string
   icon: React.ReactNode
   badge?: string
+  badgeColor?: 'blue' | 'green' | 'yellow' | 'red'
   adminOnly?: boolean
 }
 

@@ -163,7 +163,7 @@ export default function ConversionsPage() {
   // 추적 링크 생성 모달
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [isInstagramConnected, setIsInstagramConnected] = useState(false)
-  const [instagramChannelId, setInstagramChannelId] = useState<string | null>(null)
+  const [instagramAccountId, setInstagramAccountId] = useState<string | null>(null)
   // Instagram DM 수정 모드
   const [editingInstagramLinkId, setEditingInstagramLinkId] = useState<string | null>(null)
 
@@ -268,19 +268,23 @@ export default function ConversionsPage() {
 
     if (channels) {
       setAdChannels(channels)
-      // Instagram 연결 상태 확인 (channel_type이 'instagram'이거나 metadata에 instagram_user_id가 있는 경우)
-      const instagramChannel = channels.find(c =>
-        c.channel_type === 'instagram' ||
-        c.metadata?.instagram_user_id
-      )
-      setIsInstagramConnected(!!instagramChannel)
-      if (instagramChannel) {
-        setInstagramChannelId(instagramChannel.id)
-      }
       // 광고 채널이 있으면 성과 데이터 조회
       if (channels.length > 0) {
         fetchAdStats(channels, user.id)
       }
+    }
+
+    // Instagram 계정 연결 상태 확인 (instagram_accounts 테이블에서)
+    const { data: instagramAccounts } = await supabase
+      .from('instagram_accounts')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .limit(1)
+
+    if (instagramAccounts && instagramAccounts.length > 0) {
+      setIsInstagramConnected(true)
+      setInstagramAccountId(instagramAccounts[0].id)
     }
   }
 
@@ -1923,7 +1927,7 @@ export default function ConversionsPage() {
           fetchTrackingLinks()
           setEditingInstagramLinkId(null)
         }}
-        channelId={instagramChannelId}
+        instagramAccountId={instagramAccountId}
         isConnected={isInstagramConnected}
         editingTrackingLinkId={editingInstagramLinkId}
       />
