@@ -177,7 +177,6 @@ export async function GET(request: NextRequest) {
       token_expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
       status: 'connected',
       last_sync_at: new Date().toISOString(),
-      my_site_id: siteId,
       followers_count: userInfo?.followers_count || null,
     }
 

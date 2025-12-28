@@ -23,27 +23,29 @@ const menuItems: MenuItem[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
       </svg>
     ),
-    badge: '🚦',
   },
   {
-    title: '빠른 시작',
-    href: '/quick-start',
+    title: '내 사이트',
+    href: '/my-sites',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
       </svg>
     ),
-    badge: '연동',
+    badge: '등록',
+    badgeColor: 'blue',
   },
   {
-    title: '광고 성과 관리',
-    href: '/conversions',
+    title: '광고 채널',
+    href: '/ad-channels',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
       </svg>
     ),
-    badge: '핵심',
+    badge: '등록',
+    badgeColor: 'blue',
   },
   {
     title: '셀러트리',
@@ -67,18 +69,17 @@ const menuItems: MenuItem[] = [
     badge: '무료',
     badgeColor: 'green',
   },
-// 광고 채널 관리 - 빠른 시작에서 모두 처리 가능하므로 삭제
-  // {
-  //   title: '광고 채널 관리',
-  //   href: '/ad-channels',
-  //   icon: (
-  //     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-  //       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-  //       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-  //     </svg>
-  //   ),
-  // },
-  // 수익 계산 메뉴 - 정식 오픈 후 활성화 예정
+  {
+    title: '광고 성과 관리',
+    href: '/conversions',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+    ),
+    badge: '핵심',
+  },
+// 수익 계산 메뉴 - 정식 오픈 후 활성화 예정
   // {
   //   title: '수익 계산',
   //   href: '/profit',
@@ -236,14 +237,14 @@ export function Sidebar() {
                 {item.title}
                 {'badge' in item && item.badge && (
                   <span className={cn(
-                    "ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full",
+                    "ml-auto text-[11px] font-bold px-2 py-1 rounded-full flex items-center justify-center leading-none",
                     'badgeColor' in item && item.badgeColor === 'green'
                       ? 'bg-green-700 text-green-100'
-                      : item.badge === '핵심'
-                        ? 'bg-red-700 text-red-100'
-                        : item.badge === '연동'
-                          ? 'bg-blue-700 text-blue-100'
-                          : ''
+                      : 'badgeColor' in item && item.badgeColor === 'blue'
+                        ? 'bg-blue-700 text-blue-100'
+                        : item.badge === '핵심'
+                          ? 'bg-red-700 text-red-100'
+                          : 'bg-slate-600 text-slate-200'
                   )}>
                     {item.badge}
                   </span>

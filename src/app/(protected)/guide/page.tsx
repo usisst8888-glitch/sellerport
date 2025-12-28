@@ -172,7 +172,7 @@ function MySitesContent() {
   }
 
   const handleConnect = (siteId: string) => {
-    router.push(`/quick-start?site=${siteId}`)
+    router.push(`/my-sites`)
   }
 
   return (
@@ -180,8 +180,8 @@ function MySitesContent() {
       <section>
         <h2 className="text-xl font-bold text-white mb-4">쇼핑몰 연동이란?</h2>
         <p className="text-slate-300 leading-relaxed">
-          셀러포트에서 전환(구매)을 추적하려면 먼저 <span className="text-blue-400 font-semibold">쇼핑몰</span>을 연동해야 합니다.
-          좌측 메뉴의 &apos;빠른 시작&apos;에서 스마트스토어, 카페24, 아임웹을 연동하면 해당 쇼핑몰에서 발생하는 주문을 자동으로 추적할 수 있습니다.
+          셀러포트에서 전환(구매)을 추적하려면 먼저 <span className="text-blue-400 font-semibold">쇼핑몰</span>을 등록해야 합니다.
+          좌측 메뉴의 &apos;내 사이트&apos;에서 스마트스토어, 카페24, 자체몰을 등록하면 해당 쇼핑몰에서 발생하는 주문을 추적할 수 있습니다.
         </p>
       </section>
 
@@ -685,8 +685,7 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
   }
 
   const handleConnect = (channelId: string) => {
-    // 빠른시작 STEP 2로 이동하면서 해당 채널 선택
-    router.push(`/quick-start?channel=${channelId}`)
+    router.push(`/ad-channels`)
   }
 
   return (

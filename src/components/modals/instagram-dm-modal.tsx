@@ -167,6 +167,13 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, instagramAccountI
     }
   }, [isOpen])
 
+  // 상품이 없으면 자동으로 직접 입력 모드로 전환
+  useEffect(() => {
+    if (!productsLoading && products.length === 0) {
+      setUrlInputMode('manual')
+    }
+  }, [products, productsLoading])
+
   // 게시물 목록 불러오기
   const fetchMedia = async () => {
     if (!instagramAccountId) return
@@ -460,14 +467,17 @@ export function InstagramDmModal({ isOpen, onClose, onSuccess, instagramAccountI
                     <div className="flex gap-2 mb-3">
                       <button
                         type="button"
-                        onClick={() => setUrlInputMode('product')}
+                        onClick={() => products.length > 0 && setUrlInputMode('product')}
+                        disabled={products.length === 0}
                         className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                           urlInputMode === 'product'
                             ? 'bg-blue-500 text-white'
-                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                            : products.length === 0
+                              ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed'
+                              : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
                         }`}
                       >
-                        상품 선택
+                        상품 선택 {products.length === 0 && '(등록 필요)'}
                       </button>
                       <button
                         type="button"

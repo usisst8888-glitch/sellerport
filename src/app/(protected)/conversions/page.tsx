@@ -102,7 +102,6 @@ interface AdChannel {
   account_name: string | null
   status: string
   last_sync_at: string | null
-  my_site_id: string | null // 연결된 사이트 ID
   metadata?: {
     instagram_user_id?: string
     instagram_username?: string
@@ -192,11 +191,6 @@ export default function ConversionsPage() {
   // 광고 채널 성과 데이터 (모든 채널)
   const [adStats, setAdStats] = useState<CampaignSummary[]>([])
   const [adStatsLoading, setAdStatsLoading] = useState(false)
-  const [syncingChannel, setSyncingChannel] = useState<string | null>(null)
-
-  // 채널 설정 드롭다운
-  const [openChannelMenu, setOpenChannelMenu] = useState<string | null>(null)
-  const [unlinkingChannel, setUnlinkingChannel] = useState<string | null>(null)
 
   // 성과 탭 (campaign: 캠페인 성과, tracking: 추적 링크)
   const [performanceTab, setPerformanceTab] = useState<'campaign' | 'tracking'>('campaign')
@@ -208,9 +202,6 @@ export default function ConversionsPage() {
     channelStatsCount: number
   } | null>(null)
   const [syncingSmartstore, setSyncingSmartstore] = useState(false)
-
-  // 상품 동기화 상태
-  const [syncingProducts, setSyncingProducts] = useState<string | null>(null)
 
   // 유튜브 영상번호 관련 상태
   const [showYoutubeVideoCodeModal, setShowYoutubeVideoCodeModal] = useState(false)
@@ -258,10 +249,10 @@ export default function ConversionsPage() {
       setConnectedSites(sites)
     }
 
-    // 연결된 광고 채널 조회 (사이트 연결 정보 포함)
+    // 연결된 광고 채널 조회
     const { data: channels } = await supabase
       .from('ad_channels')
-      .select('id, channel_type, channel_name, account_name, status, last_sync_at, my_site_id, metadata')
+      .select('id, channel_type, channel_name, account_name, status, last_sync_at, metadata')
       .eq('user_id', user.id)
       .eq('status', 'connected')
       .order('created_at', { ascending: false })
@@ -475,127 +466,6 @@ export default function ConversionsPage() {
       'google': '/api/ad-channels/google/sync',
     }
     return endpoints[channelType] || null
-  }
-
-  // 광고 채널 동기화
-  const handleSyncChannel = async (channel: AdChannel) => {
-    const endpoint = getSyncEndpoint(channel.channel_type)
-    if (!endpoint) {
-      setMessage({ type: 'error', text: '이 채널은 아직 동기화를 지원하지 않습니다' })
-      return
-    }
-
-    setSyncingChannel(channel.id)
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelId: channel.id })
-      })
-
-      const result = await response.json()
-      if (result.success) {
-        setMessage({ type: 'success', text: `${channel.channel_name} 동기화 완료 (${result.synced}건)` })
-        // 데이터 새로고침
-        fetchConnectedData()
-      } else {
-        setMessage({ type: 'error', text: result.error || '동기화에 실패했습니다' })
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: '동기화 중 오류가 발생했습니다' })
-    } finally {
-      setSyncingChannel(null)
-    }
-  }
-
-  // 상품 동기화 (연결된 쇼핑몰에서 상품 가져오기)
-  const handleSyncProducts = async (siteId: string, siteType: string) => {
-    setSyncingProducts(siteId)
-    try {
-      let endpoint = ''
-      let body: Record<string, string> = {}
-
-      if (siteType === 'smartstore') {
-        endpoint = '/api/naver/sync'
-        body = { siteId, syncType: 'products' }
-      } else if (siteType === 'cafe24') {
-        endpoint = '/api/cafe24/sync'
-        body = { siteId }
-      } else {
-        setMessage({ type: 'error', text: '이 쇼핑몰은 상품 동기화를 지원하지 않습니다' })
-        return
-      }
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      })
-
-      const result = await response.json()
-      if (result.success) {
-        const syncedCount = result.results?.products?.synced || result.syncedCount || 0
-        setMessage({ type: 'success', text: `상품 ${syncedCount}개가 동기화되었습니다` })
-      } else {
-        setMessage({ type: 'error', text: result.error || '상품 동기화에 실패했습니다' })
-      }
-    } catch {
-      setMessage({ type: 'error', text: '상품 동기화 중 오류가 발생했습니다' })
-    } finally {
-      setSyncingProducts(null)
-    }
-  }
-
-  // 광고 채널 연동 해제
-  const handleUnlinkChannel = async (channel: AdChannel) => {
-    if (!confirm(`"${channel.channel_name}" 연동을 해제하시겠습니까?\n\n연동 해제 시 해당 채널의 광고 성과 데이터도 함께 삭제됩니다.`)) {
-      return
-    }
-
-    setUnlinkingChannel(channel.id)
-    setOpenChannelMenu(null)
-
-    try {
-      const supabase = createClient()
-
-      // 1. 관련 광고 성과 데이터 삭제
-      await supabase
-        .from('ad_spend_daily')
-        .delete()
-        .eq('ad_channel_id', channel.id)
-
-      // 2. 관련 추적 링크의 채널 연결 해제
-      await supabase
-        .from('tracking_links')
-        .update({ ad_channel_id: null })
-        .eq('ad_channel_id', channel.id)
-
-      // 3. Instagram DM 설정 삭제 (Instagram 채널인 경우)
-      if (channel.channel_type === 'instagram') {
-        await supabase
-          .from('instagram_dm_settings')
-          .delete()
-          .eq('ad_channel_id', channel.id)
-      }
-
-      // 4. 광고 채널 삭제
-      const { error } = await supabase
-        .from('ad_channels')
-        .delete()
-        .eq('id', channel.id)
-
-      if (error) throw error
-
-      setMessage({ type: 'success', text: `${channel.channel_name} 연동이 해제되었습니다` })
-
-      // 데이터 새로고침
-      fetchConnectedData()
-    } catch (error) {
-      console.error('Failed to unlink channel:', error)
-      setMessage({ type: 'error', text: '연동 해제에 실패했습니다' })
-    } finally {
-      setUnlinkingChannel(null)
-    }
   }
 
   // 채널 타입별 배지 색상
@@ -813,17 +683,6 @@ export default function ConversionsPage() {
     }
   }, [editingLink, editingLinkFull, deletingLink, editingRoasLink, showCreateModal])
 
-  // 드롭다운 메뉴 외부 클릭 시 닫기
-  useEffect(() => {
-    const handleClickOutside = () => {
-      if (openChannelMenu) {
-        setOpenChannelMenu(null)
-      }
-    }
-    document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
-  }, [openChannelMenu])
-
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text)
     setCopiedId(id)
@@ -948,287 +807,6 @@ export default function ConversionsPage() {
             )}
             <span className="text-sm">{message.text}</span>
           </div>
-        </div>
-      )}
-
-      {/* 연결 상태 현황 - 사이트-채널 매핑별 카드 표시 */}
-      {(connectedSites.length > 0 || adChannels.length > 0) && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {/* 각 광고 채널별로 연결된 사이트와 함께 카드 표시 */}
-          {adChannels.map(channel => {
-            // 해당 채널과 연결된 사이트 찾기
-            const linkedSite = connectedSites.find(s => s.id === channel.my_site_id)
-            const badge = getChannelBadgeStyle(channel.channel_type)
-            // SNS 채널 (추적 링크로 전환 추적): instagram, youtube, tiktok, naver_blog 또는 brand_로 시작하는 채널
-            const snsChannelTypes = ['instagram', 'youtube', 'tiktok', 'naver_blog', 'influencer']
-            const isBrandChannel = channel.channel_type.startsWith('brand_') || snsChannelTypes.includes(channel.channel_type)
-
-            // 채널 로고 결정
-            const getChannelLogoUrl = (type: string) => {
-              const logos: Record<string, string> = {
-                'meta': '/channel_logo/meta.png',
-                'google': '/channel_logo/google_ads.png',
-                'naver_search': '/channel_logo/naver_search.png',
-                'naver_gfa': '/channel_logo/naver_gfa.png',
-                'tiktok': '/channel_logo/tiktok.png',
-                'kakao': '/channel_logo/toss.png',
-                'instagram': '/channel_logo/insta.png',
-                'youtube': '/channel_logo/youtube.png',
-                'naver_blog': '/channel_logo/naver_blog.png',
-                'brand_blog': '/channel_logo/naver_blog.png',
-                'brand_instagram': '/channel_logo/insta.png',
-                'brand_youtube': '/channel_logo/youtube.png',
-                'brand_tiktok': '/channel_logo/tiktok.png',
-              }
-              return logos[type] || '/channel_logo/meta.png'
-            }
-
-            return (
-              <div key={channel.id} className="p-4 rounded-xl bg-slate-800/60 border border-white/5 hover:border-white/10 transition-colors">
-                {/* 카드 헤더 - 상태 배지 */}
-                <div className="flex items-center justify-between mb-3">
-                  <span className={`px-2.5 py-1 text-xs rounded-full flex items-center gap-1.5 border ${
-                    linkedSite
-                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                      : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                  }`}>
-                    {linkedSite ? (
-                      <>
-                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        연동됨
-                      </>
-                    ) : '사이트 미연결'}
-                  </span>
-                  <div className="relative">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setOpenChannelMenu(openChannelMenu === channel.id ? null : channel.id)
-                      }}
-                      className="p-1.5 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                      </svg>
-                    </button>
-                    {openChannelMenu === channel.id && (
-                      <div className="absolute right-0 top-8 w-36 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-10 py-1">
-                        <button
-                          onClick={() => handleUnlinkChannel(channel)}
-                          disabled={unlinkingChannel === channel.id}
-                          className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-slate-700 flex items-center gap-2 disabled:opacity-50"
-                        >
-                          {unlinkingChannel === channel.id ? (
-                            <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-red-400"></div>
-                          ) : (
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          )}
-                          연동 해제
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* 가로 레이아웃: 쇼핑몰 - 화살표 - 광고채널 (3등분 가운데 정렬) */}
-                <div className="grid grid-cols-3 items-center">
-                  {/* 쇼핑몰 정보 - 1/3 */}
-                  <div className="flex flex-col items-center text-center">
-                    {linkedSite ? (
-                      <>
-                        <div className="w-10 h-10 rounded-lg overflow-hidden mb-2 bg-white/10">
-                          <img
-                            src={
-                              linkedSite.site_type === 'naver' ? '/site_logo/smartstore.png' :
-                              linkedSite.site_type === 'cafe24' ? '/site_logo/cafe24.png' :
-                              linkedSite.site_type === 'imweb' ? '/site_logo/imweb.png' :
-                              linkedSite.site_type === 'godomall' ? '/site_logo/godomall.png' :
-                              linkedSite.site_type === 'makeshop' ? '/site_logo/makeshop.png' :
-                              '/site_logo/own_site.png'
-                            }
-                            alt={linkedSite.site_name}
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
-                        <p className="text-sm font-medium text-white truncate w-full">{linkedSite.site_name}</p>
-                        <p className={`text-xs ${
-                          linkedSite.site_type === 'naver' ? 'text-green-400/70' :
-                          linkedSite.site_type === 'cafe24' ? 'text-blue-400/70' :
-                          linkedSite.site_type === 'imweb' ? 'text-purple-400/70' : 'text-slate-500'
-                        }`}>
-                          {linkedSite.site_type === 'naver' ? '스마트스토어' :
-                           linkedSite.site_type === 'cafe24' ? '카페24' :
-                           linkedSite.site_type === 'imweb' ? '아임웹' : '자체몰'}
-                        </p>
-                      </>
-                    ) : (
-                      <div className="flex flex-col items-center p-2">
-                        <div className="w-8 h-8 rounded bg-slate-700/50 flex items-center justify-center mb-1">
-                          <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                        <span className="text-xs text-slate-500">미연결</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 연결 화살표 - 1/3 */}
-                  <div className="flex items-center justify-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shadow-lg ${
-                      linkedSite
-                        ? 'bg-gradient-to-br from-emerald-500/30 to-teal-500/20 border border-emerald-500/40 shadow-emerald-500/10'
-                        : 'bg-slate-700/50 border border-slate-600'
-                    }`}>
-                      <svg className={`w-4 h-4 ${linkedSite ? 'text-emerald-400' : 'text-slate-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                      </svg>
-                    </div>
-                  </div>
-
-                  {/* 광고 채널 정보 - 1/3 */}
-                  <div className="flex flex-col items-center text-center">
-                    <div className="w-10 h-10 rounded-lg overflow-hidden mb-2 bg-white/10">
-                      <img
-                        src={getChannelLogoUrl(channel.channel_type)}
-                        alt={channel.channel_name || ''}
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                    <p className="text-sm font-medium text-white truncate w-full">{channel.channel_name || getChannelLabel(channel.channel_type)}</p>
-                    <p className={`text-xs ${badge.text}`}>
-                      {isBrandChannel ? '추적링크' : getChannelLabel(channel.channel_type).split(' ')[0]}
-                    </p>
-                  </div>
-                </div>
-
-                {/* 동기화/관리 버튼 영역 */}
-                <div className="mt-4 pt-3 border-t border-white/5">
-                  {isBrandChannel ? (
-                    <>
-                    <div className="flex gap-2">
-                      {/* 상품 동기화 버튼 */}
-                      {linkedSite && (linkedSite.site_type === 'naver' || linkedSite.site_type === 'cafe24') && (
-                        <button
-                          onClick={() => handleSyncProducts(linkedSite.id, linkedSite.site_type === 'naver' ? 'smartstore' : 'cafe24')}
-                          disabled={syncingProducts === linkedSite.id}
-                          className="flex-1 px-3 py-2 text-xs font-medium rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
-                          title="연결된 쇼핑몰에서 상품 동기화"
-                        >
-                          {syncingProducts === linkedSite.id ? (
-                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
-                          ) : (
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                          )}
-                          <span>상품</span>
-                        </button>
-                      )}
-                      {/* 영상번호 추가 / DM 자동발송 버튼 */}
-                      {channel.channel_type === 'youtube' ? (
-                        <button
-                          onClick={() => setShowYoutubeVideoCodeModal(true)}
-                          className="flex-1 px-3 py-2 text-xs font-medium rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors flex items-center justify-center gap-1.5"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                          영상번호
-                        </button>
-                      ) : channel.channel_type === 'tiktok' ? (
-                        <button
-                          onClick={() => setShowTiktokVideoCodeModal(true)}
-                          className="flex-1 px-3 py-2 text-xs font-medium rounded-lg bg-pink-500/20 text-pink-400 hover:bg-pink-500/30 transition-colors flex items-center justify-center gap-1.5"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                          영상번호
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => setShowCreateModal(true)}
-                          className="flex-1 px-3 py-2 text-xs font-medium rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors flex items-center justify-center gap-1.5"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                          DM 추가
-                        </button>
-                      )}
-                    </div>
-                    {/* 유튜브: 검색 랜딩 페이지 수정 버튼 */}
-                    {channel.channel_type === 'youtube' && videoCodesStoreSlug && (
-                      <button
-                        onClick={() => {
-                          router.push(`/conversions/customize/youtube/${videoCodesStoreSlug}`)
-                        }}
-                        className="w-full mt-2 px-3 py-2 text-xs font-medium rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors flex items-center justify-center gap-1.5"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        검색랜딩수정
-                      </button>
-                    )}
-                    {/* 틱톡: 검색 랜딩 페이지 수정 버튼 */}
-                    {channel.channel_type === 'tiktok' && tiktokVideoCodesStoreSlug && (
-                      <button
-                        onClick={() => {
-                          router.push(`/conversions/customize/tiktok/${tiktokVideoCodesStoreSlug}`)
-                        }}
-                        className="w-full mt-2 px-3 py-2 text-xs font-medium rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors flex items-center justify-center gap-1.5"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        검색랜딩수정
-                      </button>
-                    )}
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => handleSyncChannel(channel)}
-                      disabled={syncingChannel === channel.id}
-                      className={`w-full px-3 py-2 text-xs font-medium rounded-lg ${badge.bg} ${badge.text} hover:opacity-80 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5`}
-                    >
-                      {syncingChannel === channel.id ? (
-                        <>
-                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
-                          <span>동기화 중...</span>
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                          <span>광고비 동기화</span>
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-
-          {/* 새 연동 추가 카드 */}
-          <Link href="/quick-start" className="p-4 rounded-xl border border-dashed border-slate-600 hover:border-slate-500 hover:bg-slate-800/30 transition-colors flex items-center justify-center min-h-[140px]">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-10 h-10 rounded-lg bg-slate-700/50 flex items-center justify-center mb-2">
-                <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-              </div>
-              <span className="text-sm font-medium text-slate-400">새 연동</span>
-              <span className="text-xs text-slate-500">쇼핑몰 + 광고</span>
-            </div>
-          </Link>
         </div>
       )}
 
