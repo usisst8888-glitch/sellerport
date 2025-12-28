@@ -1,6 +1,6 @@
 # 셀러포트 (SellerPort) 개발 로드맵
 
-> **마지막 업데이트:** 2025-12-27 (Instagram 계정 테이블 분리 및 셀러트리 기능 추가)
+> **마지막 업데이트:** 2025-12-28 (테이블 구조 독립화 및 페이지 분리)
 
 ## 프로젝트 개요
 
@@ -322,12 +322,15 @@ tracking_link_clicks (추적 링크 클릭 로그)
 ├── is_converted, converted_at
 └── created_at
 
-ad_channels (광고 채널 연동 - Meta 광고 플랫폼)
+ad_channels (광고 채널 - 독립 관리)
 ├── id, user_id
-├── channel_type (meta)
-├── access_token, refresh_token
+├── channel_type (meta, naver_blog, youtube, tiktok, instagram, influencer 등)
+├── channel_name (사용자 지정 이름)
+├── access_token, refresh_token, token_expires_at
 ├── account_id, account_name
-└── status, last_sync_at
+├── status, last_sync_at
+├── is_manual (수동 채널 여부)
+└── created_at, updated_at
 
 ad_spend_daily (일별 광고비 - 캠페인/키워드/광고소재 레벨)
 ├── id, ad_channel_id, user_id
@@ -373,9 +376,8 @@ influencer_stats (인플루언서 효율 DB)
 ├── avg_conversion_rate (평균 전환율)
 └── last_updated_at
 
-instagram_accounts (Instagram 계정 연동 정보)
+instagram_accounts (Instagram 계정 - 독립 관리)
 ├── id, user_id
-├── my_site_id → my_sites.id (연결된 쇼핑몰)
 ├── instagram_user_id (Instagram 사용자 ID)
 ├── instagram_username (Instagram 사용자명 @username)
 ├── instagram_name (Instagram 표시 이름)
@@ -495,8 +497,8 @@ instagram_dm_logs (Instagram DM 발송 로그)
 | 전환 추적 (`/conversions`) | ✅ 완료 | 추적 링크 생성, 슬롯 관리 UI |
 | 수익 계산 (`/profit`) | ✅ 완료 | 마진 계산기 UI |
 | 알림 관리 (`/alerts`) | ✅ 완료 | 빨간불/노란불 알림 내역, 알림 설정 |
-| 빠른시작 (`/quick-start`) | ✅ 완료 | 5단계 온보딩, 사이트/광고채널 연동, 추적링크 생성 |
-| 광고 채널 연동 (`/ad-channels`) | ✅ 완료 | Meta 연동 완료 |
+| 내 사이트 (`/my-sites`) | ✅ 완료 | 쇼핑몰 등록 (스마트스토어, 카페24, 아임웹) |
+| 광고 채널 (`/ad-channels`) | ✅ 완료 | 광고 채널 등록 (Meta, 네이버블로그, TikTok, YouTube 등) |
 | 디자이너 연결 (`/designers`) | ✅ 완료 | 디자이너 목록, 문의 모달 |
 | 결제 관리 (`/billing`) | ✅ 완료 | 구독 관리, 알림 충전 (15원/건) |
 | 설정 (`/settings`) | ✅ 완료 | 프로필 설정 (알리고 API 설정 제거됨) |
@@ -551,7 +553,48 @@ instagram_dm_logs (Instagram DM 발송 로그)
 
 ---
 
-## 최근 변경 사항 (2025-12-27)
+## 최근 변경 사항 (2025-12-28)
+
+### 테이블 구조 독립화 및 페이지 분리
+
+#### 메뉴 구조 변경
+
+| 이전 | 이후 |
+|------|------|
+| 빠른시작 (사이트+광고채널 통합) | **내 사이트** + **광고 채널** 분리 |
+| 광고 성과 관리 (연결 상태 카드 포함) | 광고 성과 관리 (성과만 표시) |
+
+**현재 사이드바 메뉴 순서:**
+1. 내 사이트 (`/my-sites`) - 쇼핑몰 등록
+2. 광고 채널 (`/ad-channels`) - 광고 채널 등록
+3. 셀러트리 (`/seller-tree`) - 영상번호 검색 랜딩
+4. 인스타그램 자동 DM (`/instagram-dm`) - DM 자동발송
+5. 광고 성과 관리 (`/conversions`) - 추적 링크 + 성과 분석
+
+#### 불필요한 FK 컬럼 삭제 (마이그레이션 069)
+
+각 테이블이 독립적으로 관리되도록 불필요한 연동 필드를 삭제했습니다.
+
+| 테이블 | 삭제된 컬럼 | 이유 |
+|--------|------------|------|
+| `instagram_dm_settings` | `ad_channel_id` | `instagram_account_id`로 대체됨 |
+| `ad_channels` | `my_site_id` | 광고채널은 내사이트와 독립 관리 |
+| `store_customization` | `my_site_id` | 셀러트리는 내사이트와 독립 관리 |
+| `instagram_accounts` | `my_site_id` | 인스타계정은 내사이트와 독립 관리 |
+
+#### 페이지 변경
+
+| 변경 | 파일 |
+|------|------|
+| 삭제 | `/app/(protected)/quick-start/page.tsx` |
+| 신규 | `/app/(protected)/my-sites/page.tsx` |
+| 신규 | `/app/(protected)/ad-channels/page.tsx` |
+| 수정 | `/app/(protected)/conversions/page.tsx` - 연결 상태 카드 섹션 제거 |
+| 수정 | `/components/layout/sidebar.tsx` - 메뉴 순서/뱃지 스타일 변경 |
+
+---
+
+## 이전 변경 사항 (2025-12-27)
 
 ### Instagram 계정 테이블 분리 및 셀러트리 기능 추가
 
@@ -678,19 +721,9 @@ INSTAGRAM_WEBHOOK_VERIFY_TOKEN=sellerport_webhook_2025
    - 캠페인 테이블 단순화
    - Meta 광고 연동 중심
 
-#### 내 사이트 관리 페이지 삭제
+#### 연결 상태 카드 UI 단순화
 
-빠른시작 페이지에서 사이트 관리가 가능하므로 중복 기능 제거
-
-| 삭제된 파일 | 설명 |
-|------------|------|
-| `/app/(protected)/my-sites/page.tsx` | 내 사이트 관리 페이지 |
-| `/components/my-sites/*` | 사이트 연동 다이얼로그 컴포넌트들 |
-
-| 수정된 파일 | 변경 내용 |
-|------------|----------|
-| `/components/layout/sidebar.tsx` | "내 사이트 관리" 메뉴 제거 |
-| `/components/layout/mobile-sidebar.tsx` | "내 사이트 관리" 메뉴 제거 |
+광고 성과 관리 페이지에서 연결 상태 카드 UI 개선 (이후 2025-12-28에 별도 페이지로 분리됨)
 
 ---
 
