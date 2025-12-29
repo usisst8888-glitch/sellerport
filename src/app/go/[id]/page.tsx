@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js'
 import { notFound, redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { isbot } from 'isbot'
+import { Metadata } from 'next'
 import LoadingAnimation from './loading-animation'
 
 const supabase = createClient(
@@ -16,6 +17,62 @@ const supabase = createClient(
 
 interface PageProps {
   params: Promise<{ id: string }>
+}
+
+// 동적 메타데이터 생성 (OG 이미지 설정)
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id: trackingLinkId } = await params
+
+  const { data: trackingLink } = await supabase
+    .from('tracking_links')
+    .select('id, post_name, thumbnail_url, utm_campaign')
+    .eq('id', trackingLinkId)
+    .single()
+
+  if (!trackingLink) {
+    return {
+      title: '페이지 이동 중...',
+    }
+  }
+
+  const title = trackingLink.post_name || trackingLink.utm_campaign || '페이지 이동 중...'
+  const description = '잠시만 기다려주세요. 곧 상품 페이지로 이동합니다.'
+
+  const metadata: Metadata = {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+  }
+
+  // 썸네일이 있으면 OG 이미지로 설정
+  if (trackingLink.thumbnail_url) {
+    metadata.openGraph = {
+      ...metadata.openGraph,
+      images: [
+        {
+          url: trackingLink.thumbnail_url,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
+    }
+    metadata.twitter = {
+      ...metadata.twitter,
+      images: [trackingLink.thumbnail_url],
+    }
+  }
+
+  return metadata
 }
 
 export default async function GoPage({ params }: PageProps) {

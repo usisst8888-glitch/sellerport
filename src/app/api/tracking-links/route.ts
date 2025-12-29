@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { nanoid } from 'nanoid'
+import { extractOgImage } from '@/lib/utils/og-image'
 
 // 추적 링크 목록 조회
 export async function GET() {
@@ -122,6 +123,13 @@ export async function POST(request: NextRequest) {
     const goUrl = `${trackingBaseUrl}/go/${trackingLinkId}`
     const trackingUrl = goUrl
 
+    // 썸네일 URL 결정: Instagram > 목적지 URL OG 이미지 자동 추출
+    let finalThumbnailUrl = instagramThumbnailUrl || null
+    if (!finalThumbnailUrl && targetUrl) {
+      // 목적지 URL에서 OG 이미지 자동 추출 (스마트스토어 등)
+      finalThumbnailUrl = await extractOgImage(targetUrl)
+    }
+
     // 추적 링크 생성
     const { data: trackingLink, error } = await supabase
       .from('tracking_links')
@@ -144,7 +152,7 @@ export async function POST(request: NextRequest) {
         ad_spend: adSpend || 0,
         target_roas_green: targetRoasGreen ?? 300,
         target_roas_yellow: targetRoasYellow ?? 150,
-        thumbnail_url: instagramThumbnailUrl || null
+        thumbnail_url: finalThumbnailUrl
       })
       .select()
       .single()
