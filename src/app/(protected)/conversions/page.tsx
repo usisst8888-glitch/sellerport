@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { InstagramDmModal } from '@/components/modals/instagram-dm-modal'
 import { YoutubeVideoCodeModal } from '@/components/modals/youtube-video-code-modal'
 import { TiktokVideoCodeModal } from '@/components/modals/tiktok-video-code-modal'
 
@@ -152,19 +151,11 @@ export default function ConversionsPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const fromQuickStart = searchParams.get('from') === 'quick-start'
-  const openModal = searchParams.get('openModal') === 'true'
 
   const [trackingLinks, setTrackingLinks] = useState<TrackingLink[]>([])
   const [loading, setLoading] = useState(true)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-
-  // 추적 링크 생성 모달
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [isInstagramConnected, setIsInstagramConnected] = useState(false)
-  const [instagramAccountId, setInstagramAccountId] = useState<string | null>(null)
-  // Instagram DM 수정 모드
-  const [editingInstagramLinkId, setEditingInstagramLinkId] = useState<string | null>(null)
 
   // 광고비 수정 모달
   const [editingLink, setEditingLink] = useState<TrackingLink | null>(null)
@@ -273,10 +264,6 @@ export default function ConversionsPage() {
       .eq('status', 'connected')
       .limit(1)
 
-    if (instagramAccounts && instagramAccounts.length > 0) {
-      setIsInstagramConnected(true)
-      setInstagramAccountId(instagramAccounts[0].id)
-    }
   }
 
   // 모든 광고 채널 성과 데이터 조회
@@ -654,13 +641,6 @@ export default function ConversionsPage() {
     fetchTiktokVideoCodes()
   }, [])
 
-  // URL 파라미터로 모달 열기
-  useEffect(() => {
-    if (openModal) {
-      setShowCreateModal(true)
-    }
-  }, [openModal])
-
   // 메시지 3초 후 자동 제거
   useEffect(() => {
     if (message) {
@@ -673,7 +653,7 @@ export default function ConversionsPage() {
 
   // 모달 열릴 때 배경 스크롤 방지
   useEffect(() => {
-    if (editingLink || editingLinkFull || deletingLink || editingRoasLink || showCreateModal) {
+    if (editingLink || editingLinkFull || deletingLink || editingRoasLink) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = 'unset'
@@ -681,7 +661,7 @@ export default function ConversionsPage() {
     return () => {
       document.body.style.overflow = 'unset'
     }
-  }, [editingLink, editingLinkFull, deletingLink, editingRoasLink, showCreateModal])
+  }, [editingLink, editingLinkFull, deletingLink, editingRoasLink])
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text)
@@ -1147,23 +1127,30 @@ export default function ConversionsPage() {
                             <td className="py-4 px-4">
                               <div className="flex items-center justify-center gap-1">
                                 {/* 수정 버튼 */}
-                                <button
-                                  onClick={() => {
-                                    if (effectiveChannelType === 'instagram') {
-                                      setEditingInstagramLinkId(link.id)
-                                      setShowCreateModal(true)
-                                    } else {
+                                {effectiveChannelType === 'instagram' ? (
+                                  <Link
+                                    href={`/instagram-dm/add?edit=${link.id}`}
+                                    className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                                    title="수정"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                  </Link>
+                                ) : (
+                                  <button
+                                    onClick={() => {
                                       setEditingLinkFull(link)
                                       setEditForm({ name: link.utm_campaign, status: link.status })
-                                    }
-                                  }}
-                                  className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-                                  title="수정"
-                                >
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                  </svg>
-                                </button>
+                                    }}
+                                    className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                                    title="수정"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                  </button>
+                                )}
                                 {/* 삭제 버튼 */}
                                 <button
                                   onClick={() => setDeletingLink(link)}
@@ -1493,22 +1480,6 @@ export default function ConversionsPage() {
           </div>
         </div>
       )}
-
-      {/* Instagram DM 자동발송 모달 */}
-      <InstagramDmModal
-        isOpen={showCreateModal}
-        onClose={() => {
-          setShowCreateModal(false)
-          setEditingInstagramLinkId(null)
-        }}
-        onSuccess={() => {
-          fetchTrackingLinks()
-          setEditingInstagramLinkId(null)
-        }}
-        instagramAccountId={instagramAccountId}
-        isConnected={isInstagramConnected}
-        editingTrackingLinkId={editingInstagramLinkId}
-      />
 
       {/* 유튜브 영상번호 모달 */}
       <YoutubeVideoCodeModal

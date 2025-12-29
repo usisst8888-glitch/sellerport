@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { InstagramDmModal } from '@/components/modals/instagram-dm-modal'
+import Link from 'next/link'
 
 interface DmSetting {
   id: string
@@ -47,8 +47,6 @@ export default function InstagramDmPage() {
   const [loading, setLoading] = useState(true)
   const [dmSettings, setDmSettings] = useState<DmSetting[]>([])
   const [instagramAccounts, setInstagramAccounts] = useState<InstagramAccount[]>([])
-  const [showDmModal, setShowDmModal] = useState(false)
-  const [editingSettingId, setEditingSettingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -104,18 +102,6 @@ export default function InstagramDmPage() {
     }
   }
 
-  const handleEdit = (setting: DmSetting) => {
-    if (setting.tracking_link_id) {
-      setEditingSettingId(setting.tracking_link_id)
-      setShowDmModal(true)
-    }
-  }
-
-  const handleModalClose = () => {
-    setShowDmModal(false)
-    setEditingSettingId(null)
-    fetchData() // 목록 새로고침
-  }
 
   if (loading) {
     return (
@@ -200,15 +186,15 @@ export default function InstagramDmPage() {
         <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-white">DM 자동발송 설정 {dmSettings.length > 0 && `(${dmSettings.length}개)`}</h2>
-            <button
-              onClick={() => setShowDmModal(true)}
+            <Link
+              href="/instagram-dm/add"
               className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white text-sm font-medium rounded-lg transition-all"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               추가
-            </button>
+            </Link>
           </div>
           {dmSettings.length > 0 ? (
             <div className="space-y-3">
@@ -276,14 +262,14 @@ export default function InstagramDmPage() {
                     {/* 액션 버튼 */}
                     <div className="flex items-center gap-2">
                       {/* 수정 */}
-                      <button
-                        onClick={() => handleEdit(setting)}
+                      <Link
+                        href={`/instagram-dm/add?edit=${setting.tracking_link_id}`}
                         className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
-                      </button>
+                      </Link>
 
                       {/* 삭제 */}
                       <button
@@ -332,20 +318,6 @@ export default function InstagramDmPage() {
         </div>
       )}
 
-      {/* DM 설정 모달 */}
-      {showDmModal && instagramAccounts.length > 0 && (
-        <InstagramDmModal
-          isOpen={showDmModal}
-          onClose={handleModalClose}
-          onSuccess={() => {
-            handleModalClose()
-            fetchData()
-          }}
-          instagramAccountId={instagramAccounts[0].id}
-          isConnected={true}
-          editingTrackingLinkId={editingSettingId}
-        />
-      )}
     </div>
   )
 }
