@@ -173,8 +173,12 @@ async function handleCommentEvent(
     }
 
     // 팔로우 확인 요청 메시지 (Quick Reply 버튼 포함)
-    const followRequestMessage = dmSettings.follow_request_message ||
-      `안녕하세요! 댓글 감사합니다 🙏\n\n링크를 받으시려면 팔로우 후 아래 버튼을 눌러주세요!`
+    // DB 필드: follow_cta_message (클라이언트에서 followMessage로 입력)
+    const followRequestMessage = dmSettings.follow_cta_message ||
+      `팔로우를 완료하셨다면 아래 버튼을 눌러 확인해주세요! 팔로워에게만 본래의DM이 보내집니다!`
+
+    // 버튼 텍스트 (DB에서 가져오거나 기본값 사용)
+    const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
 
     // Instagram Private Reply API 호출 (Quick Reply 버튼 포함)
     // 사용자가 버튼을 누르면 messaging 이벤트로 수신됨
@@ -183,7 +187,8 @@ async function handleCommentEvent(
       followRequestMessage,
       accessToken,
       dmSettings.id,  // DM 설정 ID (버튼 클릭 시 링크 발송용)
-      trackingUrl
+      trackingUrl,
+      followButtonText
     )
 
     if (dmSent) {
@@ -436,8 +441,11 @@ async function handleFollowConfirmed(
       // 팔로우 요청 메시지 다시 발송
       console.log('Failed to send link (user may not be following), sending follow request again:', result.error)
 
-      const followRequestMessage = dmSettings.follow_request_message ||
+      const followRequestMessage = dmSettings.follow_cta_message ||
         `아직 팔로우가 확인되지 않았어요! 😅\n\n팔로우 후 다시 버튼을 눌러주세요!`
+
+      // 버튼 텍스트 (DB에서 가져오거나 기본값 사용)
+      const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
 
       // 팔로우 요청 메시지 재발송 (Postback 버튼 사용 - 말풍선 안에 버튼)
       await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
@@ -457,7 +465,7 @@ async function handleFollowConfirmed(
                 buttons: [
                   {
                     type: 'postback',
-                    title: '✅ 팔로우 완료했어요',
+                    title: followButtonText,
                     payload: `follow_confirmed:${dmSettingId}:${trackingUrl}`,
                   },
                 ],
@@ -495,7 +503,8 @@ async function sendInstagramPrivateReplyWithQuickReply(
   message: string,
   accessToken: string,
   dmSettingId: string,
-  trackingUrl: string
+  trackingUrl: string,
+  buttonText: string = '팔로우 했어요!'
 ): Promise<boolean> {
   try {
     // Private Reply API: POST /me/messages with recipient.comment_id
@@ -525,7 +534,7 @@ async function sendInstagramPrivateReplyWithQuickReply(
               buttons: [
                 {
                   type: 'postback',
-                  title: '✅ 팔로우 완료했어요',
+                  title: buttonText,
                   payload: `follow_confirmed:${dmSettingId}:${trackingUrl}`,
                 },
               ],
@@ -561,7 +570,7 @@ async function sendInstagramPrivateReplyWithQuickReply(
           quick_replies: [
             {
               content_type: 'text',
-              title: '✅ 팔로우 했어요!',
+              title: buttonText,
               payload: `follow_confirmed:${dmSettingId}:${trackingUrl}`,
             },
           ],

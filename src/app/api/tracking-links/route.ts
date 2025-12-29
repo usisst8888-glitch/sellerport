@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     const {
       productId, utmSource, utmMedium, utmCampaign, targetUrl, adSpend, targetRoasGreen, targetRoasYellow,
       channelType, postName, enableDmAutoSend, dmTriggerKeywords, dmMessage,
-      requireFollow, followMessage,
+      requireFollow, followMessage, followButtonText,
       // Instagram 게시물 정보 (DM 자동발송용)
       instagramMediaId, instagramMediaUrl, instagramMediaType, instagramCaption, instagramThumbnailUrl
     } = body
@@ -197,6 +197,7 @@ export async function POST(request: NextRequest) {
             trigger_keywords: keywords,
             dm_message: dmMessage,
             follow_cta_message: followMessage || null,
+            follow_button_text: followButtonText || '팔로우 했어요!',
             include_follow_cta: requireFollow || false,
             is_active: hasMediaInfo,
           })

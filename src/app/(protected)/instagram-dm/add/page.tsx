@@ -50,10 +50,19 @@ export default function InstagramDmAddPage() {
   const searchParams = useSearchParams()
   const editingTrackingLinkId = searchParams.get('edit')
 
+  // 버튼 텍스트 옵션들
+  const buttonTextOptions = [
+    '팔로우 했어요!',
+    '팔로우 완료!',
+    '✅ 팔로우 했어요',
+    '팔로우했어요 💕',
+  ]
+
   const [form, setForm] = useState({
     triggerKeywords: '',
     dmMessage: '',
     followMessage: '',
+    followButtonText: '팔로우 했어요!',  // 기본 버튼 텍스트
     targetUrl: '',
     selectedProductId: ''
   })
@@ -216,6 +225,7 @@ export default function InstagramDmAddPage() {
           triggerKeywords: isAllComments ? '*' : keywords.join(', '),
           dmMessage: settings.dm_message || '',
           followMessage: settings.follow_cta_message || '',
+          followButtonText: settings.follow_button_text || '팔로우 했어요!',
           targetUrl: settings.tracking_links?.target_url || '',
           selectedProductId: ''
         })
@@ -342,6 +352,7 @@ export default function InstagramDmAddPage() {
             triggerKeywords: form.triggerKeywords.split(',').map(k => k.trim()).filter(k => k),
             dmMessage: form.dmMessage,
             followCtaMessage: form.followMessage,
+            followButtonText: form.followButtonText,
           })
         })
 
@@ -365,6 +376,7 @@ export default function InstagramDmAddPage() {
             dmMessage: form.dmMessage,
             requireFollow: true,
             followMessage: form.followMessage,
+            followButtonText: form.followButtonText,
             instagramMediaId: selectedMediaId,
             instagramMediaUrl: selectedMedia?.permalink,
             instagramMediaType: selectedMedia?.media_type,
@@ -553,12 +565,35 @@ export default function InstagramDmAddPage() {
           </label>
           <textarea
             rows={3}
-            placeholder="안녕하세요! 댓글 감사합니다 🙏&#10;&#10;링크를 받으시려면 팔로우 후 아래 버튼을 눌러주세요!"
+            placeholder="팔로우를 완료하셨다면 아래 버튼을 눌러 확인해주세요! 팔로워에게만 본래의DM이 보내집니다!"
             value={form.followMessage}
             onChange={(e) => setForm({ ...form, followMessage: e.target.value })}
             className="w-full px-4 py-3 rounded-xl bg-slate-700/50 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none resize-none"
           />
-          <p className="text-xs text-slate-500 mt-2">댓글 작성자에게 먼저 발송됩니다. &quot;팔로우 했어요&quot; 버튼이 자동 포함됩니다.</p>
+          <p className="text-xs text-slate-500 mt-2">댓글 작성자에게 먼저 발송됩니다. 선택한 버튼이 말풍선 안에 포함됩니다.</p>
+
+          {/* 버튼 텍스트 선택 */}
+          <div className="mt-4">
+            <label className="block text-xs font-medium text-slate-400 mb-2">
+              버튼 텍스트 선택
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {buttonTextOptions.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setForm({ ...form, followButtonText: option })}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    form.followButtonText === option
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-slate-700/50 text-slate-300 hover:bg-slate-600 border border-slate-600'
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* 4. 팔로워용 DM 메시지 */}

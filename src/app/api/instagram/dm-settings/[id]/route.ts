@@ -88,6 +88,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       dmMessage,
       includeFollowCta,
       followCtaMessage,
+      followButtonText,
       isActive,
     } = body
 
@@ -105,6 +106,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
     if (followCtaMessage !== undefined) {
       updateData.follow_cta_message = followCtaMessage
+    }
+    if (followButtonText !== undefined) {
+      updateData.follow_button_text = followButtonText
     }
     if (isActive !== undefined) {
       updateData.is_active = isActive
