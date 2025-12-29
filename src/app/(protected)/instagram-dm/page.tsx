@@ -48,6 +48,7 @@ export default function InstagramDmPage() {
   const [dmSettings, setDmSettings] = useState<DmSetting[]>([])
   const [instagramAccounts, setInstagramAccounts] = useState<InstagramAccount[]>([])
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null)
   const [accountsExpanded, setAccountsExpanded] = useState(false)
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
 
@@ -103,6 +104,38 @@ export default function InstagramDmPage() {
       console.error('Failed to delete:', error)
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  const handleDisconnect = async (accountId: string, username: string) => {
+    if (!confirm(`@${username} 계정의 연결을 해제하시겠습니까?\n\n연결 해제 시 해당 계정의 모든 DM 자동발송 설정도 함께 삭제됩니다.`)) return
+
+    setDisconnectingId(accountId)
+    try {
+      const response = await fetch(`/api/instagram/accounts/${accountId}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        // 계정 목록에서 제거
+        setInstagramAccounts(prev => prev.filter(a => a.id !== accountId))
+        // 관련 DM 설정도 제거
+        setDmSettings(prev => prev.filter(s => s.instagram_accounts?.id !== accountId))
+        // 선택된 계정이면 다른 계정 선택
+        if (selectedAccountId === accountId) {
+          const remaining = instagramAccounts.filter(a => a.id !== accountId)
+          setSelectedAccountId(remaining.length > 0 ? remaining[0].id : null)
+        }
+        setAccountsExpanded(false)
+      } else {
+        const result = await response.json()
+        alert(result.error || '연결 해제에 실패했습니다')
+      }
+    } catch (error) {
+      console.error('Failed to disconnect:', error)
+      alert('연결 해제 중 오류가 발생했습니다')
+    } finally {
+      setDisconnectingId(null)
     }
   }
 
@@ -188,29 +221,51 @@ export default function InstagramDmPage() {
         {accountsExpanded && (
           <div className="border-t border-slate-700">
             {instagramAccounts.map(account => (
-              <button
+              <div
                 key={account.id}
-                onClick={() => {
-                  setSelectedAccountId(account.id)
-                  setAccountsExpanded(false)
-                }}
-                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-700/30 transition-colors border-b border-slate-700/50 last:border-b-0 ${
+                className={`flex items-center gap-3 px-4 py-3 border-b border-slate-700/50 last:border-b-0 ${
                   selectedAccountId === account.id ? 'bg-slate-700/50' : ''
                 }`}
               >
-                <div className={`w-2.5 h-2.5 rounded-full ${account.status === 'connected' ? 'bg-green-500' : 'bg-slate-500'}`} />
-                <div className="flex-1 text-left">
-                  <span className="text-sm text-white">@{account.instagram_username || account.instagram_name || 'Instagram'}</span>
-                  <span className="ml-2 text-xs text-slate-500">
-                    {account.status === 'connected' ? '연결됨' : '연결 해제'}
-                  </span>
-                </div>
-                {selectedAccountId === account.id && (
-                  <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </button>
+                <button
+                  onClick={() => {
+                    setSelectedAccountId(account.id)
+                    setAccountsExpanded(false)
+                  }}
+                  className="flex items-center gap-3 flex-1 hover:bg-slate-700/30 -ml-4 -my-3 pl-4 py-3 transition-colors"
+                >
+                  <div className={`w-2.5 h-2.5 rounded-full ${account.status === 'connected' ? 'bg-green-500' : 'bg-slate-500'}`} />
+                  <div className="flex-1 text-left">
+                    <span className="text-sm text-white">@{account.instagram_username || account.instagram_name || 'Instagram'}</span>
+                    <span className="ml-2 text-xs text-slate-500">
+                      {account.status === 'connected' ? '연결됨' : '연결 해제'}
+                    </span>
+                  </div>
+                  {selectedAccountId === account.id && (
+                    <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+                {/* 연결 해제 버튼 */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDisconnect(account.id, account.instagram_username || account.instagram_name || 'Instagram')
+                  }}
+                  disabled={disconnectingId === account.id}
+                  className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
+                  title="연결 해제"
+                >
+                  {disconnectingId === account.id ? (
+                    <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             ))}
 
             {/* 추가 연결 버튼 */}
