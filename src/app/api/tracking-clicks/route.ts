@@ -14,7 +14,7 @@ const supabase = createClient(
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { trackingLinkId, clickId, referer } = body
+    const { trackingLinkId, clickId, referer, fbp: clientFbp, fbc: clientFbc } = body
 
     if (!trackingLinkId || !clickId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -37,10 +37,10 @@ export async function POST(request: NextRequest) {
                request.headers.get('x-real-ip') ||
                'unknown'
 
-    // 기존 쿠키
+    // fbc/fbp: 클라이언트에서 보낸 값 우선, 없으면 서버 쿠키에서 읽기
     const cookies = request.cookies
-    const fbp = cookies.get('_fbp')?.value || null
-    const fbc = cookies.get('_fbc')?.value || null
+    const fbp = clientFbp || cookies.get('_fbp')?.value || null
+    const fbc = clientFbc || cookies.get('_fbc')?.value || null
 
     // 유효 클릭 체크 (같은 IP + User Agent가 1시간 내 클릭한 적 있는지)
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()

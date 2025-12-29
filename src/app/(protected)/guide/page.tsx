@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 
-type TabId = 'overview' | 'mysites' | 'tracking' | 'adchannels' | 'dashboard' | 'profit' | 'alerts' | 'faq'
+type TabId = 'overview' | 'mysites' | 'tracking' | 'adchannels' | 'instagram-dm' | 'dashboard' | 'profit' | 'alerts' | 'faq'
 
 interface Tab {
   id: TabId
@@ -45,6 +45,15 @@ const tabs: Tab[] = [
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+      </svg>
+    ),
+  },
+  {
+    id: 'instagram-dm',
+    title: '인스타 자동 DM',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
       </svg>
     ),
   },
@@ -95,7 +104,7 @@ export default function GuidePage() {
     const tab = searchParams.get('tab')
     const channel = searchParams.get('channel')
 
-    if (tab && ['overview', 'mysites', 'tracking', 'adchannels', 'dashboard', 'profit', 'alerts', 'faq'].includes(tab)) {
+    if (tab && ['overview', 'mysites', 'tracking', 'adchannels', 'instagram-dm', 'dashboard', 'profit', 'alerts', 'faq'].includes(tab)) {
       setActiveTab(tab as TabId)
     }
 
@@ -141,6 +150,7 @@ export default function GuidePage() {
           {activeTab === 'mysites' && <MySitesContent />}
           {activeTab === 'tracking' && <TrackingContent />}
           {activeTab === 'adchannels' && <AdChannelsContent initialChannel={initialChannel} />}
+          {activeTab === 'instagram-dm' && <InstagramDmContent />}
           {activeTab === 'dashboard' && <DashboardContent />}
           {activeTab === 'profit' && <ProfitContent />}
           {activeTab === 'alerts' && <AlertsContent />}
@@ -1473,6 +1483,210 @@ function AlertsContent() {
           </ul>
         </div>
       </section>
+    </div>
+  )
+}
+
+function InstagramDmContent() {
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-xl font-bold text-white mb-2">인스타그램 자동 DM</h2>
+        <p className="text-slate-400">
+          게시물 댓글에 특정 키워드가 감지되면 자동으로 DM을 발송합니다.
+          팔로워 참여도를 높이고 전환율을 극대화하세요.
+        </p>
+      </div>
+
+      {/* 작동 방식 */}
+      <section className="bg-slate-900/50 rounded-xl p-6 border border-slate-700/50">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <span className="text-2xl">⚡</span>
+          작동 방식
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-slate-800/50 rounded-lg p-4 text-center">
+            <div className="w-12 h-12 rounded-full bg-pink-500/20 flex items-center justify-center mx-auto mb-3">
+              <span className="text-2xl">💬</span>
+            </div>
+            <h4 className="text-white font-medium mb-1">1. 댓글 감지</h4>
+            <p className="text-slate-400 text-sm">팔로워가 설정한 키워드가 포함된 댓글 작성</p>
+          </div>
+          <div className="bg-slate-800/50 rounded-lg p-4 text-center">
+            <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto mb-3">
+              <span className="text-2xl">🤖</span>
+            </div>
+            <h4 className="text-white font-medium mb-1">2. 자동 DM 발송</h4>
+            <p className="text-slate-400 text-sm">미리 설정한 메시지와 링크를 DM으로 자동 발송</p>
+          </div>
+          <div className="bg-slate-800/50 rounded-lg p-4 text-center">
+            <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-3">
+              <span className="text-2xl">📊</span>
+            </div>
+            <h4 className="text-white font-medium mb-1">3. 성과 추적</h4>
+            <p className="text-slate-400 text-sm">발송 수, 클릭 수, 전환 수, 매출까지 실시간 추적</p>
+          </div>
+        </div>
+      </section>
+
+      {/* 시작하기 */}
+      <section className="bg-slate-900/50 rounded-xl p-6 border border-slate-700/50">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <span className="text-2xl">🚀</span>
+          시작하기
+        </h3>
+        <div className="space-y-4">
+          <div className="flex gap-4">
+            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">1</div>
+            <div>
+              <h4 className="text-white font-medium">Instagram Business 계정 연결</h4>
+              <p className="text-slate-400 text-sm mt-1">
+                Instagram Business 또는 Creator 계정이 필요합니다. 개인 계정은 Meta API 정책상 지원되지 않습니다.
+                Instagram 앱에서 무료로 프로페셔널 계정으로 전환할 수 있습니다.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-4">
+            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">2</div>
+            <div>
+              <h4 className="text-white font-medium">게시물 선택 및 설정 생성</h4>
+              <p className="text-slate-400 text-sm mt-1">
+                DM 자동발송을 적용할 게시물을 선택하고, 상품을 연결합니다.
+                추적 링크가 자동으로 생성되어 클릭 및 전환을 추적합니다.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-4">
+            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">3</div>
+            <div>
+              <h4 className="text-white font-medium">트리거 키워드 설정</h4>
+              <p className="text-slate-400 text-sm mt-1">
+                DM 발송을 시작할 키워드를 설정합니다. 예: &quot;링크&quot;, &quot;가격&quot;, &quot;구매&quot;, &quot;정보&quot; 등
+                게시물 캡션에 &quot;링크 댓글로 남겨주세요!&quot; 같은 CTA를 추가하면 효과적입니다.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-4">
+            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">4</div>
+            <div>
+              <h4 className="text-white font-medium">DM 메시지 작성</h4>
+              <p className="text-slate-400 text-sm mt-1">
+                자동으로 발송될 메시지를 작성합니다. 친근한 톤과 이모지를 활용하면 전환율이 높아집니다.
+                {'{link}'} 변수를 사용하면 자동으로 추적 링크로 변환됩니다.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 추천 키워드 */}
+      <section className="bg-slate-900/50 rounded-xl p-6 border border-slate-700/50">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <span className="text-2xl">🏷️</span>
+          추천 키워드 예시
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="bg-slate-800/50 rounded-lg p-3">
+            <p className="text-xs text-slate-500 mb-2">구매 의향</p>
+            <div className="flex flex-wrap gap-1.5">
+              <span className="px-2 py-0.5 bg-pink-500/20 text-pink-400 text-xs rounded-full">링크</span>
+              <span className="px-2 py-0.5 bg-pink-500/20 text-pink-400 text-xs rounded-full">구매</span>
+              <span className="px-2 py-0.5 bg-pink-500/20 text-pink-400 text-xs rounded-full">사고싶어</span>
+            </div>
+          </div>
+          <div className="bg-slate-800/50 rounded-lg p-3">
+            <p className="text-xs text-slate-500 mb-2">정보 요청</p>
+            <div className="flex flex-wrap gap-1.5">
+              <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full">가격</span>
+              <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full">정보</span>
+              <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full">어디서</span>
+            </div>
+          </div>
+          <div className="bg-slate-800/50 rounded-lg p-3">
+            <p className="text-xs text-slate-500 mb-2">관심 표현</p>
+            <div className="flex flex-wrap gap-1.5">
+              <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full">궁금</span>
+              <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full">알려주세요</span>
+              <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full">DM</span>
+            </div>
+          </div>
+          <div className="bg-slate-800/50 rounded-lg p-3">
+            <p className="text-xs text-slate-500 mb-2">이모지</p>
+            <div className="flex flex-wrap gap-1.5">
+              <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full">🙋</span>
+              <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full">🙏</span>
+              <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full">❤️</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 메시지 예시 */}
+      <section className="bg-slate-900/50 rounded-xl p-6 border border-slate-700/50">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <span className="text-2xl">💬</span>
+          DM 메시지 예시
+        </h3>
+        <div className="bg-slate-800/50 rounded-lg p-4 border-l-4 border-pink-500">
+          <p className="text-sm text-white leading-relaxed">
+            안녕하세요! 💕<br /><br />
+            댓글 남겨주셔서 감사해요!<br />
+            요청하신 상품 링크 보내드릴게요 👇<br /><br />
+            {'{link}'}<br /><br />
+            궁금한 점 있으시면 편하게 DM 주세요! 🙏
+          </p>
+        </div>
+        <p className="text-xs text-slate-500 mt-3">
+          * {'{link}'} 는 자동으로 추적 링크로 변환됩니다.
+        </p>
+      </section>
+
+      {/* FAQ */}
+      <section className="bg-slate-900/50 rounded-xl p-6 border border-slate-700/50">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <span className="text-2xl">❓</span>
+          자주 묻는 질문
+        </h3>
+        <div className="space-y-4">
+          <div className="bg-slate-800/50 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-white mb-2">Q. 개인 계정도 사용할 수 있나요?</h4>
+            <p className="text-sm text-slate-400">
+              아니요, Meta API 정책상 Instagram Business 또는 Creator 계정만 DM 자동발송을 지원합니다.
+            </p>
+          </div>
+          <div className="bg-slate-800/50 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-white mb-2">Q. 하루에 몇 개까지 발송되나요?</h4>
+            <p className="text-sm text-slate-400">
+              Meta API 정책에 따라 일반적으로 하루 약 50~100개 정도 발송 가능하며, 계정 상태에 따라 달라질 수 있습니다.
+            </p>
+          </div>
+          <div className="bg-slate-800/50 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-white mb-2">Q. 기존 댓글에도 DM이 발송되나요?</h4>
+            <p className="text-sm text-slate-400">
+              아니요, 설정 활성화 이후 새로 달린 댓글에만 반응합니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 rounded-xl p-6 border border-pink-500/20">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-white font-semibold mb-1">지금 바로 시작하기</h3>
+            <p className="text-slate-400 text-sm">Instagram 계정을 연결하고 첫 자동 DM 설정을 만들어보세요.</p>
+          </div>
+          <a
+            href="/instagram-dm"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-pink-600 text-white font-medium rounded-lg hover:bg-pink-500 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            자동 DM 설정하기
+          </a>
+        </div>
+      </div>
     </div>
   )
 }

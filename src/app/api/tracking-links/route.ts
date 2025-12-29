@@ -115,57 +115,12 @@ export async function POST(request: NextRequest) {
     // 추적 링크 ID 생성
     const trackingLinkId = `TL-${nanoid(8).toUpperCase()}`
 
-    // 상품의 판매 사이트 타입 확인 (자체몰 여부)
-    let siteType: string | null = null
-    if (productId) {
-      const { data: product } = await supabase
-        .from('products')
-        .select('site_type')
-        .eq('id', productId)
-        .single()
-      siteType = product?.site_type || null
-    }
+    // 트래킹 전용 도메인 (짧은 URL용) - 없으면 기본 앱 URL 사용
+    const trackingBaseUrl = process.env.NEXT_PUBLIC_TRACKING_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
-    // 자체몰(custom)은 추적 스크립트 설치 가능 → 브릿지샵 불필요
-    // 네이버/쿠팡 등 외부 사이트는 스크립트 설치 불가 → 브릿지샵 필요
-    const isCustomShop = siteType === 'custom' || siteType === 'cafe24'
-    const needsBridgeShop = ['google', 'meta', 'tiktok'].includes(utmSource) && !isCustomShop
-
-    // 베이스 URL 설정 (환경에 따라)
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-
-    let trackingUrl: string
-    let bridgeShopUrl: string | null = null
-    let goUrl: string
-    let directUrl: string | null = null // 자체몰용 직접 URL
-
-    // go URL은 항상 제공 (리다이렉트용)
-    goUrl = `${baseUrl}/go/${trackingLinkId}`
-
-    if (isCustomShop) {
-      // 자체몰: 목적지 URL에 UTM 파라미터 + 추적 ID 직접 추가
-      const targetWithParams = new URL(targetUrl)
-      targetWithParams.searchParams.set('utm_source', utmSource)
-      targetWithParams.searchParams.set('utm_medium', utmMedium)
-      targetWithParams.searchParams.set('utm_campaign', utmCampaign)
-      targetWithParams.searchParams.set('sp_click', trackingLinkId)
-      directUrl = targetWithParams.toString()
-      trackingUrl = directUrl
-    } else if (needsBridgeShop) {
-      // 구글/메타/틱톡 + 외부 사이트(네이버/쿠팡): 브릿지샵 필요
-      const smartstoreMatch = targetUrl.match(/smartstore\.naver\.com\/([^/]+)\/products\/(\d+)/)
-
-      if (smartstoreMatch) {
-        const [, storeName, productIdFromUrl] = smartstoreMatch
-        bridgeShopUrl = `${baseUrl}/bridge/${storeName}/${productIdFromUrl}?tl=${trackingLinkId}`
-      } else {
-        bridgeShopUrl = `${baseUrl}/bridge/shop?tl=${trackingLinkId}`
-      }
-      trackingUrl = bridgeShopUrl
-    } else {
-      // 네이버/카카오/블로그 등 + 외부 사이트: 빠른 리다이렉트
-      trackingUrl = goUrl
-    }
+    // 모든 경우에 go_url 사용 (브릿지샵 제거 - 네이버 스마트스토어 연동으로 전환 추적 가능)
+    const goUrl = `${trackingBaseUrl}/go/${trackingLinkId}`
+    const trackingUrl = goUrl
 
     // 추적 링크 생성
     const { data: trackingLink, error } = await supabase
@@ -179,7 +134,6 @@ export async function POST(request: NextRequest) {
         utm_campaign: finalUtmCampaign,
         target_url: targetUrl,
         tracking_url: trackingUrl,
-        bridge_shop_url: bridgeShopUrl,
         go_url: goUrl,
         channel_type: channelType || null,
         post_name: postName || null,

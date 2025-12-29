@@ -3,7 +3,8 @@
  * POST /api/naver/orders/poll
  *
  * 네이버 Commerce API에서 새 주문을 감지하고
- * 추적 링크 쿠키로 전환 매칭을 시도합니다.
+ * nt_detail 파라미터로 추적 링크를 매칭합니다.
+ * 매칭된 주문은 CAPI를 통해 Meta에 Purchase 이벤트를 전송합니다.
  *
  * Vercel Cron Job으로 5분마다 실행 권장
  */
@@ -11,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createNaverClient } from '@/lib/naver/commerce-api'
+import { createMetaClient } from '@/lib/meta/conversions-api'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -64,6 +66,7 @@ export async function POST(request: NextRequest) {
 
     let totalNewOrders = 0
     let totalMatched = 0
+    let totalCapiSent = 0
     const results: any[] = []
 
     // 각 사이트별 주문 폴링
@@ -91,6 +94,8 @@ export async function POST(request: NextRequest) {
         )
 
         const orders = ordersResponse.data?.contents || []
+        let siteMatched = 0
+        let siteCapiSent = 0
 
         for (const order of orders) {
           // 주문 저장
@@ -119,10 +124,15 @@ export async function POST(request: NextRequest) {
             totalNewOrders++
           }
 
-          // 추적 링크 매칭 시도 (UTM 캠페인 기반)
-          const matched = await tryTrackingLinkMatching(site.user_id, order)
-          if (matched) {
+          // 추적 링크 매칭 및 CAPI 전송
+          const matchResult = await tryTrackingLinkMatchingWithCAPI(site.user_id, order)
+          if (matchResult.matched) {
+            siteMatched++
             totalMatched++
+          }
+          if (matchResult.capiSent) {
+            siteCapiSent++
+            totalCapiSent++
           }
         }
 
@@ -135,7 +145,8 @@ export async function POST(request: NextRequest) {
         results.push({
           siteId: site.id,
           orders: orders.length,
-          matched: totalMatched
+          matched: siteMatched,
+          capiSent: siteCapiSent
         })
 
       } catch (err) {
@@ -152,6 +163,7 @@ export async function POST(request: NextRequest) {
       totalSites: sites.length,
       totalNewOrders,
       totalMatched,
+      totalCapiSent,
       results
     })
 
@@ -179,62 +191,164 @@ function mapNaverStatus(status: string): string {
   return statusMap[status] || 'unknown'
 }
 
-// 추적 링크 매칭 시도
-async function tryTrackingLinkMatching(userId: string, order: any): Promise<boolean> {
+// inflowPathType에서 nt_detail 추출
+function extractNtDetailFromInflowPath(inflowPath: string): string | null {
+  // inflowPathType 형식 예시: "nt_source=meta&nt_medium=ad&nt_detail=campaign_abc"
+  // 또는 단순히 nt_detail 값만 포함되어 있을 수 있음
+  if (!inflowPath) return null
+
+  // URL 파라미터 형식으로 파싱 시도
   try {
-    // 1. 유입경로에서 UTM 캠페인 추출 시도
+    const params = new URLSearchParams(inflowPath)
+    const ntDetail = params.get('nt_detail')
+    if (ntDetail) return ntDetail
+  } catch {
+    // 파싱 실패 시 무시
+  }
+
+  // nt_detail= 패턴 직접 검색
+  const match = inflowPath.match(/nt_detail=([^&\s]+)/)
+  if (match) return match[1]
+
+  return null
+}
+
+// 추적 링크 매칭 및 CAPI 전송
+async function tryTrackingLinkMatchingWithCAPI(
+  userId: string,
+  order: any
+): Promise<{ matched: boolean; capiSent: boolean }> {
+  try {
+    // 1. inflowPathType에서 nt_detail (= utm_campaign) 추출
     const inflowPath = order.inflowPathType || ''
+    const ntDetail = extractNtDetailFromInflowPath(inflowPath)
 
     // 2. 사용자의 활성 추적 링크 조회
     const { data: trackingLinks } = await supabase
       .from('tracking_links')
-      .select('id, utm_campaign, conversions, revenue')
+      .select('id, utm_campaign, conversions, revenue, user_id')
       .eq('user_id', userId)
       .eq('status', 'active')
 
     if (!trackingLinks || trackingLinks.length === 0) {
-      return false
+      return { matched: false, capiSent: false }
     }
 
-    // 3. UTM 캠페인 매칭 (정확한 매칭은 쿠키 기반이 필요)
-    // 현재는 최근 활성 추적 링크 기반 휴리스틱 매칭
-    // TODO: 실제로는 클릭 시 저장한 쿠키와 매칭해야 함
+    // 3. nt_detail로 추적 링크 매칭
+    let matchedLink = null
 
-    // 4. 주문에 tracking_link_id가 있으면 매칭
-    if (order.tracking_link_id) {
-      const matchedLink = trackingLinks.find(s => s.id === order.tracking_link_id)
-      if (matchedLink) {
-        // 전환 기록
-        await supabase.from('conversions').insert({
-          id: `CV-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          tracking_link_id: matchedLink.id,
-          user_id: userId,
+    if (ntDetail) {
+      // nt_detail = utm_campaign 으로 매칭
+      matchedLink = trackingLinks.find(link => link.utm_campaign === ntDetail)
+    }
+
+    if (!matchedLink) {
+      return { matched: false, capiSent: false }
+    }
+
+    // 4. 해당 추적 링크의 최근 클릭 정보 조회 (fbc, fbp 가져오기)
+    const { data: recentClick } = await supabase
+      .from('tracking_link_clicks')
+      .select('id, click_id, fbp, fbc, user_agent, ip_address')
+      .eq('tracking_link_id', matchedLink.id)
+      .order('clicked_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    // 5. 전환 기록 저장
+    const conversionId = `CV-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
+    await supabase.from('conversions').insert({
+      id: conversionId,
+      tracking_link_id: matchedLink.id,
+      user_id: userId,
+      click_id: recentClick?.click_id || null,
+      order_id: order.orderId,
+      order_amount: order.totalPaymentAmount,
+      product_name: order.productName,
+      quantity: order.quantity,
+      site_type: 'naver',
+      fbp: recentClick?.fbp || null,
+      fbc: recentClick?.fbc || null,
+      converted_at: new Date().toISOString()
+    })
+
+    // 6. 추적 링크 통계 업데이트
+    await supabase
+      .from('tracking_links')
+      .update({
+        conversions: (matchedLink.conversions || 0) + 1,
+        revenue: (matchedLink.revenue || 0) + order.totalPaymentAmount
+      })
+      .eq('id', matchedLink.id)
+
+    // 7. 클릭 로그에 전환 표시
+    if (recentClick?.click_id) {
+      await supabase
+        .from('tracking_link_clicks')
+        .update({
+          is_converted: true,
+          converted_at: new Date().toISOString(),
           order_id: order.orderId,
-          order_amount: order.totalPaymentAmount,
-          product_name: order.productName,
-          quantity: order.quantity,
-          site_type: 'naver',
-          converted_at: new Date().toISOString()
+          order_amount: order.totalPaymentAmount
+        })
+        .eq('click_id', recentClick.click_id)
+    }
+
+    // 8. CAPI로 Purchase 이벤트 전송
+    let capiSent = false
+
+    // 사용자의 Meta 설정 조회
+    const { data: userMeta } = await supabase
+      .from('user_meta_settings')
+      .select('pixel_id, access_token')
+      .eq('user_id', userId)
+      .single()
+
+    if (userMeta?.pixel_id && userMeta?.access_token && recentClick?.fbp) {
+      try {
+        const metaClient = createMetaClient(userMeta.pixel_id, userMeta.access_token)
+
+        await metaClient.trackPurchase({
+          userData: {
+            fbp: recentClick.fbp,
+            fbc: recentClick.fbc || undefined,
+            clientIp: recentClick.ip_address || undefined,
+            userAgent: recentClick.user_agent || undefined,
+            // 구매자 전화번호가 있다면 추가 (해시하여 전송)
+            phone: order.ordererTel || undefined
+          },
+          value: order.totalPaymentAmount,
+          currency: 'KRW',
+          orderId: order.orderId,
+          productName: order.productName,
+          numItems: order.quantity
         })
 
-        // 추적 링크 통계 업데이트
-        await supabase
-          .from('tracking_links')
-          .update({
-            conversions: (matchedLink.conversions || 0) + 1,
-            revenue: (matchedLink.revenue || 0) + order.totalPaymentAmount
-          })
-          .eq('id', matchedLink.id)
+        capiSent = true
 
-        return true
+        // 전환 테이블에 CAPI 전송 표시
+        await supabase
+          .from('conversions')
+          .update({
+            meta_sent: true,
+            meta_sent_at: new Date().toISOString(),
+            meta_event_id: conversionId
+          })
+          .eq('id', conversionId)
+
+        console.log(`[CAPI] Purchase event sent for order ${order.orderId}`)
+
+      } catch (capiError) {
+        console.error(`[CAPI] Failed to send Purchase event for order ${order.orderId}:`, capiError)
       }
     }
 
-    return false
+    return { matched: true, capiSent }
 
   } catch (err) {
     console.error('Tracking link matching error:', err)
-    return false
+    return { matched: false, capiSent: false }
   }
 }
 
