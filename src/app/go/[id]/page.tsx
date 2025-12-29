@@ -23,10 +23,10 @@ export default async function GoPage({ params }: PageProps) {
   const headersList = await headers()
   const userAgent = headersList.get('user-agent') || ''
 
-  // 추적 링크 조회
+  // 추적 링크 조회 (user_id 포함하여 Pixel 조회용)
   const { data: trackingLink, error } = await supabase
     .from('tracking_links')
-    .select('id, target_url, utm_source, utm_medium, utm_campaign, status')
+    .select('id, target_url, utm_source, utm_medium, utm_campaign, status, user_id')
     .eq('id', trackingLinkId)
     .single()
 
@@ -67,10 +67,28 @@ export default async function GoPage({ params }: PageProps) {
     redirect(targetUrl.toString())
   }
 
+  // 셀러의 Meta Pixel ID 조회 (ad_channels.metadata.default_pixel_id)
+  let pixelId: string | undefined
+  if (trackingLink.user_id) {
+    const { data: adChannel } = await supabase
+      .from('ad_channels')
+      .select('metadata')
+      .eq('user_id', trackingLink.user_id)
+      .eq('channel_type', 'meta')
+      .eq('status', 'connected')
+      .limit(1)
+      .single()
+
+    if (adChannel?.metadata?.default_pixel_id) {
+      pixelId = adChannel.metadata.default_pixel_id
+    }
+  }
+
   return (
     <LoadingAnimation
       trackingLinkId={trackingLinkId}
       targetUrl={targetUrl.toString()}
+      pixelId={pixelId}
     />
   )
 }

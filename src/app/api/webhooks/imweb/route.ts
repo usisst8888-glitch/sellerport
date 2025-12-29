@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createMetaClient } from '@/lib/meta/conversions-api'
 
 // Supabase Admin 클라이언트 (Service Role - RLS 우회)
 const supabaseAdmin = createClient(
@@ -151,7 +152,21 @@ async function handleOrderCreated(
   }
 
   // 전환 추적 (추적 링크와 매칭 시도)
-  // TODO: 아임웹 주문에 UTM 파라미터나 sp_slot 쿠키 정보가 있으면 매칭
+  // raw_data에서 sp_click 쿠키 또는 UTM 파라미터 확인
+  const spClick = (data as Record<string, unknown>).sp_click as string | undefined
+
+  if (spClick) {
+    await sendMetaConversionEvent(site.user_id, spClick, {
+      orderId: data.order_no || data.order_id || '',
+      value: data.pay_price || 0,
+      email: data.orderer?.email,
+      phone: undefined,
+      firstName: data.orderer?.name,
+      productIds: data.product_list?.map(p => p.prod_no),
+      productName: data.product_list?.[0]?.prod_name,
+      numItems: data.product_list?.reduce((sum, p) => sum + p.count, 0),
+    })
+  }
 }
 
 /**
@@ -212,6 +227,107 @@ async function handleAppUninstalled(
 
   if (updateError) {
     console.error('[Imweb Webhook] Site status update error:', updateError)
+  }
+}
+
+/**
+ * Meta CAPI 전환 이벤트 전송
+ */
+async function sendMetaConversionEvent(
+  userId: string,
+  spClick: string,
+  orderInfo: {
+    orderId: string
+    value: number
+    email?: string
+    phone?: string
+    firstName?: string
+    productIds?: string[]
+    productName?: string
+    numItems?: number
+  }
+) {
+  try {
+    // sp_click으로 클릭 데이터 조회 (fbc, fbp 포함)
+    const { data: clickData } = await supabaseAdmin
+      .from('tracking_clicks')
+      .select('tracking_link_id, fbp, fbc')
+      .eq('click_id', spClick)
+      .single()
+
+    if (!clickData) {
+      console.log('[Imweb Webhook] Click data not found for sp_click:', spClick)
+      return
+    }
+
+    // 셀러의 Meta Pixel 정보 조회
+    const { data: adChannel } = await supabaseAdmin
+      .from('ad_channels')
+      .select('metadata, access_token')
+      .eq('user_id', userId)
+      .eq('channel_type', 'meta')
+      .eq('status', 'connected')
+      .single()
+
+    if (!adChannel?.metadata?.default_pixel_id || !adChannel.access_token) {
+      console.log('[Imweb Webhook] Meta Pixel not configured for user:', userId)
+      return
+    }
+
+    // Meta CAPI로 Purchase 이벤트 전송
+    const metaClient = createMetaClient(
+      adChannel.metadata.default_pixel_id,
+      adChannel.access_token
+    )
+
+    await metaClient.trackPurchase({
+      userData: {
+        email: orderInfo.email,
+        phone: orderInfo.phone,
+        firstName: orderInfo.firstName,
+        fbc: clickData.fbc || undefined,
+        fbp: clickData.fbp || undefined,
+      },
+      value: orderInfo.value,
+      currency: 'KRW',
+      orderId: orderInfo.orderId,
+      productIds: orderInfo.productIds,
+      productName: orderInfo.productName,
+      numItems: orderInfo.numItems || 1,
+    })
+
+    console.log('[Imweb Webhook] Meta CAPI Purchase event sent for order:', orderInfo.orderId)
+
+    // 추적 링크 통계 업데이트
+    const { error: updateError } = await supabaseAdmin
+      .from('tracking_links')
+      .update({
+        conversions: supabaseAdmin.rpc('increment', { x: 1 }),
+        revenue: supabaseAdmin.rpc('increment', { x: orderInfo.value }),
+      })
+      .eq('id', clickData.tracking_link_id)
+
+    if (updateError) {
+      // RPC가 없으면 직접 업데이트
+      const { data: currentLink } = await supabaseAdmin
+        .from('tracking_links')
+        .select('conversions, revenue')
+        .eq('id', clickData.tracking_link_id)
+        .single()
+
+      if (currentLink) {
+        await supabaseAdmin
+          .from('tracking_links')
+          .update({
+            conversions: (currentLink.conversions || 0) + 1,
+            revenue: (currentLink.revenue || 0) + orderInfo.value,
+          })
+          .eq('id', clickData.tracking_link_id)
+      }
+    }
+
+  } catch (error) {
+    console.error('[Imweb Webhook] Meta CAPI error:', error)
   }
 }
 
