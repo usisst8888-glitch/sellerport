@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
 }
 
 // 팔로워 여부 확인 함수
-// Instagram Conversations API의 participants 필드에서 is_user_follow_business 값을 확인
+// Instagram User Profile API를 사용하여 is_user_follow_business 값을 확인
 // 참고: https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/messaging-api
 async function checkIfFollower(
   myInstagramUserId: string,
@@ -92,30 +92,74 @@ async function checkIfFollower(
   accessToken: string
 ): Promise<boolean> {
   try {
-    console.log('Checking if user is follower via Conversations API:', targetUserId)
+    console.log('Checking if user is follower via User Profile API:', targetUserId)
 
-    // Instagram Conversations API를 사용하여 해당 사용자와의 대화에서 팔로워 여부 확인
-    // GET /{ig-user-id}/conversations?platform=instagram&user_id={target-user-id}&fields=participants
-    // participants 필드에 is_user_follow_business 값이 포함됨
-    const url = `https://graph.instagram.com/v21.0/${myInstagramUserId}/conversations?platform=instagram&user_id=${targetUserId}&fields=participants`
+    // 방법 1: User Profile API로 is_user_follow_business 필드 직접 조회
+    // GET /{user-id}?fields=id,username,is_user_follow_business,is_business_follow_user
+    const profileUrl = `https://graph.instagram.com/v21.0/${targetUserId}?fields=id,username,is_user_follow_business,is_business_follow_user`
 
-    const response = await fetch(url, {
+    const profileResponse = await fetch(profileUrl, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
       },
     })
-    const result = await response.json()
+    const profileResult = await profileResponse.json()
 
-    console.log('Conversations API response:', JSON.stringify(result, null, 2))
+    console.log('User Profile API response:', JSON.stringify(profileResult, null, 2))
 
-    if (result.error) {
-      console.error('Conversations API error:', result.error)
-      // API 에러 시 팔로워 아님으로 간주 (안전한 기본값)
+    if (!profileResult.error && profileResult.is_user_follow_business !== undefined) {
+      const isFollower = profileResult.is_user_follow_business === true
+      console.log('Follower check result from User Profile API:', isFollower)
+      return isFollower
+    }
+
+    // 방법 2: Conversations API에서 participants 내부의 is_user_follow_business 확인
+    // 중첩 필드로 요청: participants{id,username,is_user_follow_business}
+    console.log('User Profile API failed, trying Conversations API with nested fields...')
+
+    const conversationsUrl = `https://graph.instagram.com/v21.0/${myInstagramUserId}/conversations?platform=instagram&user_id=${targetUserId}&fields=participants{id,username,is_user_follow_business,is_business_follow_user}`
+
+    const conversationsResponse = await fetch(conversationsUrl, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    })
+    const conversationsResult = await conversationsResponse.json()
+
+    console.log('Conversations API response:', JSON.stringify(conversationsResult, null, 2))
+
+    if (conversationsResult.error) {
+      console.error('Conversations API error:', conversationsResult.error)
+
+      // 방법 3: 마지막으로 기본 conversations API 시도
+      console.log('Trying basic Conversations API...')
+      const basicUrl = `https://graph.instagram.com/v21.0/${myInstagramUserId}/conversations?platform=instagram&user_id=${targetUserId}`
+
+      const basicResponse = await fetch(basicUrl, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      })
+      const basicResult = await basicResponse.json()
+
+      console.log('Basic Conversations API response:', JSON.stringify(basicResult, null, 2))
+
+      if (basicResult.error) {
+        console.error('All API methods failed')
+        return false
+      }
+
+      // 대화가 존재하면 기본적으로 팔로워로 간주 (대화 시작 = 관계 있음)
+      if (basicResult.data && basicResult.data.length > 0) {
+        console.log('Conversation exists, assuming follower relationship')
+        return true
+      }
+
       return false
     }
 
     // conversations 데이터에서 participants 확인
-    const conversations = result.data || []
+    const conversations = conversationsResult.data || []
 
     if (conversations.length === 0) {
       console.log('No conversation found with user:', targetUserId)
@@ -138,7 +182,7 @@ async function checkIfFollower(
     console.log('Target user not found in participants')
     return false
   } catch (error) {
-    console.error('Error checking follower status via Conversations API:', error)
+    console.error('Error checking follower status:', error)
     return false
   }
 }
