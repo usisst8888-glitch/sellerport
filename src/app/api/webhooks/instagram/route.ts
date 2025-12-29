@@ -108,11 +108,11 @@ async function handleCommentEvent(
       .from('instagram_dm_settings')
       .select(`
         *,
-        ad_channels!inner (
+        instagram_accounts!inner (
           id,
           user_id,
           access_token,
-          metadata
+          instagram_user_id
         ),
         tracking_links (
           id,
@@ -163,8 +163,8 @@ async function handleCommentEvent(
     }
 
     // DM 발송
-    const accessToken = dmSettings.ad_channels.access_token
-    const instagramUserId = dmSettings.ad_channels.metadata?.instagram_user_id
+    const accessToken = dmSettings.instagram_accounts.access_token
+    const instagramUserId = dmSettings.instagram_accounts.instagram_user_id
     const trackingUrl = dmSettings.tracking_links?.go_url || dmSettings.tracking_links?.tracking_url
 
     if (!accessToken || !instagramUserId || !trackingUrl) {
@@ -272,7 +272,7 @@ async function handleMessagingEvent(event: {
           instagram_dm_settings!inner (
             id,
             dm_message,
-            ad_channels!inner (
+            instagram_accounts!inner (
               access_token
             ),
             tracking_links (
@@ -320,9 +320,9 @@ async function handleFollowConfirmed(
       .from('instagram_dm_settings')
       .select(`
         *,
-        ad_channels!inner (
+        instagram_accounts!inner (
           access_token,
-          metadata
+          instagram_user_id
         )
       `)
       .eq('id', dmSettingId)
@@ -333,7 +333,7 @@ async function handleFollowConfirmed(
       return
     }
 
-    const accessToken = dmSettings.ad_channels.access_token
+    const accessToken = dmSettings.instagram_accounts.access_token
 
     // 팔로워용 DM 메시지 생성
     const dmMessageText = dmSettings.dm_message || '감사합니다! 요청하신 링크입니다 👇'
