@@ -19,6 +19,15 @@ interface MetaAdAccountsResponse {
   data: MetaAdAccount[]
 }
 
+interface MetaPixel {
+  id: string
+  name: string
+}
+
+interface MetaPixelsResponse {
+  data: MetaPixel[]
+}
+
 // Meta OAuth 콜백 처리
 export async function GET(request: NextRequest) {
   try {
@@ -129,11 +138,30 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 4. Supabase에 저장
-    const supabase = await createClient()
-
-    // 첫 번째 활성 광고 계정 사용 (나중에 선택 UI 추가 가능)
+    // 첫 번째 활성 광고 계정 사용
     const activeAccount = adAccountsData.data.find(acc => acc.account_status === 1) || adAccountsData.data[0]
+
+    // 4. 광고 계정의 Pixel 목록 가져오기
+    let pixels: MetaPixel[] = []
+    try {
+      const pixelsUrl = new URL(`https://graph.facebook.com/v18.0/${activeAccount.id}/adspixels`)
+      pixelsUrl.searchParams.set('access_token', accessToken)
+      pixelsUrl.searchParams.set('fields', 'id,name')
+
+      const pixelsResponse = await fetch(pixelsUrl.toString())
+      const pixelsData: MetaPixelsResponse = await pixelsResponse.json()
+
+      if (pixelsData.data && pixelsData.data.length > 0) {
+        pixels = pixelsData.data
+        console.log('Found pixels:', pixels)
+      }
+    } catch (pixelError) {
+      console.error('Failed to fetch pixels (non-critical):', pixelError)
+      // Pixel 조회 실패해도 계속 진행
+    }
+
+    // 5. Supabase에 저장
+    const supabase = await createClient()
 
     // 기존 연동이 있는지 확인
     const { data: existingChannel } = await supabase
@@ -163,6 +191,13 @@ export async function GET(request: NextRequest) {
           account_id: acc.account_id,
           status: acc.account_status,
         })),
+        // Pixel 정보 저장
+        pixels: pixels.map(p => ({
+          id: p.id,
+          name: p.name,
+        })),
+        // 기본 Pixel (첫 번째 Pixel 자동 선택)
+        default_pixel_id: pixels.length > 0 ? pixels[0].id : null,
       },
     }
 
