@@ -84,64 +84,61 @@ export async function POST(request: NextRequest) {
 }
 
 // 팔로워 여부 확인 함수
-// Instagram API로 팔로워 목록을 확인하여 특정 사용자가 팔로워인지 확인
+// Instagram Conversations API의 participants 필드에서 is_user_follow_business 값을 확인
+// 참고: https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/messaging-api
 async function checkIfFollower(
   myInstagramUserId: string,
   targetUserId: string,
   accessToken: string
 ): Promise<boolean> {
   try {
-    console.log('Checking if user is follower:', targetUserId, 'for account:', myInstagramUserId)
+    console.log('Checking if user is follower via Conversations API:', targetUserId)
 
-    // Instagram Graph API: GET /{ig-user-id}/followers
-    // 참고: instagram_manage_messages 권한 필요
-    // 팔로워 목록에서 해당 사용자가 있는지 확인
-    const url = `https://graph.instagram.com/v21.0/${myInstagramUserId}/followers?access_token=${accessToken}`
+    // Instagram Conversations API를 사용하여 해당 사용자와의 대화에서 팔로워 여부 확인
+    // GET /{ig-user-id}/conversations?platform=instagram&user_id={target-user-id}&fields=participants
+    // participants 필드에 is_user_follow_business 값이 포함됨
+    const url = `https://graph.instagram.com/v21.0/${myInstagramUserId}/conversations?platform=instagram&user_id=${targetUserId}&fields=participants`
 
-    const response = await fetch(url)
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    })
     const result = await response.json()
 
+    console.log('Conversations API response:', JSON.stringify(result, null, 2))
+
     if (result.error) {
-      console.error('Follower check API error:', result.error)
+      console.error('Conversations API error:', result.error)
       // API 에러 시 팔로워 아님으로 간주 (안전한 기본값)
       return false
     }
 
-    // followers 목록에서 targetUserId 찾기
-    const followers = result.data || []
-    const isFollower = followers.some((follower: { id: string }) => follower.id === targetUserId)
+    // conversations 데이터에서 participants 확인
+    const conversations = result.data || []
 
-    console.log('Follower check result:', isFollower, '- Total followers fetched:', followers.length)
+    if (conversations.length === 0) {
+      console.log('No conversation found with user:', targetUserId)
+      return false
+    }
 
-    // 페이지네이션이 있을 수 있음 (팔로워가 많은 경우)
-    // 첫 페이지에서 못 찾으면 추가 페이지 확인
-    if (!isFollower && result.paging?.next) {
-      let nextUrl = result.paging.next
-      let pageCount = 1
-      const maxPages = 5 // 최대 5페이지까지만 확인
+    // 첫 번째 대화의 participants에서 해당 사용자의 is_user_follow_business 확인
+    const conversation = conversations[0]
+    const participants = conversation.participants?.data || []
 
-      while (nextUrl && pageCount < maxPages) {
-        const nextResponse = await fetch(nextUrl)
-        const nextResult = await nextResponse.json()
-
-        if (nextResult.error) break
-
-        const moreFollowers = nextResult.data || []
-        const foundInPage = moreFollowers.some((follower: { id: string }) => follower.id === targetUserId)
-
-        if (foundInPage) {
-          console.log('Found follower in page:', pageCount + 1)
-          return true
-        }
-
-        nextUrl = nextResult.paging?.next
-        pageCount++
+    for (const participant of participants) {
+      // 상대방(targetUserId)의 팔로워 여부 확인
+      if (participant.id === targetUserId) {
+        const isFollower = participant.is_user_follow_business === true
+        console.log('Follower check result from Conversations API:', isFollower, '- participant data:', participant)
+        return isFollower
       }
     }
 
-    return isFollower
+    console.log('Target user not found in participants')
+    return false
   } catch (error) {
-    console.error('Error checking follower status:', error)
+    console.error('Error checking follower status via Conversations API:', error)
     return false
   }
 }
