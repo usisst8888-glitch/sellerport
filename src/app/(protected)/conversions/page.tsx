@@ -685,59 +685,180 @@ export default function ConversionsPage() {
           <h1 className="text-2xl font-bold text-white">광고 성과 관리</h1>
           <p className="text-slate-400 mt-1">광고 채널별 성과를 한눈에 확인하고 관리하세요</p>
         </div>
-        {/* 스마트스토어 전환 동기화 버튼 */}
-        <button
-          onClick={handleSyncSmartstore}
-          disabled={syncingSmartstore}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-green-600/50 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          {syncingSmartstore ? (
-            <>
-              <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              동기화 중...
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              스마트스토어 전환 동기화
-            </>
-          )}
-        </button>
       </div>
 
-      {/* 스마트스토어 동기화 안내 */}
-      {smartstoreSyncStatus && smartstoreSyncStatus.channelStatsCount > 0 && (
-        <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center">
-                <img src="/site_logo/smartstore.png" alt="스마트스토어" className="w-6 h-6" />
+      {/* 연동 현황 카드 섹션 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* 광고 채널 카드 */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20 p-5">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl" />
+          <div className="relative">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                  <img src="/channel_logo/meta.png" alt="Meta" className="w-8 h-8" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white">광고 채널</h3>
+                  <p className="text-xs text-slate-400">Meta 광고비 동기화</p>
+                </div>
               </div>
-              <div>
-                <p className="font-medium text-white">스마트스토어 전환 데이터 수집됨</p>
-                <p className="text-sm text-slate-400">
-                  {smartstoreSyncStatus.availableSources.length}개 채널 소스 ({smartstoreSyncStatus.channelStatsCount}건)
-                  {smartstoreSyncStatus.lastSync && (
-                    <span className="ml-2">
-                      · 마지막 수집: {new Date(smartstoreSyncStatus.lastSync).toLocaleString('ko-KR')}
-                    </span>
-                  )}
-                </p>
+              {adChannels.length > 0 && (
+                <span className="px-2 py-1 text-xs font-medium bg-green-500/20 text-green-400 rounded-full">
+                  {adChannels.length}개 연동
+                </span>
+              )}
+            </div>
+
+            {adChannels.length > 0 ? (
+              <div className="space-y-2">
+                {adChannels.slice(0, 2).map((channel) => (
+                  <div key={channel.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                    <div className="flex items-center gap-3">
+                      <img src={getChannelLogoPath(channel.channel_type)} alt={channel.channel_type} className="w-8 h-8 rounded-lg" />
+                      <div>
+                        <p className="text-sm font-medium text-white">{channel.channel_name || channel.account_name}</p>
+                        <p className="text-xs text-slate-500">
+                          {channel.last_sync_at
+                            ? `${Math.floor((Date.now() - new Date(channel.last_sync_at).getTime()) / 60000)}분 전 동기화`
+                            : '동기화 필요'}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const endpoint = getSyncEndpoint(channel.channel_type)
+                        if (!endpoint) return
+                        try {
+                          const response = await fetch(endpoint, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ channelId: channel.id })
+                          })
+                          const result = await response.json()
+                          if (result.success) {
+                            setMessage({ type: 'success', text: `${channel.channel_name} 동기화 완료` })
+                            fetchConnectedData()
+                          } else {
+                            setMessage({ type: 'error', text: result.error || '동기화 실패' })
+                          }
+                        } catch {
+                          setMessage({ type: 'error', text: '동기화 중 오류 발생' })
+                        }
+                      }}
+                      className="px-3 py-1.5 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center gap-1.5"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      동기화
+                    </button>
+                  </div>
+                ))}
+                {adChannels.length > 2 && (
+                  <Link href="/ad-channels" className="block text-center text-xs text-slate-400 hover:text-white py-2">
+                    +{adChannels.length - 2}개 더 보기
+                  </Link>
+                )}
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">
-                소스: {smartstoreSyncStatus.availableSources.slice(0, 3).join(', ')}
-                {smartstoreSyncStatus.availableSources.length > 3 && ` 외 ${smartstoreSyncStatus.availableSources.length - 3}개`}
-              </span>
-            </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-slate-400 mb-3">연동된 광고 채널이 없습니다</p>
+                <Link
+                  href="/ad-channels"
+                  className="inline-block px-4 py-2 text-sm font-medium bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                >
+                  광고 채널 연동하기
+                </Link>
+              </div>
+            )}
           </div>
         </div>
-      )}
+
+        {/* 스마트스토어 카드 */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 p-5">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl" />
+          <div className="relative">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center">
+                  <img src="/site_logo/smartstore.png" alt="스마트스토어" className="w-8 h-8" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white">전환 데이터</h3>
+                  <p className="text-xs text-slate-400">스마트스토어 주문 동기화</p>
+                </div>
+              </div>
+              {connectedSites.length > 0 && (
+                <span className="px-2 py-1 text-xs font-medium bg-green-500/20 text-green-400 rounded-full">
+                  {connectedSites.length}개 연동
+                </span>
+              )}
+            </div>
+
+            {connectedSites.length > 0 ? (
+              <div className="space-y-2">
+                {connectedSites.slice(0, 2).map((site) => (
+                  <div key={site.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={site.site_type === 'naver' ? '/site_logo/smartstore.png' : site.site_type === 'cafe24' ? '/site_logo/cafe24.png' : '/site_logo/imweb.png'}
+                        alt={site.site_type}
+                        className="w-8 h-8 rounded-lg"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-white">{site.site_name}</p>
+                        <p className="text-xs text-slate-500">
+                          {site.last_sync_at
+                            ? `${Math.floor((Date.now() - new Date(site.last_sync_at).getTime()) / 60000)}분 전 동기화`
+                            : '동기화 필요'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {connectedSites.length > 2 && (
+                  <Link href="/my-sites" className="block text-center text-xs text-slate-400 hover:text-white py-2">
+                    +{connectedSites.length - 2}개 더 보기
+                  </Link>
+                )}
+                {/* 스마트스토어 전환 동기화 버튼 */}
+                <button
+                  onClick={handleSyncSmartstore}
+                  disabled={syncingSmartstore}
+                  className="w-full mt-2 px-4 py-2 text-sm font-medium bg-green-500 hover:bg-green-600 disabled:bg-green-500/50 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  {syncingSmartstore ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      동기화 중...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      전환 데이터 동기화
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-slate-400 mb-3">연동된 쇼핑몰이 없습니다</p>
+                <Link
+                  href="/my-sites"
+                  className="inline-block px-4 py-2 text-sm font-medium bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
+                >
+                  쇼핑몰 연동하기
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
 
       {/* 빠른 시작 안내 배너 */}
