@@ -37,6 +37,7 @@ export default function AdChannelsPage() {
   })
   const [saving, setSaving] = useState(false)
   const [syncing, setSyncing] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   // URL 파라미터에서 성공/에러 메시지 처리
@@ -143,6 +144,45 @@ export default function AdChannelsPage() {
     } catch (error) {
       console.error('Failed to delete channel:', error)
       setMessage({ type: 'error', text: '삭제에 실패했습니다' })
+    }
+  }
+
+  // Meta 토큰 갱신
+  const handleRefreshToken = async (channelId: string) => {
+    setRefreshing(channelId)
+    setMessage(null)
+
+    try {
+      const response = await fetch('/api/ad-channels/meta/refresh-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelId })
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        setMessage({
+          type: 'success',
+          text: '토큰이 갱신되었습니다. 이제 광고비 동기화를 사용할 수 있습니다.'
+        })
+        fetchChannels() // 채널 목록 새로고침
+      } else if (result.needsReconnect) {
+        setMessage({
+          type: 'error',
+          text: '토큰을 갱신할 수 없습니다. Meta 계정을 다시 연동해주세요.'
+        })
+      } else {
+        setMessage({
+          type: 'error',
+          text: result.error || '토큰 갱신에 실패했습니다'
+        })
+      }
+    } catch (error) {
+      console.error('Token refresh error:', error)
+      setMessage({ type: 'error', text: '토큰 갱신 중 오류가 발생했습니다' })
+    } finally {
+      setRefreshing(null)
     }
   }
 
@@ -254,27 +294,55 @@ export default function AdChannelsPage() {
                   <span className={`px-2 py-1 rounded text-xs ${
                     channel.status === 'active' || channel.status === 'connected'
                       ? 'bg-green-500/20 text-green-400'
+                      : channel.status === 'token_expired'
+                      ? 'bg-red-500/20 text-red-400'
                       : 'bg-slate-600 text-slate-400'
                   }`}>
-                    {channel.status === 'active' || channel.status === 'connected' ? '활성' : channel.status}
+                    {channel.status === 'active' || channel.status === 'connected'
+                      ? '활성'
+                      : channel.status === 'token_expired'
+                      ? 'Token expired, please reconnect'
+                      : channel.status}
                   </span>
-                  {/* Meta 채널인 경우 동기화 버튼 표시 */}
+                  {/* Meta 채널인 경우 */}
                   {channel.channel_type === 'meta' && (
-                    <button
-                      onClick={() => handleSyncMeta(channel.id)}
-                      disabled={syncing === channel.id}
-                      className="px-3 py-1.5 text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-lg transition-colors disabled:opacity-50"
-                    >
-                      {syncing === channel.id ? (
-                        <span className="flex items-center gap-1.5">
-                          <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                          </svg>
-                          동기화 중...
-                        </span>
-                      ) : '광고비 동기화'}
-                    </button>
+                    <>
+                      {/* 토큰 만료 시 갱신 버튼 */}
+                      {channel.status === 'token_expired' ? (
+                        <button
+                          onClick={() => handleRefreshToken(channel.id)}
+                          disabled={refreshing === channel.id}
+                          className="px-3 py-1.5 text-xs font-medium bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          {refreshing === channel.id ? (
+                            <span className="flex items-center gap-1.5">
+                              <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                              </svg>
+                              갱신 중...
+                            </span>
+                          ) : '토큰 갱신'}
+                        </button>
+                      ) : (
+                        /* 정상 상태일 때 동기화 버튼 */
+                        <button
+                          onClick={() => handleSyncMeta(channel.id)}
+                          disabled={syncing === channel.id}
+                          className="px-3 py-1.5 text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          {syncing === channel.id ? (
+                            <span className="flex items-center gap-1.5">
+                              <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                              </svg>
+                              동기화 중...
+                            </span>
+                          ) : '광고비 동기화'}
+                        </button>
+                      )}
+                    </>
                   )}
                   <button
                     onClick={() => handleDeleteChannel(channel.id)}

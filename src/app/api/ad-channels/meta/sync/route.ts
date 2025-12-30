@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { refreshMetaToken } from '@/lib/meta/refresh-token'
 
 interface MetaInsightData {
   date_start: string
@@ -58,18 +59,41 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Channel not found' }, { status: 404 })
     }
 
-    // 토큰 만료 체크
-    if (channel.token_expires_at && new Date(channel.token_expires_at) < new Date()) {
-      // 토큰 갱신 필요 - 상태 업데이트
-      await supabase
-        .from('ad_channels')
-        .update({ status: 'token_expired' })
-        .eq('id', channelId)
+    // 토큰 만료 체크 및 자동 갱신
+    let accessToken = channel.access_token
+    const tokenExpiresAt = channel.token_expires_at ? new Date(channel.token_expires_at) : null
+    const now = new Date()
 
-      return NextResponse.json({ error: 'Token expired, please reconnect' }, { status: 401 })
+    if (tokenExpiresAt) {
+      // 이미 만료된 경우
+      if (tokenExpiresAt < now) {
+        // 토큰 갱신 시도
+        const refreshResult = await refreshMetaToken(channelId, accessToken, supabase)
+
+        if (refreshResult.success && refreshResult.accessToken) {
+          accessToken = refreshResult.accessToken
+        } else {
+          // 갱신 실패 - 재연결 필요
+          await supabase
+            .from('ad_channels')
+            .update({ status: 'token_expired' })
+            .eq('id', channelId)
+
+          return NextResponse.json({
+            error: 'Token expired, please reconnect',
+            needsReconnect: true
+          }, { status: 401 })
+        }
+      }
+      // 7일 이내 만료 예정인 경우 미리 갱신
+      else if (tokenExpiresAt.getTime() - now.getTime() < 7 * 24 * 60 * 60 * 1000) {
+        const refreshResult = await refreshMetaToken(channelId, accessToken, supabase)
+        if (refreshResult.success && refreshResult.accessToken) {
+          accessToken = refreshResult.accessToken
+          console.log('Meta token refreshed proactively for channel:', channelId)
+        }
+      }
     }
-
-    const accessToken = channel.access_token
     const adAccountId = channel.metadata?.ad_account_id || `act_${channel.account_id}`
 
     // 날짜 범위 설정 (기본: 최근 7일)
