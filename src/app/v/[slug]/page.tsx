@@ -59,6 +59,7 @@ export default function StoreVideoCodeSearchPage() {
   const [storeValid, setStoreValid] = useState<boolean | null>(null)
   const [storeName, setStoreName] = useState<string>('')
   const [customization, setCustomization] = useState<StoreCustomization | null>(null)
+  const [customizationLoaded, setCustomizationLoaded] = useState(false)
   const router = useRouter()
 
   // 스토어 유효성 확인 및 커스터마이징 로드
@@ -68,7 +69,6 @@ export default function StoreVideoCodeSearchPage() {
         const response = await fetch(`/api/youtube/video-codes/store/${slug}`)
         const result = await response.json()
         if (result.success) {
-          setStoreValid(true)
           setStoreName(result.storeName || slug)
 
           // 커스터마이징 로드
@@ -83,6 +83,8 @@ export default function StoreVideoCodeSearchPage() {
             console.error('Customization load error:', err)
             // 커스터마이징 없으면 기본값 사용
           }
+          setCustomizationLoaded(true)
+          setStoreValid(true)
         } else {
           setStoreValid(false)
         }
@@ -142,8 +144,8 @@ export default function StoreVideoCodeSearchPage() {
   // 상단 이미지 높이 클래스 (더 높게 조정)
   const headerHeightClass = headerSize === 'small' ? 'h-44' : headerSize === 'large' ? 'h-80' : 'h-60'
 
-  // 스토어 확인 중
-  if (storeValid === null) {
+  // 스토어 확인 중 또는 커스터마이징 로드 중
+  if (storeValid === null || (storeValid === true && !customizationLoaded)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-4">
         <div className="w-12 h-12 border-4 border-red-500/30 border-t-red-500 rounded-full animate-spin" />
