@@ -83,11 +83,15 @@ ${productNames.slice(0, 10).map((name, i) => `${i + 1}. ${name}`).join('\n')}
 2. 핵심 키워드를 앞쪽에 배치
 3. ${platformName} 검색 알고리즘에 최적화
 4. 구매 전환율을 높이는 매력적인 문구 포함
-5. 불필요한 특수문자 사용 지양
+5. 이모지, 특수문자, 괄호() 절대 사용 금지
 6. 각 상품명은 고유해야 함
+7. 순수 텍스트 상품명만 작성
 
 응답 형식:
-각 상품명을 새 줄로 구분하여 5개만 작성해주세요. 번호나 설명 없이 상품명만 작성합니다.`
+- 번호 없이 상품명만 작성
+- 각 상품명을 새 줄로 구분
+- 이모지나 특수기호 절대 포함하지 않기
+- 괄호나 설명 추가하지 않기`
 
   try {
     const response = await fetch(
@@ -125,7 +129,19 @@ ${productNames.slice(0, 10).map((name, i) => `${i + 1}. ${name}`).join('\n')}
     // 줄바꿈으로 분리하여 상품명 추출
     const names = generatedText
       .split('\n')
-      .map((line: string) => line.trim())
+      .map((line: string) => {
+        // 번호 제거 (1. 2. 등)
+        let cleaned = line.replace(/^\d+\.\s*/, '').trim()
+        // 이모지 제거
+        cleaned = cleaned.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]/gu, '')
+        // 괄호와 그 내용 제거
+        cleaned = cleaned.replace(/\([^)]*\)/g, '').trim()
+        // 대괄호와 그 내용 제거
+        cleaned = cleaned.replace(/\[[^\]]*\]/g, '').trim()
+        // 연속 공백 제거
+        cleaned = cleaned.replace(/\s+/g, ' ').trim()
+        return cleaned
+      })
       .filter((line: string) => line.length > 0 && line.length <= 100)
       .slice(0, 5)
 

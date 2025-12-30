@@ -752,8 +752,11 @@ async function sendInstagramPrivateReplyWithQuickReply(
 
     console.log('Sending Private Reply with Button Template to comment:', commentId)
 
-    // Button Template 사용 - 말풍선 안에 버튼 표시
-    // postback 버튼으로 클릭 시 messaging webhook 이벤트 발생
+    // web_url 버튼용 팔로우 확인 URL 생성 (PC fallback용)
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sellerport.app'
+    const followConfirmUrl = `${appUrl}/api/instagram/follow-confirm?dm=${dmSettingId}&url=${encodeURIComponent(trackingUrl)}&comment=${commentId}`
+
+    // 1차 시도: Button Template with postback (모바일 앱에서 동작)
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -786,12 +789,52 @@ async function sendInstagramPrivateReplyWithQuickReply(
     const result = await response.json()
 
     if (!result.error) {
-      console.log('Instagram Private Reply with Button Template sent successfully:', result)
+      console.log('Instagram Private Reply with postback Button Template sent successfully:', result)
       return true
     }
 
-    // Button Template이 지원되지 않는 경우 Quick Reply로 재시도
-    console.error('Instagram Private Reply with Button Template error:', result.error)
+    // 2차 시도: Button Template with web_url (PC에서도 클릭 가능)
+    console.error('Instagram Private Reply with postback error:', result.error)
+    console.log('Retrying with web_url Button Template...')
+
+    const webUrlResponse = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        recipient: {
+          comment_id: commentId,
+        },
+        message: {
+          attachment: {
+            type: 'template',
+            payload: {
+              template_type: 'button',
+              text: message,
+              buttons: [
+                {
+                  type: 'web_url',
+                  url: followConfirmUrl,
+                  title: buttonText,
+                },
+              ],
+            },
+          },
+        },
+      }),
+    })
+
+    const webUrlResult = await webUrlResponse.json()
+
+    if (!webUrlResult.error) {
+      console.log('Instagram Private Reply with web_url Button Template sent successfully:', webUrlResult)
+      return true
+    }
+
+    // 3차 시도: Quick Reply (postback)
+    console.error('Instagram Private Reply with web_url error:', webUrlResult.error)
     console.log('Retrying with Quick Reply...')
 
     const quickReplyResponse = await fetch(url, {
@@ -824,7 +867,7 @@ async function sendInstagramPrivateReplyWithQuickReply(
       return true
     }
 
-    // 마지막 Fallback: 일반 텍스트 메시지
+    // 4차 시도 (마지막 Fallback): 일반 텍스트 메시지 + 링크
     console.error('Instagram Private Reply with Quick Reply error:', quickReplyResult.error)
     console.log('Retrying with plain text message...')
 
@@ -839,7 +882,7 @@ async function sendInstagramPrivateReplyWithQuickReply(
           comment_id: commentId,
         },
         message: {
-          text: message + `\n\n👉 "팔로우 했어요"라고 답장해주세요!`,
+          text: `${message}\n\n👉 팔로우 확인: ${followConfirmUrl}`,
         },
       }),
     })

@@ -2,12 +2,6 @@
 
 import { useState } from 'react'
 
-interface SearchResult {
-  productName: string
-  price?: number
-  platform: 'naver' | 'coupang'
-}
-
 interface GeneratedName {
   name: string
   charCount: number
@@ -16,64 +10,51 @@ interface GeneratedName {
 export default function ProductNamePage() {
   const [platform, setPlatform] = useState<'naver' | 'coupang'>('naver')
   const [keyword, setKeyword] = useState('')
-  const [isSearching, setIsSearching] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [generatedNames, setGeneratedNames] = useState<GeneratedName[]>([])
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // 상품 검색
-  const handleSearch = async () => {
+  // AI 상품명 생성 (백그라운드에서 검색 + 생성)
+  const handleGenerate = async () => {
     if (!keyword.trim()) {
       setError('키워드를 입력해주세요')
       return
     }
 
-    setError(null)
-    setIsSearching(true)
-    setSearchResults([])
-    setGeneratedNames([])
-
-    try {
-      const response = await fetch('/api/product-name/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platform, keyword: keyword.trim() }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || '검색 중 오류가 발생했습니다')
-      }
-
-      setSearchResults(data.data.products || [])
-
-      if (data.data.products.length === 0) {
-        setError('검색 결과가 없습니다. 다른 키워드로 시도해주세요.')
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '검색 중 오류가 발생했습니다')
-    } finally {
-      setIsSearching(false)
-    }
-  }
-
-  // 상품명 생성
-  const handleGenerate = async () => {
-    if (searchResults.length === 0) {
-      setError('먼저 상품을 검색해주세요')
+    if (platform === 'coupang') {
+      setError('쿠팡은 현재 준비중입니다. 네이버를 이용해주세요.')
       return
     }
 
     setError(null)
     setIsGenerating(true)
+    setGeneratedNames([])
 
     try {
-      const productNames = searchResults.map(r => r.productName)
+      // 1. 백그라운드에서 상품 검색
+      const searchResponse = await fetch('/api/product-name/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform, keyword: keyword.trim() }),
+      })
 
-      const response = await fetch('/api/product-name/generate', {
+      const searchData = await searchResponse.json()
+
+      if (!searchResponse.ok) {
+        throw new Error(searchData.error || '상품 검색 중 오류가 발생했습니다')
+      }
+
+      const products = searchData.data.products || []
+
+      if (products.length === 0) {
+        throw new Error('검색 결과가 없습니다. 다른 키워드로 시도해주세요.')
+      }
+
+      // 2. 검색된 상품으로 AI 상품명 생성
+      const productNames = products.map((r: { productName: string }) => r.productName)
+
+      const generateResponse = await fetch('/api/product-name/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -83,15 +64,15 @@ export default function ProductNamePage() {
         }),
       })
 
-      const data = await response.json()
+      const generateData = await generateResponse.json()
 
-      if (!response.ok) {
-        throw new Error(data.error || '상품명 생성 중 오류가 발생했습니다')
+      if (!generateResponse.ok) {
+        throw new Error(generateData.error || '상품명 생성 중 오류가 발생했습니다')
       }
 
-      setGeneratedNames(data.data.generatedNames || [])
+      setGeneratedNames(generateData.data.generatedNames || [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : '상품명 생성 중 오류가 발생했습니다')
+      setError(err instanceof Error ? err.message : '오류가 발생했습니다')
     } finally {
       setIsGenerating(false)
     }
@@ -116,7 +97,7 @@ export default function ProductNamePage() {
             AI 상품명 생성기
           </h1>
           <p className="text-slate-400 text-sm">
-            네이버/쿠팡 베스트셀러 분석으로 SEO 최적화된 상품명을 자동 생성합니다
+            네이버 베스트셀러 분석으로 SEO 최적화된 상품명을 자동 생성합니다
           </p>
         </div>
 
@@ -145,8 +126,11 @@ export default function ProductNamePage() {
                   </span>
                 </button>
                 <button
-                  onClick={() => setPlatform('coupang')}
-                  className={`px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
+                  onClick={() => {
+                    setPlatform('coupang')
+                    setError('쿠팡은 현재 준비중입니다. 네이버를 이용해주세요.')
+                  }}
+                  className={`px-4 py-2.5 rounded-xl font-medium text-sm transition-all relative ${
                     platform === 'coupang'
                       ? 'bg-red-600 text-white shadow-lg shadow-red-600/25'
                       : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700'
@@ -157,6 +141,9 @@ export default function ProductNamePage() {
                       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
                     </svg>
                     쿠팡
+                  </span>
+                  <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-[10px] bg-yellow-500 text-black font-bold rounded">
+                    준비중
                   </span>
                 </button>
               </div>
@@ -172,29 +159,29 @@ export default function ProductNamePage() {
                   type="text"
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
                   placeholder="예: 에어팟 케이스, 텀블러, 가습기 등"
                   className="flex-1 px-4 py-2.5 bg-slate-700/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 />
                 <button
-                  onClick={handleSearch}
-                  disabled={isSearching}
-                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white font-medium rounded-xl transition-all flex items-center gap-2"
+                  onClick={handleGenerate}
+                  disabled={isGenerating || platform === 'coupang'}
+                  className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-slate-600 disabled:to-slate-600 text-white font-medium rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-purple-600/25"
                 >
-                  {isSearching ? (
+                  {isGenerating ? (
                     <>
                       <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
-                      검색 중...
+                      생성 중...
                     </>
                   ) : (
                     <>
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
-                      검색
+                      AI 생성
                     </>
                   )}
                 </button>
@@ -207,57 +194,6 @@ export default function ProductNamePage() {
         {error && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
             <p className="text-red-400 text-sm">{error}</p>
-          </div>
-        )}
-
-        {/* 검색 결과 */}
-        {searchResults.length > 0 && (
-          <div className="bg-slate-800/50 border border-white/5 rounded-2xl p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">
-                검색된 상품 ({searchResults.length}개)
-              </h2>
-              <button
-                onClick={handleGenerate}
-                disabled={isGenerating}
-                className="px-5 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-slate-600 disabled:to-slate-600 text-white font-medium rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-purple-600/25"
-              >
-                {isGenerating ? (
-                  <>
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    생성 중...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    AI 상품명 생성
-                  </>
-                )}
-              </button>
-            </div>
-
-            <div className="max-h-60 overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
-              {searchResults.map((result, index) => (
-                <div
-                  key={index}
-                  className="p-3 bg-slate-700/30 rounded-lg border border-white/5"
-                >
-                  <p className="text-sm text-slate-300 line-clamp-1">
-                    {result.productName}
-                  </p>
-                  {result.price && (
-                    <p className="text-xs text-slate-500 mt-1">
-                      {result.price.toLocaleString()}원
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
           </div>
         )}
 
@@ -336,7 +272,7 @@ export default function ProductNamePage() {
         )}
 
         {/* 초기 안내 */}
-        {searchResults.length === 0 && !isSearching && (
+        {generatedNames.length === 0 && !isGenerating && (
           <div className="bg-slate-800/30 border border-dashed border-white/10 rounded-2xl p-12 text-center">
             <div className="w-16 h-16 rounded-full bg-slate-700/50 flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -347,8 +283,27 @@ export default function ProductNamePage() {
               상품명 생성을 시작하세요
             </h3>
             <p className="text-sm text-slate-500 max-w-md mx-auto">
-              플랫폼을 선택하고 키워드를 입력하면<br />
+              키워드를 입력하고 AI 생성 버튼을 누르면<br />
               경쟁 상품을 분석하여 SEO 최적화된 상품명을 추천해드립니다
+            </p>
+          </div>
+        )}
+
+        {/* 생성 중 로딩 */}
+        {isGenerating && (
+          <div className="bg-slate-800/30 border border-white/10 rounded-2xl p-12 text-center">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-purple-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-slate-300 mb-2">
+              AI가 상품명을 생성하고 있어요
+            </h3>
+            <p className="text-sm text-slate-500 max-w-md mx-auto">
+              경쟁 상품을 분석하고 최적의 상품명을 만들고 있습니다.<br />
+              잠시만 기다려주세요...
             </p>
           </div>
         )}
