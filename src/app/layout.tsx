@@ -7,11 +7,11 @@ const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sellerport.app'
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
-    default: "셀러포트 - 온라인 광고 성과 관리",
+    default: "셀러포트 - 인스타그램 DM 자동화 & 링크트리",
     template: "%s | 셀러포트",
   },
-  description: "인스타그램, 유튜브, 블로그 등 다양한 광고 채널의 효과를 실시간으로 추적하고 수익을 자동으로 계산하세요",
-  keywords: ["광고 성과 관리", "인플루언서 마케팅", "광고비 추적", "ROAS", "셀러포트", "인스타그램 광고", "유튜브 광고", "협찬 관리"],
+  description: "인스타그램 DM 자동화, 맞춤형 링크트리, 광고 성과 추적까지. 셀러를 위한 올인원 마케팅 솔루션",
+  keywords: ["인스타그램 DM 자동화", "링크트리", "인플루언서 마케팅", "광고비 추적", "ROAS", "셀러포트", "인스타그램 광고", "협찬 관리"],
   authors: [{ name: "셀러포트" }],
   creator: "셀러포트",
   publisher: "셀러포트",
@@ -25,21 +25,21 @@ export const metadata: Metadata = {
     locale: "ko_KR",
     url: baseUrl,
     siteName: "셀러포트",
-    title: "셀러포트 - 온라인 광고 성과 관리",
-    description: "인스타그램, 유튜브, 블로그 등 다양한 광고 채널의 효과를 실시간으로 추적하고 수익을 자동으로 계산하세요",
+    title: "셀러포트 - 인스타그램 DM 자동화 & 링크트리",
+    description: "인스타그램 DM 자동화, 맞춤형 링크트리, 광고 성과 추적까지. 셀러를 위한 올인원 마케팅 솔루션",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "셀러포트 - 온라인 광고 성과 관리",
+        alt: "셀러포트 - 인스타그램 DM 자동화 & 링크트리",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "셀러포트 - 온라인 광고 성과 관리",
-    description: "인스타그램, 유튜브, 블로그 등 다양한 광고 채널의 효과를 실시간으로 추적하고 수익을 자동으로 계산하세요",
+    title: "셀러포트 - 인스타그램 DM 자동화 & 링크트리",
+    description: "인스타그램 DM 자동화, 맞춤형 링크트리, 광고 성과 추적까지. 셀러를 위한 올인원 마케팅 솔루션",
     images: ["/og-image.png"],
   },
   robots: {

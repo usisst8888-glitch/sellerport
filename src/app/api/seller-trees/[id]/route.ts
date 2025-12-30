@@ -72,6 +72,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       title,
       subtitle,
       profile_image_url,
+      header_image_url,
+      header_image_size,
       background_type,
       background_gradient,
       background_color,
@@ -81,7 +83,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       button_color,
       button_text_color,
       button_text,
-      is_active
+      link_layout,
+      is_active,
+      video_search_enabled,
+      video_search_title,
+      video_search_placeholder,
+      video_search_button_text
     } = body
 
     // 소유권 확인
@@ -100,6 +107,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (title !== undefined) updateData.title = title
     if (subtitle !== undefined) updateData.subtitle = subtitle
     if (profile_image_url !== undefined) updateData.profile_image_url = profile_image_url
+    if (header_image_url !== undefined) updateData.header_image_url = header_image_url
+    if (header_image_size !== undefined) updateData.header_image_size = header_image_size
     if (background_type !== undefined) updateData.background_type = background_type
     if (background_gradient !== undefined) updateData.background_gradient = background_gradient
     if (background_color !== undefined) updateData.background_color = background_color
@@ -109,7 +118,14 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (button_color !== undefined) updateData.button_color = button_color
     if (button_text_color !== undefined) updateData.button_text_color = button_text_color
     if (button_text !== undefined) updateData.button_text = button_text
+    if (link_layout !== undefined) updateData.link_layout = link_layout
     if (is_active !== undefined) updateData.is_active = is_active
+    if (video_search_enabled !== undefined) updateData.video_search_enabled = video_search_enabled
+    if (video_search_title !== undefined) updateData.video_search_title = video_search_title
+    if (video_search_placeholder !== undefined) updateData.video_search_placeholder = video_search_placeholder
+    if (video_search_button_text !== undefined) updateData.video_search_button_text = video_search_button_text
+
+    console.log('Updating seller tree with data:', updateData)
 
     const { data: sellerTree, error } = await supabase
       .from('seller_trees')
@@ -120,7 +136,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     if (error) {
       console.error('Error updating seller tree:', error)
-      return NextResponse.json({ error: 'Failed to update seller tree' }, { status: 500 })
+      return NextResponse.json({ error: `Failed to update seller tree: ${error.message}` }, { status: 500 })
     }
 
     return NextResponse.json(sellerTree)

@@ -122,6 +122,7 @@ export async function POST(request: NextRequest) {
         slug,
         title: title || null,
         subtitle: subtitle || null,
+        is_active: true,
       })
       .select()
       .single()
