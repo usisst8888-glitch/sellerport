@@ -106,7 +106,8 @@ export default function SellerTreePage() {
   }
 
   const getPreviewUrl = (channelType: string, storeSlug: string) => {
-    return channelType === 'tiktok' ? `/tt/${storeSlug}` : `/v/${storeSlug}`
+    const baseUrl = process.env.NEXT_PUBLIC_TRACKING_URL || 'https://sp-trk.link'
+    return channelType === 'tiktok' ? `${baseUrl}/tt/${storeSlug}` : `${baseUrl}/v/${storeSlug}`
   }
 
   const handleDelete = async (id: string) => {
@@ -407,7 +408,9 @@ export default function SellerTreePage() {
               <div className="mb-4 p-3 bg-slate-700/30 rounded-lg">
                 <p className="text-xs text-slate-400 mb-1">셀러트리 URL</p>
                 <p className="text-sm text-blue-400 font-mono">
-                  {newChannelType === 'tiktok' ? `/tt/${newStoreSlug}` : `/v/${newStoreSlug}`}
+                  {newChannelType === 'tiktok'
+                    ? `${process.env.NEXT_PUBLIC_TRACKING_URL || 'https://sp-trk.link'}/tt/${newStoreSlug}`
+                    : `${process.env.NEXT_PUBLIC_TRACKING_URL || 'https://sp-trk.link'}/v/${newStoreSlug}`}
                 </p>
               </div>
             )}
