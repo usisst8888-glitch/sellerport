@@ -10,6 +10,8 @@ interface GeneratedName {
 export default function ProductNamePage() {
   const [platform, setPlatform] = useState<'naver' | 'coupang'>('naver')
   const [keyword, setKeyword] = useState('')
+  const [description, setDescription] = useState('')
+  const [showDescription, setShowDescription] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedNames, setGeneratedNames] = useState<GeneratedName[]>([])
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
@@ -60,6 +62,7 @@ export default function ProductNamePage() {
         body: JSON.stringify({
           platform,
           keyword: keyword.trim(),
+          description: description.trim() || undefined,
           productNames,
         }),
       })
@@ -159,7 +162,7 @@ export default function ProductNamePage() {
                   type="text"
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
+                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleGenerate()}
                   placeholder="예: 에어팟 케이스, 텀블러, 가습기 등"
                   className="flex-1 px-4 py-2.5 bg-slate-700/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 />
@@ -187,6 +190,40 @@ export default function ProductNamePage() {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* 제품 설명 입력 (선택사항) */}
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => setShowDescription(!showDescription)}
+              className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-300 transition-colors"
+            >
+              <svg
+                className={`w-4 h-4 transition-transform ${showDescription ? 'rotate-90' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              제품 설명 추가 (선택사항)
+            </button>
+
+            {showDescription && (
+              <div className="mt-3">
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="제품의 특징, 재질, 용도 등을 간단히 설명해주세요. (예: 실리콘 재질, 충격 보호, 무선충전 지원)"
+                  rows={3}
+                  className="w-full px-4 py-3 bg-slate-700/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none text-sm"
+                />
+                <p className="mt-1.5 text-xs text-slate-500">
+                  제품 설명을 입력하면 더 정확한 상품명을 생성합니다.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 })
     }
 
-    const { platform, keyword, productNames } = await request.json()
+    const { platform, keyword, description, productNames } = await request.json()
 
     if (!platform || !keyword || !productNames || productNames.length === 0) {
       return NextResponse.json({
@@ -35,7 +35,8 @@ export async function POST(request: NextRequest) {
     const generatedNames = await generateProductNamesWithGemini(
       platform,
       keyword,
-      productNames
+      productNames,
+      description
     )
 
     return NextResponse.json({
@@ -59,7 +60,8 @@ export async function POST(request: NextRequest) {
 async function generateProductNamesWithGemini(
   platform: string,
   keyword: string,
-  productNames: string[]
+  productNames: string[],
+  description?: string
 ): Promise<GeneratedProductName[]> {
   const apiKey = process.env.GEMINI_API_KEY
 
@@ -71,21 +73,27 @@ async function generateProductNamesWithGemini(
 
   const platformName = platform === 'naver' ? '네이버 스마트스토어' : '쿠팡'
 
+  // 제품 설명이 있으면 프롬프트에 추가
+  const descriptionSection = description
+    ? `\n\n내 제품 특징:\n${description}`
+    : ''
+
   const prompt = `당신은 ${platformName} 상품명 전문가입니다.
 
 다음은 "${keyword}" 키워드로 검색된 경쟁 상품명들입니다:
-${productNames.slice(0, 10).map((name, i) => `${i + 1}. ${name}`).join('\n')}
+${productNames.slice(0, 10).map((name, i) => `${i + 1}. ${name}`).join('\n')}${descriptionSection}
 
-위 상품명들을 분석하여 다음 조건에 맞는 SEO 최적화된 상품명 5개를 생성해주세요:
+위 상품명들을 분석하여 다음 조건에 맞는 SEO 최적화된 상품명 10개를 생성해주세요:
 
 조건:
-1. 반드시 100자 이내로 작성
+1. 반드시 50자 이상 100자 이내로 작성
 2. 핵심 키워드를 앞쪽에 배치
 3. ${platformName} 검색 알고리즘에 최적화
 4. 구매 전환율을 높이는 매력적인 문구 포함
 5. 이모지, 특수문자, 괄호() 절대 사용 금지
 6. 각 상품명은 고유해야 함
 7. 순수 텍스트 상품명만 작성
+8. 같은 단어가 연속으로 반복되면 안됨${description ? '\n9. 제품 특징을 자연스럽게 반영' : ''}
 
 응답 형식:
 - 번호 없이 상품명만 작성
@@ -95,7 +103,7 @@ ${productNames.slice(0, 10).map((name, i) => `${i + 1}. ${name}`).join('\n')}
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
@@ -126,33 +134,67 @@ ${productNames.slice(0, 10).map((name, i) => `${i + 1}. ${name}`).join('\n')}
     // Gemini 응답에서 텍스트 추출
     const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
 
+    console.log('Gemini raw response:', generatedText)
+
     // 줄바꿈으로 분리하여 상품명 추출
     const names = generatedText
       .split('\n')
       .map((line: string) => {
-        // 번호 제거 (1. 2. 등)
-        let cleaned = line.replace(/^\d+\.\s*/, '').trim()
-        // 이모지 제거
-        cleaned = cleaned.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]/gu, '')
+        // 번호 제거 (1. 2. 등) - 더 다양한 패턴 지원
+        let cleaned = line.replace(/^[\d]+[.\)]\s*/, '').trim()
+        // 별표, 하이픈 등 마커 제거
+        cleaned = cleaned.replace(/^[-*•]\s*/, '').trim()
+        // 이모지 제거 (더 포괄적인 범위)
+        cleaned = cleaned.replace(/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27BF}]/gu, '')
         // 괄호와 그 내용 제거
         cleaned = cleaned.replace(/\([^)]*\)/g, '').trim()
         // 대괄호와 그 내용 제거
         cleaned = cleaned.replace(/\[[^\]]*\]/g, '').trim()
+        // 중괄호와 그 내용 제거
+        cleaned = cleaned.replace(/\{[^}]*\}/g, '').trim()
         // 연속 공백 제거
         cleaned = cleaned.replace(/\s+/g, ' ').trim()
         return cleaned
       })
-      .filter((line: string) => line.length > 0 && line.length <= 100)
-      .slice(0, 5)
+      .map((line: string) => {
+        // 연속 중복 단어 제거 (예: "수세미 수세미" -> "수세미")
+        const words = line.split(' ')
+        const deduped: string[] = []
+        for (const word of words) {
+          if (deduped.length === 0 || deduped[deduped.length - 1] !== word) {
+            deduped.push(word)
+          }
+        }
+        return deduped.join(' ')
+      })
+      .filter((line: string) => {
+        // 최소 50자 이상, 100자 이하인 유효한 상품명만
+        if (line.length < 50 || line.length > 100) return false
+        // 연속 중복 패턴 체크 (붙어있는 경우: 수세미수세미)
+        if (/(.{2,})\1/.test(line)) return false
+        return true
+      })
+      .slice(0, 10)
+
+    console.log('Parsed product names:', names, 'count:', names.length)
 
     if (names.length === 0) {
       return generateFallbackNames(keyword, productNames)
     }
 
-    return names.map((name: string) => ({
+    // 10개 미만이면 fallback으로 채우기
+    let result = names.map((name: string) => ({
       name,
       charCount: name.length
     }))
+
+    if (result.length < 10) {
+      const fallbackNames = generateFallbackNames(keyword, productNames)
+      const needed = 10 - result.length
+      result = [...result, ...fallbackNames.slice(0, needed)]
+    }
+
+    return result
 
   } catch (error) {
     console.error('Gemini API call error:', error)
@@ -170,20 +212,33 @@ function generateFallbackNames(
   // 키워드 분석
   const keywords = extractKeywords(productNames)
 
-  // 상위 키워드 조합으로 상품명 생성
+  // 상위 키워드 조합으로 상품명 생성 (최소 50자 이상)
   const templates = [
-    `${keyword} ${keywords[0] || ''} ${keywords[1] || ''} 인기상품 베스트`,
-    `[특가] ${keyword} ${keywords[0] || ''} 프리미엄 품질 보장`,
-    `${keywords[0] || keyword} ${keyword} ${keywords[1] || ''} 당일발송`,
-    `${keyword} ${keywords[0] || ''} 고급형 ${keywords[2] || ''} 추천`,
-    `베스트셀러 ${keyword} ${keywords[0] || ''} ${keywords[1] || ''} 할인`,
+    `${keyword} ${keywords[0] || '프리미엄'} ${keywords[1] || '고급'} 인기상품 베스트셀러 당일발송 무료배송 고객만족 보장 정품`,
+    `${keyword} ${keywords[0] || '고급형'} 프리미엄 품질 보장 정품 인증 빠른배송 추천상품 베스트셀러 고객만족`,
+    `${keywords[0] || '프리미엄'} ${keyword} ${keywords[1] || '특가'} 당일발송 무료배송 고객만족 보장 정품 인증 추천상품`,
+    `${keyword} ${keywords[0] || '고급'} 고급형 ${keywords[2] || '인기'} 추천 베스트 프리미엄 정품 당일출고 무료배송 고객만족`,
+    `베스트셀러 ${keyword} ${keywords[0] || '특가'} ${keywords[1] || '할인'} 인기상품 무료배송 당일출고 프리미엄 품질 보장`,
+    `${keyword} ${keywords[1] || '프리미엄'} ${keywords[2] || '고급'} 무료배송 빠른배송 고객만족 보장 정품 인증 추천상품 베스트`,
+    `${keyword} ${keywords[0] || '인기'} 인기상품 ${keywords[3] || '특가'} 고객만족 정품 빠른배송 추천 프리미엄 당일출고 무료배송`,
+    `프리미엄 ${keyword} ${keywords[1] || '고급형'} 정품 인증 당일발송 무료배송 베스트 고객만족 품질보장 추천상품`,
+    `${keyword} ${keywords[2] || '특가'} ${keywords[0] || '할인'} 최저가 추천 베스트 인기상품 빠른배송 프리미엄 정품 고객만족`,
+    `${keyword} ${keywords[0] || '고급'} ${keywords[1] || '프리미엄'} 베스트 인기상품 당일출고 무료배송 정품 품질보장 고객만족`,
   ]
 
   return templates.map(name => {
-    const trimmedName = name.trim().substring(0, 100)
+    // 연속 중복 단어 제거
+    const words = name.trim().split(' ')
+    const deduped: string[] = []
+    for (const word of words) {
+      if (word && (deduped.length === 0 || deduped[deduped.length - 1] !== word)) {
+        deduped.push(word)
+      }
+    }
+    const cleanedName = deduped.join(' ').substring(0, 100)
     return {
-      name: trimmedName,
-      charCount: trimmedName.length
+      name: cleanedName,
+      charCount: cleanedName.length
     }
   })
 }
