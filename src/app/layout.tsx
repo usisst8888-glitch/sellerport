@@ -2,9 +2,57 @@ import type { Metadata } from "next";
 import "./globals.css";
 import ChannelTalk from "@/components/ChannelTalk";
 
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sellerport.app'
+
 export const metadata: Metadata = {
-  title: "셀러포트 - 온라인 광고 성과 관리",
+  metadataBase: new URL(baseUrl),
+  title: {
+    default: "셀러포트 - 온라인 광고 성과 관리",
+    template: "%s | 셀러포트",
+  },
   description: "인스타그램, 유튜브, 블로그 등 다양한 광고 채널의 효과를 실시간으로 추적하고 수익을 자동으로 계산하세요",
+  keywords: ["광고 성과 관리", "인플루언서 마케팅", "광고비 추적", "ROAS", "셀러포트", "인스타그램 광고", "유튜브 광고", "협찬 관리"],
+  authors: [{ name: "셀러포트" }],
+  creator: "셀러포트",
+  publisher: "셀러포트",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    locale: "ko_KR",
+    url: baseUrl,
+    siteName: "셀러포트",
+    title: "셀러포트 - 온라인 광고 성과 관리",
+    description: "인스타그램, 유튜브, 블로그 등 다양한 광고 채널의 효과를 실시간으로 추적하고 수익을 자동으로 계산하세요",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "셀러포트 - 온라인 광고 성과 관리",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "셀러포트 - 온라인 광고 성과 관리",
+    description: "인스타그램, 유튜브, 블로그 등 다양한 광고 채널의 효과를 실시간으로 추적하고 수익을 자동으로 계산하세요",
+    images: ["/og-image.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 export default function RootLayout({
@@ -21,6 +69,38 @@ export default function RootLayout({
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
         />
         <meta name="naver-site-verification" content="fdd77017108ec555aba9a8b082dd3dda62bc0528" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              "name": "셀러포트",
+              "applicationCategory": "BusinessApplication",
+              "operatingSystem": "Web",
+              "description": "인스타그램, 유튜브, 블로그 등 다양한 광고 채널의 효과를 실시간으로 추적하고 수익을 자동으로 계산하는 온라인 광고 성과 관리 플랫폼",
+              "url": "https://sellerport.app",
+              "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "KRW"
+              },
+              "publisher": {
+                "@type": "Organization",
+                "name": "어시스트솔루션",
+                "url": "https://sellerport.app"
+              },
+              "featureList": [
+                "광고 성과 실시간 추적",
+                "ROAS 자동 계산",
+                "인플루언서 협찬 관리",
+                "Meta/Instagram 광고 연동",
+                "유튜브 광고 분석",
+                "전환 추적 자동화"
+              ]
+            })
+          }}
+        />
         {/* Meta Pixel Code */}
         <script
           dangerouslySetInnerHTML={{
