@@ -35,6 +35,21 @@ export async function GET(
       })
     }
 
+    // 1-1. store_customization에서 해당 슬러그가 있는지 확인 (커스터마이징만 된 경우)
+    const { data: customizationData } = await supabaseAdmin
+      .from('store_customization')
+      .select('store_slug, channel_type')
+      .eq('store_slug', slug)
+      .eq('channel_type', 'youtube')
+      .limit(1)
+
+    if (customizationData && customizationData.length > 0) {
+      return NextResponse.json({
+        success: true,
+        storeName: slug
+      })
+    }
+
     // 2. store-{user_id} 형태의 슬러그인 경우 해당 유저가 존재하는지 확인
     if (slug.startsWith('store-')) {
       const userIdPrefix = slug.replace('store-', '')

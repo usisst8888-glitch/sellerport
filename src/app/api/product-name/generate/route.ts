@@ -2,7 +2,7 @@
  * 상품명 생성 API
  * POST /api/product-name/generate
  *
- * Gemini API를 사용하여 SEO 최적화된 상품명을 생성합니다.
+ * OpenAI API를 사용하여 SEO 최적화된 상품명을 생성합니다.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -31,13 +31,19 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Gemini API 호출
-    const generatedNames = await generateProductNamesWithGemini(
+    // OpenAI API 호출
+    const generatedNames = await generateProductNamesWithOpenAI(
       platform,
       keyword,
       productNames,
       description
     )
+
+    if (generatedNames.length === 0) {
+      return NextResponse.json({
+        error: '상품명 생성에 실패했습니다. 다시 시도해주세요.'
+      }, { status: 500 })
+    }
 
     return NextResponse.json({
       success: true,
@@ -55,20 +61,19 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Gemini API를 사용하여 상품명 생성
+ * OpenAI API를 사용하여 상품명 생성
  */
-async function generateProductNamesWithGemini(
+async function generateProductNamesWithOpenAI(
   platform: string,
   keyword: string,
   productNames: string[],
   description?: string
 ): Promise<GeneratedProductName[]> {
-  const apiKey = process.env.GEMINI_API_KEY
+  const apiKey = process.env.OPENAI_API_KEY
 
   if (!apiKey) {
-    console.error('Gemini API key not configured')
-    // API 키가 없으면 기본 상품명 생성 로직 사용
-    return generateFallbackNames(keyword, productNames)
+    console.error('OpenAI API key not configured')
+    return []
   }
 
   const platformName = platform === 'naver' ? '네이버 스마트스토어' : '쿠팡'
@@ -83,223 +88,132 @@ async function generateProductNamesWithGemini(
 다음은 "${keyword}" 키워드로 검색된 실제 판매중인 경쟁 상품명들입니다:
 ${productNames.slice(0, 10).map((name, i) => `${i + 1}. ${name}`).join('\n')}${descriptionSection}
 
-위 경쟁 상품명들의 패턴을 분석하여 새로운 상품명 10개를 생성해주세요.
+위 경쟁 상품명들의 패턴과 키워드를 분석하여 새로운 상품명 10개를 생성해주세요.
 
-중요 지침:
-1. 반드시 50자 이상 100자 이내로 작성
-2. "${keyword}"를 상품명 앞쪽에 배치
-3. 경쟁 상품명에서 자주 사용되는 제품 속성 키워드를 활용 (소재, 크기, 용도, 색상, 수량 등)
-4. "무료배송", "당일발송", "고객만족", "베스트셀러", "추천상품", "품질보장", "정품인증" 같은 일반적인 마케팅 문구는 절대 사용 금지
-5. 실제 제품의 특성을 설명하는 구체적인 단어들로 구성 (예: 스테인리스, 대용량, 미끄럼방지, 친환경 등)
-6. 이모지, 특수문자, 괄호() 절대 사용 금지
-7. 각 상품명은 고유해야 함
-8. 같은 단어가 연속으로 반복되면 안됨${description ? '\n9. 제품 특징을 자연스럽게 반영' : ''}
+[필수 조건 - 반드시 지켜야 함]
+★★★ 각 상품명은 반드시 50자 이상 100자 이하로 작성해야 합니다! ★★★
+- 50자 미만인 상품명은 절대 안됩니다
+- 글자 수를 세어서 50자가 안 되면 관련 키워드를 더 추가하세요
 
-응답 형식:
+[작성 지침]
+1. "${keyword}"를 상품명 앞쪽에 배치
+2. 경쟁 상품명에서 자주 사용되는 제품 속성 키워드를 참고하여 자연스럽게 조합 (소재, 크기, 용도, 색상, 수량, 특징 등)
+3. "무료배송", "당일발송", "고객만족", "베스트셀러", "추천상품", "품질보장", "정품인증", "인기상품" 같은 일반적인 마케팅 문구는 절대 사용 금지
+4. 실제 제품의 특성을 설명하는 구체적인 단어들로 구성
+5. 이모지, 특수문자, 괄호() 절대 사용 금지
+6. 각 상품명은 고유해야 함
+7. 같은 단어가 연속으로 반복되면 안됨${description ? '\n8. 제품 특징을 자연스럽게 반영' : ''}
+
+[응답 형식]
 - 번호 없이 상품명만 작성
 - 각 상품명을 새 줄로 구분
 - 이모지나 특수기호 절대 포함하지 않기
-- 괄호나 설명 추가하지 않기`
+- 괄호나 설명 추가하지 않기
 
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
+[예시 - 50자 이상 상품명]
+수세미 천연 루파 식물성 열매 주방용 설거지 친환경 생분해 거품풍성 부드러운 소재 다용도 청소용품 세트
+위 예시처럼 길게 작성하세요!`
+
+  // 최대 2번 시도
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          contents: [{
-            parts: [{ text: prompt }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 1024,
-          }
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: '당신은 이커머스 상품명 작성 전문가입니다. 주어진 조건에 맞게 정확하게 상품명을 생성합니다.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.8 + (attempt * 0.1),
+          max_tokens: 2048,
         }),
-      }
-    )
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Gemini API error:', errorText)
-      return generateFallbackNames(keyword, productNames)
-    }
-
-    const data = await response.json()
-
-    // Gemini 응답에서 텍스트 추출
-    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
-
-    console.log('Gemini raw response:', generatedText)
-
-    // 줄바꿈으로 분리하여 상품명 추출
-    const names = generatedText
-      .split('\n')
-      .map((line: string) => {
-        // 번호 제거 (1. 2. 등) - 더 다양한 패턴 지원
-        let cleaned = line.replace(/^[\d]+[.\)]\s*/, '').trim()
-        // 별표, 하이픈 등 마커 제거
-        cleaned = cleaned.replace(/^[-*•]\s*/, '').trim()
-        // 이모지 제거 (더 포괄적인 범위)
-        cleaned = cleaned.replace(/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27BF}]/gu, '')
-        // 괄호와 그 내용 제거
-        cleaned = cleaned.replace(/\([^)]*\)/g, '').trim()
-        // 대괄호와 그 내용 제거
-        cleaned = cleaned.replace(/\[[^\]]*\]/g, '').trim()
-        // 중괄호와 그 내용 제거
-        cleaned = cleaned.replace(/\{[^}]*\}/g, '').trim()
-        // 연속 공백 제거
-        cleaned = cleaned.replace(/\s+/g, ' ').trim()
-        return cleaned
       })
-      .map((line: string) => {
-        // 연속 중복 단어 제거 (예: "수세미 수세미" -> "수세미")
-        const words = line.split(' ')
-        const deduped: string[] = []
-        for (const word of words) {
-          if (deduped.length === 0 || deduped[deduped.length - 1] !== word) {
-            deduped.push(word)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('OpenAI API error:', errorText)
+        continue
+      }
+
+      const data = await response.json()
+
+      // OpenAI 응답에서 텍스트 추출
+      const generatedText = data.choices?.[0]?.message?.content || ''
+
+      console.log(`OpenAI raw response (attempt ${attempt + 1}):`, generatedText)
+
+      // 줄바꿈으로 분리하여 상품명 추출
+      const names = generatedText
+        .split('\n')
+        .map((line: string) => {
+          // 번호 제거 (1. 2. 등) - 더 다양한 패턴 지원
+          let cleaned = line.replace(/^[\d]+[.\)]\s*/, '').trim()
+          // 별표, 하이픈 등 마커 제거
+          cleaned = cleaned.replace(/^[-*•]\s*/, '').trim()
+          // 이모지 제거 (더 포괄적인 범위)
+          cleaned = cleaned.replace(/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27BF}]/gu, '')
+          // 괄호와 그 내용 제거
+          cleaned = cleaned.replace(/\([^)]*\)/g, '').trim()
+          // 대괄호와 그 내용 제거
+          cleaned = cleaned.replace(/\[[^\]]*\]/g, '').trim()
+          // 중괄호와 그 내용 제거
+          cleaned = cleaned.replace(/\{[^}]*\}/g, '').trim()
+          // 따옴표 제거
+          cleaned = cleaned.replace(/^["']|["']$/g, '').trim()
+          // 연속 공백 제거
+          cleaned = cleaned.replace(/\s+/g, ' ').trim()
+          return cleaned
+        })
+        .map((line: string) => {
+          // 연속 중복 단어 제거 (예: "수세미 수세미" -> "수세미")
+          const words = line.split(' ')
+          const deduped: string[] = []
+          for (const word of words) {
+            if (deduped.length === 0 || deduped[deduped.length - 1] !== word) {
+              deduped.push(word)
+            }
           }
-        }
-        return deduped.join(' ')
-      })
-      .filter((line: string) => {
-        // 최소 50자 이상, 100자 이하인 유효한 상품명만
-        if (line.length < 50 || line.length > 100) return false
-        // 연속 중복 패턴 체크 (붙어있는 경우: 수세미수세미)
-        if (/(.{2,})\1/.test(line)) return false
-        return true
-      })
-      .slice(0, 10)
+          return deduped.join(' ')
+        })
+        .filter((line: string) => {
+          // 최소 50자 이상, 100자 이하인 유효한 상품명만
+          if (line.length < 50 || line.length > 100) {
+            console.log(`Filtered out (length ${line.length}): ${line}`)
+            return false
+          }
+          // 연속 중복 패턴 체크 (붙어있는 경우: 수세미수세미)
+          if (/(.{2,})\1/.test(line)) return false
+          return true
+        })
+        .slice(0, 10)
 
-    console.log('Parsed product names:', names, 'count:', names.length)
+      console.log(`Parsed product names (attempt ${attempt + 1}):`, names, 'count:', names.length)
 
-    if (names.length === 0) {
-      return generateFallbackNames(keyword, productNames)
-    }
-
-    // 10개 미만이면 fallback으로 채우기
-    let result = names.map((name: string) => ({
-      name,
-      charCount: name.length
-    }))
-
-    if (result.length < 10) {
-      const fallbackNames = generateFallbackNames(keyword, productNames)
-      const needed = 10 - result.length
-      result = [...result, ...fallbackNames.slice(0, needed)]
-    }
-
-    return result
-
-  } catch (error) {
-    console.error('Gemini API call error:', error)
-    return generateFallbackNames(keyword, productNames)
-  }
-}
-
-/**
- * Gemini API가 없을 때 사용하는 대체 상품명 생성 로직
- * 경쟁 상품명에서 추출한 실제 키워드를 조합하여 생성
- */
-function generateFallbackNames(
-  keyword: string,
-  productNames: string[]
-): GeneratedProductName[] {
-  // 경쟁 상품명에서 실제 제품 속성 키워드 추출
-  const keywords = extractKeywords(productNames)
-
-  // 키워드가 부족하면 기본 제품 속성으로 대체
-  const k = [
-    keywords[0] || '대용량',
-    keywords[1] || '멀티',
-    keywords[2] || '업소용',
-    keywords[3] || '가정용',
-    keywords[4] || '세트',
-    keywords[5] || '미니',
-    keywords[6] || '휴대용',
-    keywords[7] || '일반형',
-    keywords[8] || '실속형',
-    keywords[9] || '다용도',
-  ]
-
-  // 경쟁 상품명에서 추출한 키워드들로 조합하여 상품명 생성
-  const templates = [
-    `${keyword} ${k[0]} ${k[1]} ${k[2]} 타입 실용적인 디자인 내구성 강한 소재 다양한 활용 가능한 제품`,
-    `${k[0]} ${keyword} ${k[1]} ${k[3]} ${k[4]} 구성 편리한 사용감 실용성 높은 아이템 다기능 제품`,
-    `${keyword} ${k[1]} ${k[2]} ${k[3]} 사이즈 선택가능 실속있는 구성 활용도 높은 실용 아이템`,
-    `${k[2]} ${keyword} ${k[0]} ${k[1]} 타입 견고한 내구성 다양한 용도 활용 실용적 디자인 제품`,
-    `${keyword} ${k[3]} ${k[4]} ${k[0]} 사이즈 다양한 구성 실용성 갖춘 내구성 좋은 아이템`,
-    `${k[1]} ${keyword} ${k[2]} ${k[3]} 용도 다기능 활용 견고한 소재 실속형 구성 제품`,
-    `${keyword} ${k[0]} ${k[4]} ${k[5]} 타입 휴대성 좋은 컴팩트 디자인 실용적인 구성 아이템`,
-    `${k[3]} ${keyword} ${k[1]} ${k[0]} 규격 다용도 활용가능 실속 구성 내구성 갖춘 제품`,
-    `${keyword} ${k[2]} ${k[1]} ${k[4]} 구성품 실용적 디자인 다양한 사이즈 선택 가능한 아이템`,
-    `${k[0]} ${k[1]} ${keyword} ${k[3]} 타입 활용도 높은 실속 구성 내구성 좋은 다기능 제품`,
-  ]
-
-  return templates.map(name => {
-    // 연속 중복 단어 제거
-    const words = name.trim().split(' ')
-    const deduped: string[] = []
-    for (const word of words) {
-      if (word && (deduped.length === 0 || deduped[deduped.length - 1] !== word)) {
-        deduped.push(word)
+      // 3개 이상이면 성공으로 간주
+      if (names.length >= 3) {
+        return names.map((name: string) => ({
+          name,
+          charCount: name.length
+        }))
       }
-    }
-    const cleanedName = deduped.join(' ').substring(0, 100)
-    return {
-      name: cleanedName,
-      charCount: cleanedName.length
-    }
-  })
-}
 
-/**
- * 상품명에서 제품 속성 키워드 추출
- * 마케팅 문구를 제외하고 실제 제품 특성만 추출
- */
-function extractKeywords(productNames: string[]): string[] {
-  const wordCount: Record<string, number> = {}
+      console.log(`Not enough valid names (${names.length}), retrying...`)
 
-  // 불용어 (마케팅 문구, 일반적인 수식어 제외)
-  const stopWords = new Set([
-    // 배송/서비스 관련
-    '무료배송', '당일발송', '당일출고', '빠른배송', '익일배송', '로켓배송',
-    // 프로모션 관련
-    '특가', '할인', '세일', '최저가', '핫딜', '타임딜', '초특가',
-    // 인기/추천 관련
-    '인기', '베스트', '추천', '베스트셀러', '인기상품', '추천상품', '히트',
-    // 품질 관련 일반 수식어
-    '고급', '프리미엄', '정품', '품질보장', '고객만족', '만족', '보장',
-    // 영문 마케팅
-    'NEW', 'BEST', 'HOT', 'SALE', 'TOP', 'HIT',
-    // 사은품/증정
-    '사은품', '증정', '덤', '서비스',
-    // 단위
-    '개', '팩', '장', '매', '묶음', '박스', '봉', '통', '병', '캔', '포',
-    // 기타 불용어
-    '상품', '제품', '아이템', '굿즈', '용품'
-  ])
-
-  for (const name of productNames) {
-    // 특수문자 제거 및 공백으로 분리
-    const words = name
-      .replace(/[^\w\sㄱ-ㅎㅏ-ㅣ가-힣]/g, ' ')
-      .split(/\s+/)
-      .filter(word => word.length >= 2 && !stopWords.has(word))
-
-    for (const word of words) {
-      wordCount[word] = (wordCount[word] || 0) + 1
+    } catch (error) {
+      console.error(`OpenAI API call error (attempt ${attempt + 1}):`, error)
     }
   }
 
-  // 빈도순 정렬
-  return Object.entries(wordCount)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([word]) => word)
+  return []
 }
