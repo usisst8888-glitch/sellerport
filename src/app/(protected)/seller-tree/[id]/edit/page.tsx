@@ -164,6 +164,39 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
   // 링크 편집 모달
   const [editingLink, setEditingLink] = useState<SellerTreeLink | null>(null)
 
+  // 영상번호 상품 관련 상태
+  interface VideoProduct {
+    id: string
+    video_code: string
+    target_url: string
+    post_name?: string
+    thumbnail_url?: string
+    product_id?: string
+    status: string
+    clicks: number
+    conversions: number
+    products?: {
+      id: string
+      name: string
+      image_url?: string
+      price?: number
+      my_sites?: {
+        id: string
+        site_type: string
+        site_name: string
+      }
+    }
+  }
+  const [videoProducts, setVideoProducts] = useState<VideoProduct[]>([])
+  const [loadingVideoProducts, setLoadingVideoProducts] = useState(false)
+  const [showAddVideoProductModal, setShowAddVideoProductModal] = useState(false)
+  const [videoProductMode, setVideoProductMode] = useState<'manual' | 'product'>('product')
+  const [newVideoProductUrl, setNewVideoProductUrl] = useState('')
+  const [newVideoProductName, setNewVideoProductName] = useState('')
+  const [newVideoCode, setNewVideoCode] = useState('')
+  const [addingVideoProduct, setAddingVideoProduct] = useState(false)
+  const [selectedVideoProductId, setSelectedVideoProductId] = useState<string>('')
+
   // 탭 상태
   const [activeTab, setActiveTab] = useState<'basic' | 'video' | 'links' | 'modules'>('basic')
 
@@ -173,6 +206,13 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
   useEffect(() => {
     fetchData()
   }, [id])
+
+  // 영상번호 탭 선택 시 영상번호 상품 목록 로드
+  useEffect(() => {
+    if (activeTab === 'video' && videoSearchEnabled) {
+      loadVideoProducts()
+    }
+  }, [activeTab, videoSearchEnabled])
 
   // 색상 선택기 외부 클릭 시 닫기 (mouseup 사용으로 드래그 허용)
   useEffect(() => {
@@ -703,6 +743,122 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
 
       if (response.ok) {
         setLinks(prev => prev.filter(l => l.id !== linkId))
+      } else {
+        alert('삭제에 실패했습니다.')
+      }
+    } catch {
+      alert('삭제 중 오류가 발생했습니다.')
+    }
+  }
+
+  // 영상번호 상품 목록 로드
+  const loadVideoProducts = async () => {
+    setLoadingVideoProducts(true)
+    try {
+      const response = await fetch(`/api/seller-trees/${id}/video-products`)
+      if (response.ok) {
+        const data = await response.json()
+        setVideoProducts(data.data || [])
+      }
+    } catch (error) {
+      console.error('Failed to load video products:', error)
+    } finally {
+      setLoadingVideoProducts(false)
+    }
+  }
+
+  // 영상번호 상품 추가 (직접 입력)
+  const handleAddVideoProduct = async () => {
+    if (!newVideoProductUrl) {
+      alert('상품 URL을 입력해주세요')
+      return
+    }
+
+    setAddingVideoProduct(true)
+    try {
+      const response = await fetch(`/api/seller-trees/${id}/video-products`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetUrl: newVideoProductUrl,
+          postName: newVideoProductName || null,
+          videoCode: newVideoCode || null,
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setVideoProducts(prev => [...prev, data.data])
+        setShowAddVideoProductModal(false)
+        setNewVideoProductUrl('')
+        setNewVideoProductName('')
+        setNewVideoCode('')
+      } else {
+        const error = await response.json()
+        alert(error.error || '상품 등록에 실패했습니다.')
+      }
+    } catch {
+      alert('상품 등록 중 오류가 발생했습니다.')
+    } finally {
+      setAddingVideoProduct(false)
+    }
+  }
+
+  // 영상번호 상품 추가 (상품 선택)
+  const handleAddVideoProductFromProduct = async () => {
+    if (!selectedVideoProductId) {
+      alert('상품을 선택해주세요')
+      return
+    }
+
+    const product = products.find(p => p.id === selectedVideoProductId)
+    if (!product?.product_url) {
+      alert('해당 상품의 URL이 없습니다')
+      return
+    }
+
+    setAddingVideoProduct(true)
+    try {
+      const response = await fetch(`/api/seller-trees/${id}/video-products`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: product.id,
+          targetUrl: product.product_url,
+          postName: product.name,
+          videoCode: newVideoCode || null,
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setVideoProducts(prev => [...prev, data.data])
+        setShowAddVideoProductModal(false)
+        setSelectedVideoProductId('')
+        setNewVideoCode('')
+        setSelectedSiteId('')
+      } else {
+        const error = await response.json()
+        alert(error.error || '상품 등록에 실패했습니다.')
+      }
+    } catch {
+      alert('상품 등록 중 오류가 발생했습니다.')
+    } finally {
+      setAddingVideoProduct(false)
+    }
+  }
+
+  // 영상번호 상품 삭제
+  const handleDeleteVideoProduct = async (trackingLinkId: string) => {
+    if (!confirm('이 영상번호 상품을 삭제하시겠습니까?')) return
+
+    try {
+      const response = await fetch(`/api/seller-trees/${id}/video-products/${trackingLinkId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setVideoProducts(prev => prev.filter(p => p.id !== trackingLinkId))
       } else {
         alert('삭제에 실패했습니다.')
       }
@@ -1246,6 +1402,92 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                         <p className="text-[10px] text-slate-500 mt-1">아이콘</p>
                       </div>
                     </div>
+                  </div>
+
+                  {/* 영상번호 상품 등록 */}
+                  <div className="pt-4 border-t border-slate-700">
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="block text-sm font-medium text-slate-300">영상번호 상품 등록</label>
+                      <button
+                        onClick={() => {
+                          setShowAddVideoProductModal(true)
+                          setVideoProductMode('product')
+                          loadMySites()
+                        }}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        상품 추가
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-400 mb-3">
+                      영상번호로 검색할 상품을 등록하세요. 영상번호는 한글, 영문, 숫자 자유롭게 설정할 수 있습니다.
+                    </p>
+
+                    {/* 등록된 영상번호 상품 목록 */}
+                    {loadingVideoProducts ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="w-6 h-6 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+                      </div>
+                    ) : videoProducts.length > 0 ? (
+                      <div className="space-y-2">
+                        {videoProducts.map((vp) => {
+                          const product = Array.isArray(vp.products) ? vp.products[0] : vp.products
+                          return (
+                            <div
+                              key={vp.id}
+                              className="p-3 bg-slate-700/30 rounded-lg space-y-2"
+                            >
+                              {/* 첫 번째 줄: 영상번호 + 버튼들 */}
+                              <div className="flex items-center gap-2">
+                                <div className="flex-shrink-0 px-2 py-1 bg-blue-600 rounded text-white text-xs font-bold">
+                                  {vp.video_code}
+                                </div>
+                                <div className="flex-1" />
+                                <span className="text-xs text-slate-400">클릭 {vp.clicks}</span>
+                                <button
+                                  onClick={() => router.push(`/conversions?tracking_link_id=${vp.id}`)}
+                                  className="px-2 py-1 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-600/20 rounded transition-colors"
+                                >
+                                  상세통계
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteVideoProduct(vp.id)}
+                                  className="p-1 hover:bg-red-600/20 rounded transition-colors"
+                                >
+                                  <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
+                              {/* 두 번째 줄: 썸네일 + 상품 정보 */}
+                              <div className="flex items-center gap-3">
+                                {(vp.thumbnail_url || product?.image_url) && (
+                                  <div className="relative w-10 h-10 flex-shrink-0">
+                                    <Image
+                                      src={vp.thumbnail_url || product?.image_url || ''}
+                                      alt={vp.post_name || ''}
+                                      fill
+                                      className="rounded-lg object-cover"
+                                    />
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-white truncate">
+                                    {vp.post_name || product?.name || '상품'}
+                                  </p>
+                                  <p className="text-xs text-slate-500 truncate">{vp.target_url}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-500 text-center py-4">아직 등록된 상품이 없습니다</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -2089,7 +2331,7 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                           </svg>
                         </div>
 
-                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto px-1">
                           {products
                             .filter(product =>
                               productSearchQuery === '' ||
@@ -2200,6 +2442,248 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                     </button>
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 영상번호 상품 추가 모달 */}
+      {showAddVideoProductModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold text-white mb-4">영상번호 상품 추가</h3>
+
+            {/* 모드 선택 탭 */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setVideoProductMode('product')}
+                className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
+                  videoProductMode === 'product' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'
+                }`}
+              >
+                상품에서 선택
+              </button>
+              <button
+                onClick={() => setVideoProductMode('manual')}
+                className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
+                  videoProductMode === 'manual' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'
+                }`}
+              >
+                직접 입력
+              </button>
+            </div>
+
+            {videoProductMode === 'manual' ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">상품 URL *</label>
+                  <input
+                    type="text"
+                    value={newVideoProductUrl}
+                    onChange={(e) => setNewVideoProductUrl(e.target.value)}
+                    placeholder="https://smartstore.naver.com/..."
+                    className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">상품명 (선택)</label>
+                  <input
+                    type="text"
+                    value={newVideoProductName}
+                    onChange={(e) => setNewVideoProductName(e.target.value)}
+                    placeholder="상품명을 입력하세요"
+                    className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">영상번호 *</label>
+                  <input
+                    type="text"
+                    value={newVideoCode}
+                    onChange={(e) => setNewVideoCode(e.target.value)}
+                    placeholder="예: 1번, A001, 신상품"
+                    maxLength={20}
+                    className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">한글, 영문, 숫자 자유롭게 입력 가능 (최대 20자)</p>
+                </div>
+
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => {
+                      setShowAddVideoProductModal(false)
+                      setNewVideoProductUrl('')
+                      setNewVideoProductName('')
+                      setNewVideoCode('')
+                    }}
+                    className="flex-1 py-2 text-sm font-medium bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={handleAddVideoProduct}
+                    disabled={addingVideoProduct || !newVideoProductUrl || !newVideoCode.trim()}
+                    className="flex-1 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {addingVideoProduct ? '추가 중...' : '추가'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* 사이트 선택 */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">사이트 선택</label>
+                  <div className="flex flex-wrap gap-2">
+                    {mySites.map((site) => {
+                      const siteTypeMap: Record<string, { logo: string; label: string }> = {
+                        naver: { logo: '/site_logo/smartstore.png', label: '스마트스토어' },
+                        smartstore: { logo: '/site_logo/smartstore.png', label: '스마트스토어' },
+                        cafe24: { logo: '/site_logo/cafe24.png', label: '카페24' },
+                        imweb: { logo: '/site_logo/imweb.png', label: '아임웹' },
+                        godomall: { logo: '/site_logo/godomall.png', label: '고도몰' },
+                        makeshop: { logo: '/site_logo/makeshop.png', label: '메이크샵' },
+                        own_site: { logo: '/site_logo/own_site.png', label: '자체몰' },
+                      }
+                      const siteInfo = siteTypeMap[site.site_type] || { logo: '/site_logo/own_site.png', label: site.site_type }
+
+                      return (
+                        <button
+                          key={site.id}
+                          onClick={() => {
+                            setSelectedSiteId(site.id)
+                            setSelectedVideoProductId('')
+                            setProductSearchQuery('')
+                            loadProducts(site.id)
+                          }}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                            selectedSiteId === site.id
+                              ? 'bg-blue-600 text-white ring-2 ring-blue-400'
+                              : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
+                          }`}
+                        >
+                          <Image
+                            src={siteInfo.logo}
+                            alt={siteInfo.label}
+                            width={20}
+                            height={20}
+                            className="rounded"
+                          />
+                          <div className="text-left">
+                            <p className="text-sm font-medium">{site.site_name || site.store_id}</p>
+                            <p className={`text-[10px] ${selectedSiteId === site.id ? 'text-blue-200' : 'text-slate-500'}`}>
+                              {siteInfo.label}
+                            </p>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* 상품 목록 */}
+                {selectedSiteId && (
+                  <>
+                    {loadingProducts ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    ) : products.length > 0 ? (
+                      <>
+                        {/* 상품 검색 */}
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={productSearchQuery}
+                            onChange={(e) => setProductSearchQuery(e.target.value)}
+                            placeholder="상품명 검색..."
+                            className="w-full px-4 py-2 pl-10 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none text-sm"
+                          />
+                          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                        </div>
+                        <div className="space-y-2 max-h-60 overflow-y-auto px-1">
+                          {products
+                            .filter(p => p.name.toLowerCase().includes(productSearchQuery.toLowerCase()))
+                            .map((product) => (
+                              <button
+                                key={product.id}
+                                onClick={() => setSelectedVideoProductId(product.id)}
+                                className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                                  selectedVideoProductId === product.id
+                                    ? 'bg-blue-600/20 ring-2 ring-blue-500'
+                                    : 'bg-slate-700/30 hover:bg-slate-700/50'
+                                }`}
+                              >
+                                {product.image_url && (
+                                  <div className="relative w-12 h-12 flex-shrink-0">
+                                    <Image
+                                      src={product.image_url}
+                                      alt={product.name}
+                                      fill
+                                      className="rounded-lg object-cover"
+                                    />
+                                  </div>
+                                )}
+                                <div className="flex-1 text-left min-w-0">
+                                  <p className="text-sm font-medium text-white truncate">{product.name}</p>
+                                  {product.price && (
+                                    <p className="text-xs text-slate-400">{product.price.toLocaleString()}원</p>
+                                  )}
+                                </div>
+                                {selectedVideoProductId === product.id && (
+                                  <svg className="w-5 h-5 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                              </button>
+                            ))}
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-sm text-slate-500 text-center py-4">등록된 상품이 없습니다</p>
+                    )}
+                  </>
+                )}
+
+                {/* 영상번호 입력 */}
+                {selectedVideoProductId && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">영상번호 *</label>
+                    <input
+                      type="text"
+                      value={newVideoCode}
+                      onChange={(e) => setNewVideoCode(e.target.value)}
+                      placeholder="예: 1번, A001, 신상품"
+                      maxLength={20}
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">한글, 영문, 숫자 자유롭게 입력 가능 (최대 20자)</p>
+                  </div>
+                )}
+
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => {
+                      setShowAddVideoProductModal(false)
+                      setSelectedSiteId('')
+                      setSelectedVideoProductId('')
+                      setNewVideoCode('')
+                    }}
+                    className="flex-1 py-2 text-sm font-medium bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={handleAddVideoProductFromProduct}
+                    disabled={addingVideoProduct || !selectedVideoProductId || !newVideoCode.trim()}
+                    className="flex-1 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {addingVideoProduct ? '추가 중...' : '추가'}
+                  </button>
+                </div>
               </div>
             )}
           </div>
