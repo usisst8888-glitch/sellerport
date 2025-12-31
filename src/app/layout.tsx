@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import ChannelTalk from "@/components/ChannelTalk";
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sellerport.app'
 
@@ -130,7 +129,6 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         {children}
-        <ChannelTalk />
       </body>
     </html>
   );

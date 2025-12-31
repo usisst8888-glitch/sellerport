@@ -75,12 +75,10 @@ export default async function Page({ params }: PageProps) {
   }
 
   // 조회수 증가 (비동기로 처리, 결과 대기 안함)
-  supabase
+  void supabase
     .from('seller_trees')
     .update({ view_count: (sellerTree.view_count || 0) + 1 })
     .eq('id', sellerTree.id)
-    .then(() => {})
-    .catch(() => {})
 
   // 활성화된 링크만 필터링하고 정렬
   const activeLinks = (sellerTree.seller_tree_links || [])
