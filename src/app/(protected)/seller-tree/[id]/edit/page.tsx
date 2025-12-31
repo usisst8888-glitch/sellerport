@@ -49,6 +49,16 @@ interface Product {
   price?: number
 }
 
+interface Module {
+  id: string
+  type: 'divider' | 'text'
+  content?: string
+  color?: string
+  size?: 'xs' | 'sm' | 'md' | 'lg'
+  style?: 'solid' | 'dashed' | 'dotted' | 'circle' | 'diamond' // 구분선 스타일
+  position: string // 'after-profile', 'after-subtitle', 'after-search', 'before-links', 'after-links'
+}
+
 export default function SellerTreeEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
@@ -74,9 +84,6 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
   const [gradientAngle, setGradientAngle] = useState(180)
   const [titleColor, setTitleColor] = useState('#1E293B')
   const [subtitleColor, setSubtitleColor] = useState('#475569')
-  const [buttonColor, setButtonColor] = useState('#F97316')
-  const [buttonTextColor, setButtonTextColor] = useState('#FFFFFF')
-  const [buttonText, setButtonText] = useState('바로가기')
   const [linkLayout, setLinkLayout] = useState<'single' | 'double'>('single')
   const [isActive, setIsActive] = useState(true)
 
@@ -84,7 +91,41 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
   const [videoSearchEnabled, setVideoSearchEnabled] = useState(false)
   const [videoSearchTitle, setVideoSearchTitle] = useState('영상번호 검색')
   const [videoSearchPlaceholder, setVideoSearchPlaceholder] = useState('영상번호를 입력하세요')
-  const [videoSearchButtonText, setVideoSearchButtonText] = useState('검색')
+  const [searchButtonColor, setSearchButtonColor] = useState('#2563EB')
+  const [searchIconColor, setSearchIconColor] = useState('#FFFFFF')
+
+  // 모듈 (구분선, 텍스트) - 여러 개 추가 가능
+  const [modules, setModules] = useState<Module[]>([])
+
+  // 미리보기 요소 순서 (드래그 앤 드롭용)
+  // header = 프로필 + 페이지 제목 + 설명 (하나로 묶음)
+  // 모듈은 module-{id} 형태로 개별 관리
+  const [elementOrder, setElementOrder] = useState<string[]>([
+    'header', 'search', 'links'
+  ])
+  const [draggedElement, setDraggedElement] = useState<string | null>(null)
+  const [dragOverElement, setDragOverElement] = useState<string | null>(null)
+
+  // 모듈이 변경될 때 elementOrder 업데이트
+  useEffect(() => {
+    setElementOrder(prev => {
+      // 기존 모듈 ID들 제거
+      const withoutModules = prev.filter(id => !id.startsWith('module-'))
+      // 새 모듈 ID들 추가 (links 바로 앞에)
+      const linksIndex = withoutModules.indexOf('links')
+      const moduleIds = modules.map(m => `module-${m.id}`)
+
+      if (linksIndex === -1) {
+        return [...withoutModules, ...moduleIds]
+      }
+
+      return [
+        ...withoutModules.slice(0, linksIndex),
+        ...moduleIds,
+        ...withoutModules.slice(linksIndex)
+      ]
+    })
+  }, [modules])
 
   // 링크 추가 모달
   const [showAddLinkModal, setShowAddLinkModal] = useState(false)
@@ -102,7 +143,7 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
   const [editingLink, setEditingLink] = useState<SellerTreeLink | null>(null)
 
   // 탭 상태
-  const [activeTab, setActiveTab] = useState<'basic' | 'video' | 'links'>('basic')
+  const [activeTab, setActiveTab] = useState<'basic' | 'video' | 'links' | 'modules'>('basic')
 
   // 색상 선택기 팝업 상태
   const [openColorPicker, setOpenColorPicker] = useState<string | null>(null)
@@ -150,15 +191,15 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
         }
         setTitleColor(data.title_color || '#1E293B')
         setSubtitleColor(data.subtitle_color || '#475569')
-        setButtonColor(data.button_color || '#F97316')
-        setButtonTextColor(data.button_text_color || '#FFFFFF')
-        setButtonText(data.button_text || '바로가기')
         setLinkLayout(data.link_layout || 'single')
         setIsActive(data.is_active)
         setVideoSearchEnabled(data.video_search_enabled || false)
         setVideoSearchTitle(data.video_search_title || '영상번호 검색')
         setVideoSearchPlaceholder(data.video_search_placeholder || '영상번호를 입력하세요')
-        setVideoSearchButtonText(data.video_search_button_text || '검색')
+        setSearchButtonColor(data.search_button_color || '#2563EB')
+        setSearchIconColor(data.search_icon_color || '#FFFFFF')
+        // 모듈 설정
+        setModules(data.modules || [])
       } else {
         router.push('/seller-tree')
       }
@@ -241,15 +282,14 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
             : null,
           title_color: titleColor,
           subtitle_color: subtitleColor,
-          button_color: buttonColor,
-          button_text_color: buttonTextColor,
-          button_text: buttonText,
           link_layout: linkLayout,
           is_active: isActive,
           video_search_enabled: videoSearchEnabled,
           video_search_title: videoSearchTitle,
           video_search_placeholder: videoSearchPlaceholder,
-          video_search_button_text: videoSearchButtonText,
+          search_button_color: searchButtonColor,
+          search_icon_color: searchIconColor,
+          modules: modules,
         }),
       })
 
@@ -265,6 +305,196 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
     } finally {
       setSaving(false)
     }
+  }
+
+  // 구분선 스타일 렌더링
+  const renderDivider = (module: Module) => {
+    const color = module.color || '#000000'
+    const style = module.style || 'solid'
+
+    switch (style) {
+      case 'dashed':
+        return (
+          <div className="w-full flex justify-center py-2">
+            <div className="w-[90%] h-[2px] opacity-70" style={{ borderTop: `2px dashed ${color}` }} />
+          </div>
+        )
+      case 'dotted':
+        return (
+          <div className="w-full flex justify-center py-2">
+            <div className="w-[90%] h-[2px] opacity-70" style={{ borderTop: `2px dotted ${color}` }} />
+          </div>
+        )
+      case 'circle':
+        return (
+          <div className="w-full flex items-center justify-center py-2 gap-0">
+            <div className="flex-1 max-w-[40%] h-[1px] opacity-60" style={{ backgroundColor: color }} />
+            <div className="w-2 h-2 rounded-full mx-2 opacity-80" style={{ backgroundColor: color }} />
+            <div className="flex-1 max-w-[40%] h-[1px] opacity-60" style={{ backgroundColor: color }} />
+          </div>
+        )
+      case 'diamond':
+        return (
+          <div className="w-full flex items-center justify-center py-2 gap-0">
+            <div className="flex-1 max-w-[40%] h-[1px] opacity-60" style={{ backgroundColor: color }} />
+            <div className="w-2 h-2 rotate-45 mx-2 opacity-80" style={{ backgroundColor: color }} />
+            <div className="flex-1 max-w-[40%] h-[1px] opacity-60" style={{ backgroundColor: color }} />
+          </div>
+        )
+      default: // solid
+        return (
+          <div className="w-full flex justify-center py-2">
+            <div className="w-[90%] h-[1px] rounded-full opacity-60" style={{ backgroundColor: color }} />
+          </div>
+        )
+    }
+  }
+
+  // 모듈 순서 위로 이동
+  const moveModuleUp = (moduleId: string) => {
+    setModules(prev => {
+      const index = prev.findIndex(m => m.id === moduleId)
+      if (index <= 0) return prev
+      const newModules = [...prev]
+      ;[newModules[index - 1], newModules[index]] = [newModules[index], newModules[index - 1]]
+      return newModules
+    })
+  }
+
+  // 모듈 순서 아래로 이동
+  const moveModuleDown = (moduleId: string) => {
+    setModules(prev => {
+      const index = prev.findIndex(m => m.id === moduleId)
+      if (index < 0 || index >= prev.length - 1) return prev
+      const newModules = [...prev]
+      ;[newModules[index], newModules[index + 1]] = [newModules[index + 1], newModules[index]]
+      return newModules
+    })
+  }
+
+  // 요소 순서 변경 함수
+  const moveElement = (fromId: string, toId: string) => {
+    if (fromId === toId) return
+
+    setElementOrder(prev => {
+      const newOrder = [...prev]
+      const fromIndex = newOrder.indexOf(fromId)
+      const toIndex = newOrder.indexOf(toId)
+
+      if (fromIndex === -1 || toIndex === -1) return prev
+
+      newOrder.splice(fromIndex, 1)
+      newOrder.splice(toIndex, 0, fromId)
+
+      return newOrder
+    })
+  }
+
+  // 드래그 가능한 요소 래퍼
+  const DraggableElement = ({ id, children }: { id: string; children: React.ReactNode }) => {
+    const isDragging = draggedElement === id
+    const isDragOver = dragOverElement === id
+
+    // 드래그 방향 계산: 드래그 요소가 타겟보다 위에 있으면 아래로 이동 중
+    const draggedIndex = draggedElement ? elementOrder.indexOf(draggedElement) : -1
+    const currentIndex = elementOrder.indexOf(id)
+    const isMovingDown = draggedIndex < currentIndex // 드래그 요소가 위에서 아래로 이동 중
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+      e.preventDefault()
+      setDraggedElement(id)
+    }
+
+    const handleMouseUp = () => {
+      if (draggedElement && dragOverElement && draggedElement !== dragOverElement) {
+        moveElement(draggedElement, dragOverElement)
+      }
+      setDraggedElement(null)
+      setDragOverElement(null)
+    }
+
+    const handleMouseEnter = () => {
+      if (draggedElement && draggedElement !== id) {
+        setDragOverElement(id)
+      }
+    }
+
+    const handleMouseLeave = () => {
+      if (dragOverElement === id) {
+        setDragOverElement(null)
+      }
+    }
+
+    return (
+      <div
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className="relative group select-none"
+        style={{
+          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+          transform: isDragging ? 'scale(1.02)' : isDragOver ? (isMovingDown ? 'translateY(-4px)' : 'translateY(4px)') : 'none',
+          opacity: isDragging ? 0.7 : 1,
+          cursor: isDragging ? 'grabbing' : 'grab',
+          zIndex: isDragging ? 100 : 1,
+        }}
+      >
+        {/* 드래그 핸들 표시 */}
+        <div
+          className="absolute -left-5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{ zIndex: 10 }}
+        >
+          <svg className="w-3 h-3 text-white/50" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm6-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/>
+          </svg>
+        </div>
+
+        {/* 드롭 위치 표시선 - 위에서 아래로 이동 시 아래쪽에, 아래에서 위로 이동 시 위쪽에 표시 */}
+        {isDragOver && (
+          <div
+            className={`absolute left-2 right-2 h-1 bg-blue-500 rounded-full ${
+              isMovingDown ? '-bottom-1.5' : '-top-1.5'
+            }`}
+            style={{
+              boxShadow: '0 0 10px 2px rgba(59, 130, 246, 0.7)',
+              zIndex: 50,
+              animation: 'pulse 1s ease-in-out infinite'
+            }}
+          />
+        )}
+
+        {/* 콘텐츠 */}
+        <div className={`relative rounded-xl transition-all duration-200 ${
+          isDragging ? 'ring-2 ring-blue-400 ring-offset-2 ring-offset-transparent bg-blue-500/10' : ''
+        } ${isDragOver ? 'bg-blue-500/5' : ''}`}>
+          {children}
+        </div>
+      </div>
+    )
+  }
+
+  // 위치별 모듈 렌더링 (미리보기용)
+  const renderModules = (position: string) => {
+    const positionModules = modules.filter(m => m.position === position)
+
+    if (positionModules.length === 0) {
+      return null
+    }
+
+    return (
+      <div>
+        {positionModules.map((module) => (
+          <div key={module.id}>
+            {module.type === 'divider' ? renderDivider(module) : (
+              <p className={`w-full text-center py-2 ${module.size === 'xs' ? 'text-xs' : module.size === 'sm' ? 'text-sm' : module.size === 'md' ? 'text-base' : 'text-lg'}`} style={{ color: module.color || '#FFFFFF' }}>
+                {module.content}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+    )
   }
 
   const handleAddLink = async () => {
@@ -458,6 +688,14 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
               }`}
             >
               링크 관리
+            </button>
+            <button
+              onClick={() => setActiveTab('modules')}
+              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                activeTab === 'modules' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+              }`}
+            >
+              모듈 추가
             </button>
           </div>
 
@@ -654,10 +892,8 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                 )}
               </div>
 
-              {/* 색상 및 버튼 설정 - 그리드 */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* 배경 설정 */}
-                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+              {/* 배경 설정 */}
+              <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-medium text-white">배경</h3>
                     <div className="flex gap-1 bg-slate-700 rounded-lg p-0.5">
@@ -763,73 +999,6 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                       </div>
                     </div>
                   )}
-                </div>
-
-                {/* 버튼 스타일 */}
-                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-                  <h3 className="text-sm font-medium text-white mb-3">버튼 스타일</h3>
-                  <div className="space-y-2">
-                    {/* 버튼 미리보기 + 배경색 */}
-                    <div className="flex items-center gap-2 h-9">
-                      <div
-                        className="flex-1 h-full px-4 rounded-lg text-sm font-medium flex items-center justify-center"
-                        style={{ backgroundColor: buttonColor, color: buttonTextColor }}
-                      >
-                        {buttonText || '바로가기'}
-                      </div>
-                      <div className="relative color-picker-container h-full flex items-center">
-                        <button
-                          onClick={() => setOpenColorPicker(openColorPicker === 'button' ? null : 'button')}
-                          className="w-9 h-full rounded-lg transition-all hover:scale-105 border border-slate-600"
-                          style={{ backgroundColor: buttonColor }}
-                          title="버튼 배경색"
-                        />
-                        {openColorPicker === 'button' && (
-                          <div className="absolute right-0 top-11 z-50 p-3 bg-slate-800 border border-slate-700 rounded-xl shadow-xl">
-                            <HexColorPicker color={buttonColor} onChange={setButtonColor} />
-                            <input
-                              type="text"
-                              value={buttonColor}
-                              onChange={(e) => setButtonColor(e.target.value)}
-                              className="w-full mt-2 px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-xs text-center font-mono"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {/* 텍스트 입력 + 글자색 */}
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={buttonText}
-                        onChange={(e) => setButtonText(e.target.value)}
-                        placeholder="버튼 텍스트"
-                        className="flex-1 px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm placeholder-slate-500 focus:border-blue-500 focus:outline-none"
-                      />
-                      <div className="relative color-picker-container">
-                        <button
-                          onClick={() => setOpenColorPicker(openColorPicker === 'buttonText' ? null : 'buttonText')}
-                          className="w-9 h-9 rounded-lg transition-all hover:scale-105 border border-slate-600 flex items-center justify-center text-sm font-bold"
-                          style={{ backgroundColor: buttonTextColor }}
-                          title="버튼 글자색"
-                        >
-                          A
-                        </button>
-                        {openColorPicker === 'buttonText' && (
-                          <div className="absolute right-0 top-11 z-50 p-3 bg-slate-800 border border-slate-700 rounded-xl shadow-xl">
-                            <HexColorPicker color={buttonTextColor} onChange={setButtonTextColor} />
-                            <input
-                              type="text"
-                              value={buttonTextColor}
-                              onChange={(e) => setButtonTextColor(e.target.value)}
-                              className="w-full mt-2 px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-xs text-center font-mono"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
             </>
           )}
@@ -873,15 +1042,58 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                       className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-2">버튼 텍스트</label>
-                    <input
-                      type="text"
-                      value={videoSearchButtonText}
-                      onChange={(e) => setVideoSearchButtonText(e.target.value)}
-                      placeholder="검색"
-                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
-                    />
+                  {/* 검색 스타일 */}
+                  <div className="pt-2 border-t border-slate-700">
+                    <label className="block text-xs text-slate-400 mb-3">검색 스타일</label>
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* 버튼 색상 */}
+                      <div className="text-center">
+                        <div className="relative color-picker-container flex justify-center">
+                          <button
+                            onClick={() => setOpenColorPicker(openColorPicker === 'searchButton' ? null : 'searchButton')}
+                            className="w-10 h-10 rounded-lg transition-all hover:scale-105 border border-slate-600"
+                            style={{ backgroundColor: searchButtonColor }}
+                          />
+                          {openColorPicker === 'searchButton' && (
+                            <div className="absolute left-1/2 -translate-x-1/2 top-12 z-50 p-3 bg-slate-800 border border-slate-700 rounded-xl shadow-xl">
+                              <HexColorPicker color={searchButtonColor} onChange={setSearchButtonColor} />
+                              <input
+                                type="text"
+                                value={searchButtonColor}
+                                onChange={(e) => setSearchButtonColor(e.target.value)}
+                                className="w-full mt-2 px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-xs text-center font-mono"
+                              />
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-500 mt-1">버튼</p>
+                      </div>
+                      {/* 아이콘 색상 */}
+                      <div className="text-center">
+                        <div className="relative color-picker-container flex justify-center">
+                          <button
+                            onClick={() => setOpenColorPicker(openColorPicker === 'searchIcon' ? null : 'searchIcon')}
+                            className="w-10 h-10 rounded-lg transition-all hover:scale-105 border border-slate-600 flex items-center justify-center bg-slate-700"
+                          >
+                            <svg className="w-5 h-5" style={{ color: searchIconColor }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                          </button>
+                          {openColorPicker === 'searchIcon' && (
+                            <div className="absolute left-1/2 -translate-x-1/2 top-12 z-50 p-3 bg-slate-800 border border-slate-700 rounded-xl shadow-xl">
+                              <HexColorPicker color={searchIconColor} onChange={setSearchIconColor} />
+                              <input
+                                type="text"
+                                value={searchIconColor}
+                                onChange={(e) => setSearchIconColor(e.target.value)}
+                                className="w-full mt-2 px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-xs text-center font-mono"
+                              />
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-500 mt-1">아이콘</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -974,6 +1186,279 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
               )}
             </div>
           )}
+
+          {/* 모듈 추가 탭 */}
+          {activeTab === 'modules' && (
+            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-white font-medium">모듈 추가</h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      const newModule: Module = {
+                        id: crypto.randomUUID(),
+                        type: 'divider',
+                        color: '#000000',
+                        style: 'solid',
+                        position: 'before-links'
+                      }
+                      setModules([...modules, newModule])
+                    }}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded-lg transition-colors"
+                  >
+                    <svg className="w-3 h-3" viewBox="0 0 12 2"><line x1="0" y1="1" x2="12" y2="1" stroke="currentColor" strokeWidth="2"/></svg>
+                    구분선 추가
+                  </button>
+                  <button
+                    onClick={() => {
+                      const newModule: Module = {
+                        id: crypto.randomUUID(),
+                        type: 'text',
+                        content: '',
+                        color: '#000000',
+                        size: 'sm',
+                        position: 'before-links'
+                      }
+                      setModules([...modules, newModule])
+                    }}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded-lg transition-colors"
+                  >
+                    <span className="text-[10px] font-medium">Aa</span>
+                    텍스트 추가
+                  </button>
+                </div>
+              </div>
+
+              {modules.length === 0 ? (
+                <p className="text-sm text-slate-500 text-center py-8">
+                  모듈을 추가하여 페이지를 꾸며보세요
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {modules.map((module, index) => (
+                    <div key={module.id} className="bg-slate-700/30 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          {/* 순서 이동 버튼 */}
+                          <div className="flex flex-col gap-0.5">
+                            <button
+                              onClick={() => moveModuleUp(module.id)}
+                              disabled={index === 0}
+                              className="p-0.5 hover:bg-slate-600 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="위로 이동"
+                            >
+                              <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => moveModuleDown(module.id)}
+                              disabled={index === modules.length - 1}
+                              className="p-0.5 hover:bg-slate-600 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="아래로 이동"
+                            >
+                              <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
+                          </div>
+                          {module.type === 'divider' ? (
+                            <div className="w-6 h-6 rounded bg-slate-600 flex items-center justify-center">
+                              <div className="w-3 h-[2px] bg-white rounded-full" />
+                            </div>
+                          ) : (
+                            <div className="w-6 h-6 rounded bg-slate-600 flex items-center justify-center">
+                              <span className="text-white text-[10px] font-medium">Aa</span>
+                            </div>
+                          )}
+                          <span className="text-sm text-white">
+                            {module.type === 'divider' ? '구분선' : '텍스트'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => setModules(modules.filter(m => m.id !== module.id))}
+                          className="p-1 hover:bg-slate-600 rounded transition-colors"
+                        >
+                          <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      {/* 구분선 설정 */}
+                      {module.type === 'divider' && (
+                        <div className="space-y-3">
+                          {/* 스타일 선택 */}
+                          <div>
+                            <label className="block text-xs text-slate-400 mb-2">스타일</label>
+                            <div className="grid grid-cols-5 gap-2">
+                              {[
+                                { value: 'solid', label: '실선', icon: <svg className="w-full h-2" viewBox="0 0 40 2"><line x1="0" y1="1" x2="40" y2="1" stroke="currentColor" strokeWidth="2"/></svg> },
+                                { value: 'dashed', label: '점선', icon: <svg className="w-full h-2" viewBox="0 0 40 2"><line x1="0" y1="1" x2="40" y2="1" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2"/></svg> },
+                                { value: 'dotted', label: '도트', icon: <svg className="w-full h-2" viewBox="0 0 40 2"><line x1="0" y1="1" x2="40" y2="1" stroke="currentColor" strokeWidth="2" strokeDasharray="1 3" strokeLinecap="round"/></svg> },
+                                { value: 'circle', label: '원형', icon: <svg className="w-full h-2" viewBox="0 0 40 6"><line x1="0" y1="3" x2="14" y2="3" stroke="currentColor" strokeWidth="1"/><circle cx="20" cy="3" r="3" fill="currentColor"/><line x1="26" y1="3" x2="40" y2="3" stroke="currentColor" strokeWidth="1"/></svg> },
+                                { value: 'diamond', label: '마름모', icon: <svg className="w-full h-2" viewBox="0 0 40 6"><line x1="0" y1="3" x2="14" y2="3" stroke="currentColor" strokeWidth="1"/><rect x="17" y="0" width="6" height="6" fill="currentColor" transform="rotate(45 20 3)"/><line x1="26" y1="3" x2="40" y2="3" stroke="currentColor" strokeWidth="1"/></svg> },
+                              ].map((style) => (
+                                <button
+                                  key={style.value}
+                                  onClick={() => {
+                                    const updated = modules.map(m =>
+                                      m.id === module.id ? { ...m, style: style.value as Module['style'] } : m
+                                    )
+                                    setModules(updated)
+                                  }}
+                                  className={`p-2 rounded-lg border transition-all flex flex-col items-center gap-1 ${
+                                    (module.style || 'solid') === style.value
+                                      ? 'border-blue-500 bg-blue-500/20 text-blue-400'
+                                      : 'border-slate-600 text-slate-400 hover:border-slate-500'
+                                  }`}
+                                  title={style.label}
+                                >
+                                  {style.icon}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          {/* 색상 + 위치 */}
+                          <div className="flex gap-4">
+                            <div>
+                              <label className="block text-xs text-slate-400 mb-1">색상</label>
+                              <div className="relative color-picker-container">
+                                <button
+                                  onClick={() => setOpenColorPicker(openColorPicker === `module-${module.id}` ? null : `module-${module.id}`)}
+                                  className="w-8 h-8 rounded-lg transition-all hover:scale-105 border border-slate-600"
+                                  style={{ backgroundColor: module.color || '#FFFFFF' }}
+                                />
+                                {openColorPicker === `module-${module.id}` && (
+                                  <div className="absolute left-0 top-10 z-50 p-3 bg-slate-800 border border-slate-700 rounded-xl shadow-xl">
+                                    <HexColorPicker
+                                      color={module.color || '#FFFFFF'}
+                                      onChange={(color) => {
+                                        const updated = modules.map(m =>
+                                          m.id === module.id ? { ...m, color } : m
+                                        )
+                                        setModules(updated)
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <label className="block text-xs text-slate-400 mb-1">위치</label>
+                              <select
+                                value={module.position}
+                                onChange={(e) => {
+                                  const updated = modules.map(m =>
+                                    m.id === module.id ? { ...m, position: e.target.value } : m
+                                  )
+                                  setModules(updated)
+                                }}
+                                className="w-full px-2 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:border-blue-500 focus:outline-none"
+                              >
+                                <option value="after-profile">프로필 아래</option>
+                                <option value="after-subtitle">설명 아래</option>
+                                <option value="after-search">검색 아래</option>
+                                <option value="before-links">링크 위</option>
+                                <option value="after-links">링크 아래</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 텍스트 설정 */}
+                      {module.type === 'text' && (
+                        <div className="space-y-2">
+                          <div>
+                            <label className="block text-xs text-slate-400 mb-1">내용</label>
+                            <input
+                              type="text"
+                              value={module.content || ''}
+                              onChange={(e) => {
+                                const updated = modules.map(m =>
+                                  m.id === module.id ? { ...m, content: e.target.value } : m
+                                )
+                                setModules(updated)
+                              }}
+                              placeholder="텍스트 입력"
+                              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <div className="flex-1">
+                              <label className="block text-xs text-slate-400 mb-1">색상</label>
+                              <div className="relative color-picker-container">
+                                <button
+                                  onClick={() => setOpenColorPicker(openColorPicker === `module-${module.id}` ? null : `module-${module.id}`)}
+                                  className="w-8 h-8 rounded-lg transition-all hover:scale-105 border border-slate-600"
+                                  style={{ backgroundColor: module.color || '#FFFFFF' }}
+                                />
+                                {openColorPicker === `module-${module.id}` && (
+                                  <div className="absolute left-0 top-10 z-50 p-3 bg-slate-800 border border-slate-700 rounded-xl shadow-xl">
+                                    <HexColorPicker
+                                      color={module.color || '#FFFFFF'}
+                                      onChange={(color) => {
+                                        const updated = modules.map(m =>
+                                          m.id === module.id ? { ...m, color } : m
+                                        )
+                                        setModules(updated)
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <label className="block text-xs text-slate-400 mb-1">크기</label>
+                              <div className="flex gap-1">
+                                {(['xs', 'sm', 'md', 'lg'] as const).map((size) => (
+                                  <button
+                                    key={size}
+                                    onClick={() => {
+                                      const updated = modules.map(m =>
+                                        m.id === module.id ? { ...m, size } : m
+                                      )
+                                      setModules(updated)
+                                    }}
+                                    className={`flex-1 py-1 text-[10px] rounded transition-colors ${
+                                      module.size === size ? 'bg-blue-600 text-white' : 'bg-slate-600 text-slate-400 hover:text-white'
+                                    }`}
+                                  >
+                                    {size.toUpperCase()}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          {/* 위치 */}
+                          <div>
+                            <label className="block text-xs text-slate-400 mb-1">위치</label>
+                            <select
+                              value={module.position}
+                              onChange={(e) => {
+                                const updated = modules.map(m =>
+                                  m.id === module.id ? { ...m, position: e.target.value } : m
+                                )
+                                setModules(updated)
+                              }}
+                              className="w-full px-2 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:border-blue-500 focus:outline-none"
+                            >
+                              <option value="after-profile">프로필 아래</option>
+                              <option value="after-subtitle">설명 아래</option>
+                              <option value="after-search">검색 아래</option>
+                              <option value="before-links">링크 위</option>
+                              <option value="after-links">링크 아래</option>
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 미리보기 */}
@@ -983,7 +1468,7 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
 
             {/* 모바일 형태 프레임 */}
             <div className="flex justify-center">
-              <div className="w-[320px] h-[580px] rounded-[2.5rem] border-4 border-slate-600 overflow-hidden bg-black p-2 shadow-none">
+              <div className="w-[360px] h-[700px] rounded-[2.5rem] border-4 border-slate-600 overflow-hidden bg-black p-2 shadow-none">
                 <div
                   className="w-full h-full rounded-[2rem] overflow-hidden flex flex-col"
                   style={{
@@ -1017,140 +1502,186 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
 
                   {/* 컨텐츠 영역 - 상단 라운드 겹침 */}
                   <div
-                    className={`flex-1 ${showHeaderImage ? 'rounded-t-3xl -mt-4' : ''} relative p-4 overflow-y-auto`}
+                    className={`flex-1 ${showHeaderImage ? 'rounded-t-3xl -mt-4' : ''} relative p-4 overflow-y-scroll`}
                     style={{
                       background: backgroundType === 'gradient'
                         ? `linear-gradient(${gradientAngle}deg, ${gradientColor1}, ${gradientColor2})`
                         : backgroundColor
                     }}
                   >
-                  {/* 프로필 이미지 + 제목 */}
-                  <div className="mb-4 text-center">
-                    {profileImageUrl && (
-                      <div className="flex justify-center mb-2">
-                        <div className="w-14 h-14 rounded-full overflow-hidden shadow-lg bg-slate-700">
-                          <Image
-                            src={profileImageUrl}
-                            alt="Profile"
-                            width={56}
-                            height={56}
-                            className="w-full h-full object-cover"
-                            loading="eager"
-                            priority
-                          />
-                        </div>
-                      </div>
-                    )}
-                    <h3
-                      className="text-lg font-bold mb-0.5"
-                      style={{ color: titleColor }}
-                    >
-                      {title || sellerTree.slug}
-                    </h3>
-                    <p
-                      className="text-xs"
-                      style={{ color: subtitleColor }}
-                    >
-                      {subtitle || '설명을 입력하세요'}
-                    </p>
-                  </div>
+                  {/* 요소들을 elementOrder 순서대로 렌더링 */}
+                  {elementOrder.map((elementId) => {
+                    switch (elementId) {
+                      case 'header':
+                        // 프로필 + 페이지 제목 + 설명을 하나로 묶음
+                        return (
+                          <DraggableElement key={elementId} id={elementId}>
+                            <div className="text-center mb-3">
+                              {/* 프로필 이미지 */}
+                              {profileImageUrl && (
+                                <div className="mb-2">
+                                  <div className="flex justify-center">
+                                    <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-700">
+                                      <Image
+                                        src={profileImageUrl}
+                                        alt="Profile"
+                                        width={64}
+                                        height={64}
+                                        className="w-full h-full object-cover"
+                                        loading="eager"
+                                        priority
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              {/* 페이지 제목 */}
+                              <h3
+                                className="text-xl font-bold mb-1"
+                                style={{ color: titleColor }}
+                              >
+                                {title || sellerTree.slug}
+                              </h3>
+                              {/* 설명 */}
+                              <p
+                                className="text-xs"
+                                style={{ color: subtitleColor }}
+                              >
+                                {subtitle || '설명을 입력하세요'}
+                              </p>
+                            </div>
+                          </DraggableElement>
+                        )
 
-                  {/* 영상번호 검색 */}
-                  {videoSearchEnabled && (
-                    <div className="w-full mb-4">
-                      <p
-                        className="text-xs font-medium mb-1.5 text-center"
-                        style={{ color: titleColor }}
-                      >
-                        {videoSearchTitle}
-                      </p>
-                      <div className="flex gap-1.5">
-                        <input
-                          type="text"
-                          placeholder={videoSearchPlaceholder}
-                          className="flex-1 px-2 py-1.5 rounded-lg bg-white/50 border border-white/60 text-center font-mono text-sm placeholder-slate-400"
-                          style={{ color: titleColor }}
-                          disabled
-                        />
-                        <button
-                          className="px-3 py-1.5 rounded-lg font-medium text-xs shadow-sm"
-                          style={{
-                            backgroundColor: buttonColor,
-                            color: buttonTextColor,
-                          }}
-                        >
-                          {videoSearchButtonText}
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                      case 'search':
+                        return videoSearchEnabled ? (
+                          <DraggableElement key={elementId} id={elementId}>
+                            <div className="w-full mb-4 space-y-2">
+                              <p
+                                className="text-xs font-medium text-center"
+                                style={{ color: titleColor }}
+                              >
+                                {videoSearchTitle}
+                              </p>
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  placeholder={videoSearchPlaceholder}
+                                  className="flex-1 px-4 py-3 rounded-xl bg-white text-slate-800 text-center font-mono text-sm placeholder-slate-400 transition-all"
+                                  style={{
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                  }}
+                                  disabled
+                                />
+                                <button
+                                  className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm"
+                                  style={{ backgroundColor: searchButtonColor }}
+                                >
+                                  <svg className="w-5 h-5" style={{ color: searchIconColor }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          </DraggableElement>
+                        ) : null
 
-                  {/* 링크 목록 */}
-                  <div className={`w-full ${
-                    linkLayout === 'double' ? 'grid grid-cols-2 gap-1.5' : 'space-y-1.5'
-                  }`}>
-                    {links.filter(l => l.is_active).map((link) => (
-                      <div
-                        key={link.id}
-                        className={`rounded-lg overflow-hidden shadow-sm ${
-                          linkLayout === 'double' ? 'flex flex-col' : 'flex items-center gap-2 px-2 py-2'
-                        }`}
-                        style={{ backgroundColor: 'rgba(255,255,255,0.4)' }}
-                      >
-                        {link.thumbnail_url ? (
-                          <div className={`flex-shrink-0 bg-slate-200 ${
-                            linkLayout === 'double' ? 'w-full aspect-square' : 'w-10 h-10 rounded-md overflow-hidden'
-                          }`}>
-                            <Image
-                              src={link.thumbnail_url}
-                              alt={link.title}
-                              width={linkLayout === 'double' ? 120 : 40}
-                              height={linkLayout === 'double' ? 120 : 40}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                            />
-                          </div>
-                        ) : (
-                          <div className={`bg-white/60 flex items-center justify-center flex-shrink-0 ${
-                            linkLayout === 'double' ? 'w-full aspect-square' : 'w-10 h-10 rounded-md'
-                          }`}>
-                            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                            </svg>
-                          </div>
-                        )}
-                        <span
-                          className={`font-medium leading-snug ${
-                            linkLayout === 'double'
-                              ? 'text-[10px] w-full text-center p-1.5 line-clamp-2'
-                              : 'text-xs line-clamp-2 flex-1'
-                          }`}
-                          style={{ color: titleColor }}
-                        >
-                          {link.title}
-                        </span>
-                        {linkLayout !== 'double' && (
-                          <svg
-                            className="w-3 h-3 flex-shrink-0"
-                            style={{ color: subtitleColor }}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        )}
-                      </div>
-                    ))}
-                    {links.length === 0 && !videoSearchEnabled && (
-                      <div
-                        className="text-center py-6 text-xs opacity-60"
-                        style={{ color: subtitleColor }}
-                      >
-                        링크를 추가해주세요
-                      </div>
-                    )}
-                  </div>
+                      default:
+                        // 개별 모듈 처리 (module-{id} 형태)
+                        if (elementId.startsWith('module-')) {
+                          const moduleId = elementId.replace('module-', '')
+                          const module = modules.find(m => m.id === moduleId)
+                          if (!module) return null
+
+                          return (
+                            <DraggableElement key={elementId} id={elementId}>
+                              <div className="py-1">
+                                {module.type === 'divider' ? renderDivider(module) : (
+                                  <p className={`w-full text-center py-2 ${module.size === 'xs' ? 'text-xs' : module.size === 'sm' ? 'text-sm' : module.size === 'md' ? 'text-base' : 'text-lg'}`} style={{ color: module.color || '#FFFFFF' }}>
+                                    {module.content}
+                                  </p>
+                                )}
+                              </div>
+                            </DraggableElement>
+                          )
+                        }
+                        return null
+
+                      case 'links':
+                        return (
+                          <DraggableElement key={elementId} id={elementId}>
+                            <div className={`w-full py-3 ${
+                              linkLayout === 'double' ? 'grid grid-cols-2 gap-2' : 'space-y-2'
+                            }`}>
+                              {links.filter(l => l.is_active).map((link) => (
+                                <div
+                                  key={link.id}
+                                  className={`rounded-xl overflow-hidden transition-all ${
+                                    linkLayout === 'double' ? 'flex flex-col' : 'flex items-center gap-2.5 p-2.5'
+                                  }`}
+                                  style={{ backgroundColor: 'rgba(59, 130, 246, 1)' }}
+                                >
+                                  {link.thumbnail_url ? (
+                                    <div className={`flex-shrink-0 ${
+                                      linkLayout === 'double' ? 'w-full aspect-square' : 'w-10 h-10 rounded-lg overflow-hidden'
+                                    }`}>
+                                      <Image
+                                        src={link.thumbnail_url}
+                                        alt={link.title}
+                                        width={linkLayout === 'double' ? 120 : 40}
+                                        height={linkLayout === 'double' ? 120 : 40}
+                                        className="w-full h-full object-cover"
+                                        loading="lazy"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className={`bg-white/10 flex items-center justify-center flex-shrink-0 ${
+                                      linkLayout === 'double' ? 'w-full aspect-square' : 'w-10 h-10 rounded-lg'
+                                    }`}>
+                                      <svg className="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                      </svg>
+                                    </div>
+                                  )}
+                                  <div className={`flex-1 min-w-0 ${linkLayout === 'double' ? 'p-2' : ''}`}>
+                                    <span
+                                      className={`font-medium leading-snug text-white ${
+                                        linkLayout === 'double'
+                                          ? 'text-[10px] block text-center line-clamp-2'
+                                          : 'text-xs line-clamp-2 block'
+                                      }`}
+                                    >
+                                      {link.title}
+                                    </span>
+                                  </div>
+                                  {linkLayout !== 'double' && (
+                                    <svg
+                                      className="w-3.5 h-3.5 flex-shrink-0 text-white/50"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                  )}
+                                </div>
+                              ))}
+                              {links.length === 0 && !videoSearchEnabled && (
+                                <div
+                                  className="text-center py-6 text-xs opacity-60"
+                                  style={{ color: subtitleColor }}
+                                >
+                                  링크를 추가해주세요
+                                </div>
+                              )}
+                            </div>
+                          </DraggableElement>
+                        )
+                    }
+                  })}
+
+                  {/* after-links 모듈 */}
+                  {renderModules('after-links')}
 
                   {/* 푸터 */}
                   <div className="mt-4 text-center">

@@ -16,6 +16,16 @@ interface SellerTreeLink {
   is_active: boolean
 }
 
+interface Module {
+  id: string
+  type: 'divider' | 'text'
+  content?: string
+  color?: string
+  size?: 'xs' | 'sm' | 'md' | 'lg'
+  style?: 'solid' | 'dashed' | 'dotted' | 'circle' | 'diamond'
+  position: string
+}
+
 interface SellerTree {
   id: string
   slug: string
@@ -36,6 +46,9 @@ interface SellerTree {
   video_search_title?: string
   video_search_placeholder?: string
   video_search_button_text?: string
+  search_button_color?: string
+  search_icon_color?: string
+  modules?: Module[]
 }
 
 interface Props {
@@ -65,6 +78,71 @@ export default function SellerTreePublicPage({ sellerTree }: Props) {
       price?: number
     }
   } | null>(null)
+
+  const modules = sellerTree.modules || []
+
+  // 구분선 스타일 렌더링
+  const renderDivider = (module: Module) => {
+    const color = module.color || '#000000'
+    const style = module.style || 'solid'
+
+    switch (style) {
+      case 'dashed':
+        return (
+          <div className="w-full flex justify-center py-3">
+            <div className="w-[90%] h-[2px] opacity-70" style={{ borderTop: `2px dashed ${color}` }} />
+          </div>
+        )
+      case 'dotted':
+        return (
+          <div className="w-full flex justify-center py-3">
+            <div className="w-[90%] h-[2px] opacity-70" style={{ borderTop: `2px dotted ${color}` }} />
+          </div>
+        )
+      case 'circle':
+        return (
+          <div className="w-full flex items-center justify-center py-3 gap-0">
+            <div className="flex-1 max-w-[40%] h-[1px] opacity-60" style={{ backgroundColor: color }} />
+            <div className="w-2 h-2 rounded-full mx-2 opacity-80" style={{ backgroundColor: color }} />
+            <div className="flex-1 max-w-[40%] h-[1px] opacity-60" style={{ backgroundColor: color }} />
+          </div>
+        )
+      case 'diamond':
+        return (
+          <div className="w-full flex items-center justify-center py-3 gap-0">
+            <div className="flex-1 max-w-[40%] h-[1px] opacity-60" style={{ backgroundColor: color }} />
+            <div className="w-2 h-2 rotate-45 mx-2 opacity-80" style={{ backgroundColor: color }} />
+            <div className="flex-1 max-w-[40%] h-[1px] opacity-60" style={{ backgroundColor: color }} />
+          </div>
+        )
+      default: // solid
+        return (
+          <div className="w-full flex justify-center py-3">
+            <div className="w-[90%] h-[1px] rounded-full opacity-60" style={{ backgroundColor: color }} />
+          </div>
+        )
+    }
+  }
+
+  const renderModulesByPosition = (position: string) => {
+    return modules.filter(m => m.position === position).map(module => (
+      module.type === 'divider' ? (
+        <div key={module.id}>{renderDivider(module)}</div>
+      ) : (
+        <p
+          key={module.id}
+          className={`w-full text-center py-2 ${
+            module.size === 'xs' ? 'text-xs' :
+            module.size === 'sm' ? 'text-sm' :
+            module.size === 'md' ? 'text-base' : 'text-lg'
+          }`}
+          style={{ color: module.color || '#FFFFFF' }}
+        >
+          {module.content}
+        </p>
+      )
+    ))
+  }
 
   const handleLinkClick = async (link: SellerTreeLink) => {
     // 클릭 추적
@@ -150,176 +228,198 @@ export default function SellerTreePublicPage({ sellerTree }: Props) {
   }
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center py-8 px-4"
-      style={getBackgroundStyle()}
-    >
-      {/* 배경 이미지 오버레이 */}
-      {sellerTree.background_type === 'image' && (
-        <div className="fixed inset-0 bg-black/40 -z-10" />
-      )}
-
-      <div className="w-full max-w-md space-y-6">
-        {/* 프로필 섹션 */}
-        <div className="text-center space-y-3">
-          {sellerTree.profile_image_url && (
-            <div className="relative w-24 h-24 mx-auto">
-              <Image
-                src={sellerTree.profile_image_url}
-                alt={sellerTree.title || '프로필'}
-                fill
-                className="rounded-full object-cover"
-              />
-            </div>
+    <div className="min-h-screen flex flex-col items-center justify-center py-8 px-4 bg-white">
+      {/* 모바일 프레임 */}
+      <div
+        className="w-full max-w-md rounded-3xl overflow-hidden"
+        style={{
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+          minHeight: '600px',
+        }}
+      >
+        <div
+          className="min-h-[600px] flex flex-col p-6"
+          style={getBackgroundStyle()}
+        >
+          {/* 배경 이미지 오버레이 */}
+          {sellerTree.background_type === 'image' && (
+            <div className="absolute inset-0 bg-black/40 rounded-3xl" />
           )}
 
-          {sellerTree.title && (
-            <h1
-              className="text-2xl font-bold"
-              style={{ color: sellerTree.title_color }}
-            >
-              {sellerTree.title}
-            </h1>
-          )}
+          <div className="relative z-10 flex-1 space-y-6">
+            {/* 프로필 섹션 */}
+            <div className="text-center space-y-3">
+              {sellerTree.profile_image_url && (
+                <div className="relative w-24 h-24 mx-auto">
+                  <Image
+                    src={sellerTree.profile_image_url}
+                    alt={sellerTree.title || '프로필'}
+                    fill
+                    className="rounded-full object-cover"
+                  />
+                </div>
+              )}
 
-          {sellerTree.subtitle && (
-            <p
-              className="text-sm"
-              style={{ color: sellerTree.subtitle_color }}
-            >
-              {sellerTree.subtitle}
-            </p>
-          )}
-        </div>
+              {/* after-profile 위치 모듈 */}
+              {renderModulesByPosition('after-profile')}
 
-        {/* 영상번호 검색 */}
-        {sellerTree.video_search_enabled && (
-          <div className="space-y-3">
-            <p
-              className="text-sm font-medium text-center"
-              style={{ color: sellerTree.title_color }}
-            >
-              {sellerTree.video_search_title || '영상번호 검색'}
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={videoCode}
-                onChange={(e) => {
-                  setVideoCode(e.target.value.toUpperCase())
-                  setSearchError('')
-                }}
-                onKeyPress={handleKeyPress}
-                placeholder={sellerTree.video_search_placeholder || '영상번호를 입력하세요'}
-                className="flex-1 px-4 py-3 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 text-center font-mono text-lg placeholder-white/50 focus:outline-none focus:border-white/60"
-                style={{ color: sellerTree.title_color }}
-                maxLength={10}
-              />
-              <button
-                onClick={handleVideoSearch}
-                disabled={searching || !videoCode.trim()}
-                className="px-5 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 flex items-center gap-2"
-                style={{
-                  backgroundColor: sellerTree.button_color,
-                  color: sellerTree.button_text_color,
-                }}
-              >
-                {searching ? (
-                  <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <Search className="w-4 h-4" />
-                    {sellerTree.video_search_button_text || '검색'}
-                  </>
-                )}
-              </button>
-            </div>
-            {searchError && (
-              <p className="text-sm text-center text-red-400">
-                {searchError}
-              </p>
-            )}
-            {searchResult?.found && searchResult.data && (
-              <div
-                className="p-4 rounded-xl text-center"
-                style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
-              >
-                <p style={{ color: sellerTree.title_color }}>
-                  이동 중...
+              {sellerTree.title && (
+                <h1
+                  className="text-2xl font-bold"
+                  style={{ color: sellerTree.title_color }}
+                >
+                  {sellerTree.title}
+                </h1>
+              )}
+
+              {sellerTree.subtitle && (
+                <p
+                  className="text-sm"
+                  style={{ color: sellerTree.subtitle_color }}
+                >
+                  {sellerTree.subtitle}
                 </p>
-              </div>
-            )}
-          </div>
-        )}
+              )}
 
-        {/* 링크 목록 */}
-        <div className="space-y-3">
-          {sellerTree.seller_tree_links.map((link) => {
-            const Icon = IconComponent(link.icon)
+              {/* after-subtitle 위치 모듈 */}
+              {renderModulesByPosition('after-subtitle')}
+            </div>
 
-            return (
-              <button
-                key={link.id}
-                onClick={() => handleLinkClick(link)}
-                className="w-full p-4 rounded-xl transition-all duration-200 hover:scale-[1.02] hover:shadow-lg flex items-center gap-3 text-left"
-                style={{
-                  backgroundColor: sellerTree.button_color,
-                  color: sellerTree.button_text_color,
-                }}
-              >
-                {link.thumbnail_url ? (
-                  <div className="relative w-12 h-12 flex-shrink-0">
-                    <Image
-                      src={link.thumbnail_url}
-                      alt={link.title}
-                      fill
-                      className="rounded-lg object-cover"
-                    />
-                  </div>
-                ) : (
+            {/* 영상번호 검색 */}
+            {sellerTree.video_search_enabled && (
+              <div className="space-y-3">
+                <p
+                  className="text-sm font-medium text-center"
+                  style={{ color: sellerTree.title_color }}
+                >
+                  {sellerTree.video_search_title || '영상번호 검색'}
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={videoCode}
+                    onChange={(e) => {
+                      setVideoCode(e.target.value.toUpperCase())
+                      setSearchError('')
+                    }}
+                    onKeyPress={handleKeyPress}
+                    placeholder={sellerTree.video_search_placeholder || '영상번호를 입력하세요'}
+                    className="flex-1 px-4 py-3 rounded-xl bg-white text-slate-800 text-center font-mono text-lg placeholder-slate-400 focus:outline-none transition-all"
+                    style={{
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}
+                    maxLength={10}
+                  />
+                  <button
+                    onClick={handleVideoSearch}
+                    disabled={searching || !videoCode.trim()}
+                    className="w-14 h-14 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 flex items-center justify-center shadow-sm"
+                    style={{ backgroundColor: sellerTree.search_button_color || '#2563EB' }}
+                  >
+                    {searching ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Search className="w-5 h-5" style={{ color: sellerTree.search_icon_color || '#FFFFFF' }} />
+                    )}
+                  </button>
+                </div>
+                {searchError && (
+                  <p className="text-sm text-center text-red-400">
+                    {searchError}
+                  </p>
+                )}
+                {searchResult?.found && searchResult.data && (
                   <div
-                    className="w-12 h-12 flex-shrink-0 rounded-lg flex items-center justify-center"
+                    className="p-4 rounded-xl text-center"
                     style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
                   >
-                    <Icon className="w-5 h-5" />
+                    <p style={{ color: sellerTree.title_color }}>
+                      이동 중...
+                    </p>
                   </div>
                 )}
+              </div>
+            )}
 
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{link.title}</div>
-                  {link.description && (
-                    <div className="text-xs opacity-70 truncate">{link.description}</div>
-                  )}
-                </div>
+            {/* after-search 위치 모듈 */}
+            {renderModulesByPosition('after-search')}
 
-                <ExternalLink className="w-4 h-4 flex-shrink-0 opacity-50" />
-              </button>
-            )
-          })}
-        </div>
+            {/* before-links 위치 모듈 */}
+            {renderModulesByPosition('before-links')}
 
-        {/* 링크가 없고 영상번호 검색도 없을 때 */}
-        {sellerTree.seller_tree_links.length === 0 && !sellerTree.video_search_enabled && (
-          <div
-            className="text-center py-12 opacity-70"
-            style={{ color: sellerTree.subtitle_color }}
-          >
-            <LinkIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>등록된 링크가 없습니다</p>
+            {/* 링크 목록 */}
+            <div className="space-y-3">
+              {sellerTree.seller_tree_links.map((link) => {
+                const Icon = IconComponent(link.icon)
+
+                return (
+                  <button
+                    key={link.id}
+                    onClick={() => handleLinkClick(link)}
+                    className="w-full p-4 rounded-xl transition-all duration-200 hover:scale-[1.02] hover:shadow-lg flex items-center gap-3 text-left"
+                    style={{
+                      backgroundColor: sellerTree.button_color,
+                      color: sellerTree.button_text_color,
+                    }}
+                  >
+                    {link.thumbnail_url ? (
+                      <div className="relative w-12 h-12 flex-shrink-0">
+                        <Image
+                          src={link.thumbnail_url}
+                          alt={link.title}
+                          fill
+                          className="rounded-lg object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        className="w-12 h-12 flex-shrink-0 rounded-lg flex items-center justify-center"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+                      >
+                        <Icon className="w-5 h-5" />
+                      </div>
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{link.title}</div>
+                      {link.description && (
+                        <div className="text-xs opacity-70 truncate">{link.description}</div>
+                      )}
+                    </div>
+
+                    <ExternalLink className="w-4 h-4 flex-shrink-0 opacity-50" />
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* after-links 위치 모듈 */}
+            {renderModulesByPosition('after-links')}
+
+            {/* 링크가 없고 영상번호 검색도 없을 때 */}
+            {sellerTree.seller_tree_links.length === 0 && !sellerTree.video_search_enabled && (
+              <div
+                className="text-center py-12 opacity-70"
+                style={{ color: sellerTree.subtitle_color }}
+              >
+                <LinkIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>등록된 링크가 없습니다</p>
+              </div>
+            )}
+
+            {/* 푸터 */}
+            <div className="text-center pt-8">
+              <a
+                href="https://sellerport.co.kr"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs opacity-50 hover:opacity-70 transition-opacity"
+                style={{ color: sellerTree.subtitle_color }}
+              >
+                Powered by 셀러포트
+              </a>
+            </div>
           </div>
-        )}
-
-        {/* 푸터 */}
-        <div className="text-center pt-8">
-          <a
-            href="https://sellerport.co.kr"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs opacity-50 hover:opacity-70 transition-opacity"
-            style={{ color: sellerTree.subtitle_color }}
-          >
-            Powered by 셀러포트
-          </a>
         </div>
       </div>
     </div>

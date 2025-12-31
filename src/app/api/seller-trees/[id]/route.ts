@@ -88,7 +88,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       video_search_enabled,
       video_search_title,
       video_search_placeholder,
-      video_search_button_text
+      video_search_button_text,
+      search_button_color,
+      search_icon_color,
+      modules
     } = body
 
     // 소유권 확인
@@ -124,6 +127,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (video_search_title !== undefined) updateData.video_search_title = video_search_title
     if (video_search_placeholder !== undefined) updateData.video_search_placeholder = video_search_placeholder
     if (video_search_button_text !== undefined) updateData.video_search_button_text = video_search_button_text
+    if (search_button_color !== undefined) updateData.search_button_color = search_button_color
+    if (search_icon_color !== undefined) updateData.search_icon_color = search_icon_color
+    if (modules !== undefined) updateData.modules = modules
 
     console.log('Updating seller tree with data:', updateData)
 
