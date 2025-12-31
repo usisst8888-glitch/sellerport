@@ -72,6 +72,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       title,
       subtitle,
       profile_image_url,
+      show_profile_image,
       header_image_url,
       header_image_size,
       background_type,
@@ -112,6 +113,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (title !== undefined) updateData.title = title
     if (subtitle !== undefined) updateData.subtitle = subtitle
     if (profile_image_url !== undefined) updateData.profile_image_url = profile_image_url
+    if (show_profile_image !== undefined) updateData.show_profile_image = show_profile_image
     if (header_image_url !== undefined) updateData.header_image_url = header_image_url
     if (header_image_size !== undefined) updateData.header_image_size = header_image_size
     if (background_type !== undefined) updateData.background_type = background_type

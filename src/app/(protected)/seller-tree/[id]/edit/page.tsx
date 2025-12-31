@@ -88,6 +88,7 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
   const [title, setTitle] = useState('')
   const [subtitle, setSubtitle] = useState('')
   const [profileImageUrl, setProfileImageUrl] = useState('')
+  const [showProfileImage, setShowProfileImage] = useState(true)
   const [headerImageUrl, setHeaderImageUrl] = useState('')
   const [headerImageSize, setHeaderImageSize] = useState<'small' | 'medium' | 'large'>('medium')
   const [showHeaderImage, setShowHeaderImage] = useState(true)
@@ -238,6 +239,7 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
         setTitle(data.title || '')
         setSubtitle(data.subtitle || '')
         setProfileImageUrl(data.profile_image_url || '')
+        setShowProfileImage(data.show_profile_image ?? true)
         setHeaderImageUrl(data.header_image_url || '')
         setHeaderImageSize(data.header_image_size || 'medium')
         setBackgroundType(data.background_type || 'solid')
@@ -408,6 +410,7 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
           title: title || null,
           subtitle: subtitle || null,
           profile_image_url: profileImageUrl || null,
+          show_profile_image: showProfileImage,
           header_image_url: headerImageUrl || null,
           header_image_size: headerImageSize,
           background_type: backgroundType,
@@ -1012,7 +1015,16 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                         )}
                       </label>
                     )}
-                    <p className="text-[10px] text-slate-500 text-center mt-1">프로필</p>
+                    <div className="flex items-center justify-center gap-1 mt-1">
+                      <p className="text-[10px] text-slate-500">프로필</p>
+                      <button
+                        onClick={() => setShowProfileImage(!showProfileImage)}
+                        className={`relative w-7 h-4 rounded-full transition-colors ${showProfileImage ? 'bg-blue-600' : 'bg-slate-600'}`}
+                        title={showProfileImage ? '프로필 이미지 숨기기' : '프로필 이미지 보이기'}
+                      >
+                        <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${showProfileImage ? 'left-3.5' : 'left-0.5'}`} />
+                      </button>
+                    </div>
                   </div>
 
                   {/* 제목/설명 입력 */}
@@ -1984,7 +1996,7 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                           <DraggableElement key={elementId} id={elementId}>
                             <div className="text-center mb-3">
                               {/* 프로필 이미지 */}
-                              {profileImageUrl && (
+                              {showProfileImage && profileImageUrl && (
                                 <div className="mb-2">
                                   <div className="flex justify-center">
                                     <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-700">

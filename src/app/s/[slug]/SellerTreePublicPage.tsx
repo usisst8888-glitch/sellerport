@@ -32,6 +32,7 @@ interface SellerTree {
   title?: string
   subtitle?: string
   profile_image_url?: string
+  show_profile_image?: boolean
   header_image_url?: string
   header_image_size?: 'small' | 'medium' | 'large'
   background_type: 'gradient' | 'color' | 'image' | 'solid'
@@ -273,7 +274,7 @@ export default function SellerTreePublicPage({ sellerTree }: Props) {
           <div className={`relative z-10 flex-1 space-y-6 p-6 ${sellerTree.header_image_url ? 'rounded-t-3xl -mt-4' : ''}`} style={sellerTree.header_image_url ? getBackgroundStyle() : undefined}>
             {/* 프로필 섹션 */}
             <div className="text-center space-y-3">
-              {sellerTree.profile_image_url && (
+              {sellerTree.show_profile_image !== false && sellerTree.profile_image_url && (
                 <div className="relative w-24 h-24 mx-auto">
                   <Image
                     src={sellerTree.profile_image_url}
