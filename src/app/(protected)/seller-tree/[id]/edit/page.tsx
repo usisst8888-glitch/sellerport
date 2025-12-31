@@ -98,7 +98,10 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
   const [gradientAngle, setGradientAngle] = useState(180)
   const [titleColor, setTitleColor] = useState('#1E293B')
   const [subtitleColor, setSubtitleColor] = useState('#475569')
+  const [buttonColor, setButtonColor] = useState('#3B82F6')
+  const [buttonTextColor, setButtonTextColor] = useState('#FFFFFF')
   const [linkLayout, setLinkLayout] = useState<'single' | 'double'>('single')
+  const [linkStyle, setLinkStyle] = useState<'list' | 'card'>('list')
   const [isActive, setIsActive] = useState(true)
 
   // 영상번호 검색 설정
@@ -156,6 +159,7 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
   const [products, setProducts] = useState<Product[]>([])
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set())
+  const [productSearchQuery, setProductSearchQuery] = useState('')
 
   // 링크 편집 모달
   const [editingLink, setEditingLink] = useState<SellerTreeLink | null>(null)
@@ -209,7 +213,10 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
         }
         setTitleColor(data.title_color || '#1E293B')
         setSubtitleColor(data.subtitle_color || '#475569')
+        setButtonColor(data.button_color || '#3B82F6')
+        setButtonTextColor(data.button_text_color || '#FFFFFF')
         setLinkLayout(data.link_layout || 'single')
+        setLinkStyle(data.link_style || 'list')
         setIsActive(data.is_active)
         setVideoSearchEnabled(data.video_search_enabled || false)
         setVideoSearchTitle(data.video_search_title || '영상번호 검색')
@@ -370,7 +377,10 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
             : null,
           title_color: titleColor,
           subtitle_color: subtitleColor,
+          button_color: buttonColor,
+          button_text_color: buttonTextColor,
           link_layout: linkLayout,
+          link_style: linkStyle,
           is_active: isActive,
           video_search_enabled: videoSearchEnabled,
           video_search_title: videoSearchTitle,
@@ -650,6 +660,7 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
       setShowAddLinkModal(false)
       setSelectedProducts(new Set())
       setSelectedSiteId('')
+      setProductSearchQuery('')
     } catch {
       alert('상품 링크 추가 중 오류가 발생했습니다.')
     } finally {
@@ -1247,7 +1258,7 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-white">링크 관리</h2>
                 <div className="flex items-center gap-2">
-                  {/* 레이아웃 선택 */}
+                  {/* 열 선택 */}
                   <div className="flex items-center gap-1 bg-slate-700 rounded-lg p-1">
                     <button
                       onClick={() => setLinkLayout('single')}
@@ -1266,6 +1277,25 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                       2열
                     </button>
                   </div>
+                  {/* 스타일 선택 */}
+                  <div className="flex items-center gap-1 bg-slate-700 rounded-lg p-1">
+                    <button
+                      onClick={() => setLinkStyle('list')}
+                      className={`px-2 py-1 text-xs rounded transition-colors ${
+                        linkStyle === 'list' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      리스트
+                    </button>
+                    <button
+                      onClick={() => setLinkStyle('card')}
+                      className={`px-2 py-1 text-xs rounded transition-colors ${
+                        linkStyle === 'card' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      카드
+                    </button>
+                  </div>
                   <button
                     onClick={() => {
                       setShowAddLinkModal(true)
@@ -1278,6 +1308,59 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                     </svg>
                     링크 추가
                   </button>
+                </div>
+              </div>
+
+              {/* 링크 스타일 설정 */}
+              <div className="mb-4 p-4 bg-slate-700/30 rounded-lg">
+                <label className="block text-sm font-medium text-slate-300 mb-3">링크 스타일</label>
+                <div className="flex items-center gap-6">
+                  {/* 배경색 */}
+                  <div className="text-center">
+                    <div className="relative color-picker-container flex justify-center">
+                      <button
+                        onClick={() => setOpenColorPicker(openColorPicker === 'buttonColor' ? null : 'buttonColor')}
+                        className="w-10 h-10 rounded-lg transition-all hover:scale-105 border border-slate-600"
+                        style={{ backgroundColor: buttonColor }}
+                      />
+                      {openColorPicker === 'buttonColor' && (
+                        <div className="absolute left-0 top-12 z-50 p-3 bg-slate-800 border border-slate-700 rounded-xl shadow-xl">
+                          <HexColorPicker color={buttonColor} onChange={setButtonColor} />
+                          <input
+                            type="text"
+                            value={buttonColor}
+                            onChange={(e) => setButtonColor(e.target.value)}
+                            className="w-full mt-2 px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-xs text-center font-mono"
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">배경색</p>
+                  </div>
+                  {/* 텍스트 색상 */}
+                  <div className="text-center">
+                    <div className="relative color-picker-container flex justify-center">
+                      <button
+                        onClick={() => setOpenColorPicker(openColorPicker === 'buttonTextColor' ? null : 'buttonTextColor')}
+                        className="w-10 h-10 rounded-lg transition-all hover:scale-105 border border-slate-600 flex items-center justify-center"
+                        style={{ backgroundColor: buttonTextColor }}
+                      >
+                        <span className="text-xs font-bold" style={{ color: buttonColor }}>A</span>
+                      </button>
+                      {openColorPicker === 'buttonTextColor' && (
+                        <div className="absolute left-0 top-12 z-50 p-3 bg-slate-800 border border-slate-700 rounded-xl shadow-xl">
+                          <HexColorPicker color={buttonTextColor} onChange={setButtonTextColor} />
+                          <input
+                            type="text"
+                            value={buttonTextColor}
+                            onChange={(e) => setButtonTextColor(e.target.value)}
+                            className="w-full mt-2 px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-xs text-center font-mono"
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">텍스트</p>
+                  </div>
                 </div>
               </div>
 
@@ -1765,53 +1848,53 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                                 <div
                                   key={link.id}
                                   className={`rounded-xl overflow-hidden transition-all ${
-                                    linkLayout === 'double' ? 'flex flex-col' : 'flex items-center gap-2.5 p-2.5'
+                                    linkStyle === 'card' ? 'flex flex-col' : 'flex items-center gap-2.5 p-2.5'
                                   }`}
-                                  style={{ backgroundColor: 'rgba(59, 130, 246, 1)' }}
+                                  style={{ backgroundColor: buttonColor, boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)' }}
                                 >
                                   {link.thumbnail_url ? (
                                     <div className={`flex-shrink-0 ${
-                                      linkLayout === 'double' ? 'w-full aspect-square' : 'w-10 h-10 rounded-lg overflow-hidden'
+                                      linkStyle === 'card' ? 'w-full aspect-square' : 'w-10 h-10 rounded-lg overflow-hidden'
                                     }`}>
                                       <Image
                                         src={link.thumbnail_url}
                                         alt={link.title}
-                                        width={linkLayout === 'double' ? 120 : 40}
-                                        height={linkLayout === 'double' ? 120 : 40}
+                                        width={linkStyle === 'card' ? 120 : 40}
+                                        height={linkStyle === 'card' ? 120 : 40}
                                         className="w-full h-full object-cover"
                                         loading="lazy"
                                       />
                                     </div>
                                   ) : (
-                                    <div className={`bg-white/10 flex items-center justify-center flex-shrink-0 ${
-                                      linkLayout === 'double' ? 'w-full aspect-square' : 'w-10 h-10 rounded-lg'
-                                    }`}>
-                                      <svg className="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div
+                                      className={`flex items-center justify-center flex-shrink-0 ${
+                                        linkStyle === 'card' ? 'w-full aspect-square' : 'w-10 h-10 rounded-lg'
+                                      }`}
+                                      style={{ backgroundColor: `${buttonTextColor}15` }}
+                                    >
+                                      <svg className="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: buttonTextColor }}>
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                                       </svg>
                                     </div>
                                   )}
-                                  <div className={`flex-1 min-w-0 ${linkLayout === 'double' ? 'p-2' : ''}`}>
+                                  <div className={`flex-1 min-w-0 overflow-hidden ${linkStyle === 'card' ? 'p-2' : ''}`}>
                                     <span
-                                      className={`font-medium leading-snug text-white ${
-                                        linkLayout === 'double'
+                                      className={`font-medium leading-snug overflow-hidden ${
+                                        linkStyle === 'card'
                                           ? 'text-[10px] block text-center line-clamp-2'
-                                          : 'text-xs line-clamp-2 block'
+                                          : 'text-xs block'
                                       }`}
+                                      style={{
+                                        color: buttonTextColor,
+                                        display: '-webkit-box',
+                                        WebkitLineClamp: 2,
+                                        WebkitBoxOrient: 'vertical',
+                                        overflow: 'hidden'
+                                      }}
                                     >
                                       {link.title}
                                     </span>
                                   </div>
-                                  {linkLayout !== 'double' && (
-                                    <svg
-                                      className="w-3.5 h-3.5 flex-shrink-0 text-white/50"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                    </svg>
-                                  )}
                                 </div>
                               ))}
                               {links.length === 0 && !videoSearchEnabled && (
@@ -1843,6 +1926,14 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* 드래그 앤 드롭 안내 */}
+            <div className="mt-3 flex items-center justify-center gap-2 text-slate-500">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+              </svg>
+              <span className="text-xs">각 요소를 드래그하여 순서를 변경할 수 있습니다</span>
             </div>
           </div>
         </div>
@@ -1925,29 +2016,54 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
               </div>
             ) : (
               <div className="space-y-4">
-                {/* 쇼핑몰 선택 */}
+                {/* 사이트 선택 - 버튼 형식 */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">쇼핑몰 선택</label>
-                  <select
-                    value={selectedSiteId}
-                    onChange={(e) => {
-                      setSelectedSiteId(e.target.value)
-                      setSelectedProducts(new Set())
-                      if (e.target.value) {
-                        loadProducts(e.target.value)
-                      } else {
-                        setProducts([])
+                  <label className="block text-sm font-medium text-slate-300 mb-2">사이트 선택</label>
+                  <div className="flex flex-wrap gap-2">
+                    {mySites.map((site) => {
+                      const siteTypeMap: Record<string, { logo: string; label: string }> = {
+                        naver: { logo: '/site_logo/smartstore.png', label: '스마트스토어' },
+                        smartstore: { logo: '/site_logo/smartstore.png', label: '스마트스토어' },
+                        cafe24: { logo: '/site_logo/cafe24.png', label: '카페24' },
+                        imweb: { logo: '/site_logo/imweb.png', label: '아임웹' },
+                        godomall: { logo: '/site_logo/godomall.png', label: '고도몰' },
+                        makeshop: { logo: '/site_logo/makeshop.png', label: '메이크샵' },
+                        own_site: { logo: '/site_logo/own_site.png', label: '자체몰' },
                       }
-                    }}
-                    className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:border-blue-500 focus:outline-none"
-                  >
-                    <option value="">쇼핑몰을 선택하세요</option>
-                    {mySites.map((site) => (
-                      <option key={site.id} value={site.id}>
-                        {site.site_name || site.store_id} ({site.site_type})
-                      </option>
-                    ))}
-                  </select>
+                      const siteInfo = siteTypeMap[site.site_type] || { logo: '/site_logo/own_site.png', label: site.site_type }
+
+                      return (
+                        <button
+                          key={site.id}
+                          onClick={() => {
+                            setSelectedSiteId(site.id)
+                            setSelectedProducts(new Set())
+                            setProductSearchQuery('')
+                            loadProducts(site.id)
+                          }}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                            selectedSiteId === site.id
+                              ? 'bg-blue-600 text-white ring-2 ring-blue-400'
+                              : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
+                          }`}
+                        >
+                          <Image
+                            src={siteInfo.logo}
+                            alt={siteInfo.label}
+                            width={20}
+                            height={20}
+                            className="rounded"
+                          />
+                          <div className="text-left">
+                            <p className="text-sm font-medium">{site.site_name || site.store_id}</p>
+                            <p className={`text-[10px] ${selectedSiteId === site.id ? 'text-blue-200' : 'text-slate-500'}`}>
+                              {siteInfo.label}
+                            </p>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
 
                 {/* 상품 목록 */}
@@ -1959,8 +2075,27 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                       </div>
                     ) : products.length > 0 ? (
                       <>
-                        <div className="space-y-2 max-h-[250px] overflow-y-auto">
-                          {products.map((product) => (
+                        {/* 상품 검색 */}
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={productSearchQuery}
+                            onChange={(e) => setProductSearchQuery(e.target.value)}
+                            placeholder="상품명 검색..."
+                            className="w-full px-4 py-2 pl-10 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none text-sm"
+                          />
+                          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                        </div>
+
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                          {products
+                            .filter(product =>
+                              productSearchQuery === '' ||
+                              product.name.toLowerCase().includes(productSearchQuery.toLowerCase())
+                            )
+                            .map((product) => (
                             <div
                               key={product.id}
                               onClick={() => {
@@ -2015,6 +2150,7 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                               setShowAddLinkModal(false)
                               setSelectedProducts(new Set())
                               setSelectedSiteId('')
+                              setProductSearchQuery('')
                             }}
                             className="flex-1 py-2 text-sm font-medium bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
                           >

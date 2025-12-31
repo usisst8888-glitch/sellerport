@@ -43,6 +43,8 @@ interface SellerTree {
   button_color: string
   button_text_color: string
   button_text: string
+  link_layout?: 'single' | 'double'
+  link_style?: 'list' | 'card'
   seller_tree_links: SellerTreeLink[]
   video_search_enabled?: boolean
   video_search_title?: string
@@ -380,46 +382,74 @@ export default function SellerTreePublicPage({ sellerTree }: Props) {
             {renderModulesByPosition('before-links')}
 
             {/* 링크 목록 */}
-            <div className="space-y-3">
+            <div className={`${
+              sellerTree.link_layout === 'double' ? 'grid grid-cols-2 gap-3' : 'space-y-3'
+            }`}>
               {sellerTree.seller_tree_links.map((link) => {
                 const Icon = IconComponent(link.icon)
+                const isCard = sellerTree.link_style === 'card'
 
                 return (
                   <button
                     key={link.id}
                     onClick={() => handleLinkClick(link)}
-                    className="w-full p-4 rounded-xl transition-all duration-200 hover:scale-[1.02] hover:shadow-lg flex items-center gap-3 text-left"
+                    className={`w-full rounded-xl transition-all duration-200 hover:scale-[1.02] hover:shadow-lg text-left overflow-hidden ${
+                      isCard ? 'flex flex-col' : 'p-4 flex items-center gap-3'
+                    }`}
                     style={{
                       backgroundColor: sellerTree.button_color,
                       color: sellerTree.button_text_color,
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
                     }}
                   >
                     {link.thumbnail_url ? (
-                      <div className="relative w-12 h-12 flex-shrink-0">
+                      <div className={`relative flex-shrink-0 ${
+                        isCard ? 'w-full aspect-square' : 'w-12 h-12'
+                      }`}>
                         <Image
                           src={link.thumbnail_url}
                           alt={link.title}
                           fill
-                          className="rounded-lg object-cover"
+                          className={`object-cover ${isCard ? '' : 'rounded-lg'}`}
                         />
                       </div>
                     ) : (
                       <div
-                        className="w-12 h-12 flex-shrink-0 rounded-lg flex items-center justify-center"
+                        className={`flex-shrink-0 flex items-center justify-center ${
+                          isCard ? 'w-full aspect-square' : 'w-12 h-12 rounded-lg'
+                        }`}
                         style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
                       >
-                        <Icon className="w-5 h-5" />
+                        <Icon className={isCard ? 'w-8 h-8' : 'w-5 h-5'} />
                       </div>
                     )}
 
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{link.title}</div>
-                      {link.description && (
-                        <div className="text-xs opacity-70 truncate">{link.description}</div>
+                    <div className={`flex-1 min-w-0 overflow-hidden ${isCard ? 'p-3 text-center' : ''}`}>
+                      <div
+                        className={`font-medium ${isCard ? 'text-sm' : ''}`}
+                        style={{
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        {link.title}
+                      </div>
+                      {link.description && !isCard && (
+                        <div
+                          className="text-xs opacity-70"
+                          style={{
+                            display: '-webkit-box',
+                            WebkitLineClamp: 1,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          {link.description}
+                        </div>
                       )}
                     </div>
-
-                    <ExternalLink className="w-4 h-4 flex-shrink-0 opacity-50" />
                   </button>
                 )
               })}
