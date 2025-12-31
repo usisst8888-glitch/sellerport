@@ -32,6 +32,8 @@ interface SellerTree {
   title?: string
   subtitle?: string
   profile_image_url?: string
+  header_image_url?: string
+  header_image_size?: 'small' | 'medium' | 'large'
   background_type: 'gradient' | 'color' | 'image' | 'solid'
   background_gradient?: string
   background_color?: string
@@ -48,6 +50,8 @@ interface SellerTree {
   video_search_button_text?: string
   search_button_color?: string
   search_icon_color?: string
+  search_title_color?: string
+  search_placeholder_color?: string
   modules?: Module[]
 }
 
@@ -227,6 +231,10 @@ export default function SellerTreePublicPage({ sellerTree }: Props) {
     return iconMap[iconName] || ExternalLink
   }
 
+  // 헤더 이미지 높이 클래스
+  const headerHeightClass = sellerTree.header_image_size === 'small' ? 'h-24' :
+    sellerTree.header_image_size === 'large' ? 'h-48' : 'h-32'
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center py-8 px-4 bg-white">
       {/* 모바일 프레임 */}
@@ -238,15 +246,29 @@ export default function SellerTreePublicPage({ sellerTree }: Props) {
         }}
       >
         <div
-          className="min-h-[600px] flex flex-col p-6"
+          className="min-h-[600px] flex flex-col"
           style={getBackgroundStyle()}
         >
+          {/* 상단 헤더 이미지 */}
+          {sellerTree.header_image_url && (
+            <div className={`w-full ${headerHeightClass} flex-shrink-0 overflow-hidden`}>
+              <Image
+                src={sellerTree.header_image_url}
+                alt="Header"
+                width={400}
+                height={200}
+                className="w-full h-full object-cover"
+                priority
+              />
+            </div>
+          )}
+
           {/* 배경 이미지 오버레이 */}
           {sellerTree.background_type === 'image' && (
             <div className="absolute inset-0 bg-black/40 rounded-3xl" />
           )}
 
-          <div className="relative z-10 flex-1 space-y-6">
+          <div className={`relative z-10 flex-1 space-y-6 p-6 ${sellerTree.header_image_url ? 'rounded-t-3xl -mt-4' : ''}`} style={sellerTree.header_image_url ? getBackgroundStyle() : undefined}>
             {/* 프로필 섹션 */}
             <div className="text-center space-y-3">
               {sellerTree.profile_image_url && (
@@ -290,26 +312,36 @@ export default function SellerTreePublicPage({ sellerTree }: Props) {
               <div className="space-y-3">
                 <p
                   className="text-sm font-medium text-center"
-                  style={{ color: sellerTree.title_color }}
+                  style={{ color: sellerTree.search_title_color || sellerTree.title_color }}
                 >
                   {sellerTree.video_search_title || '영상번호 검색'}
                 </p>
                 <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={videoCode}
-                    onChange={(e) => {
-                      setVideoCode(e.target.value.toUpperCase())
-                      setSearchError('')
-                    }}
-                    onKeyPress={handleKeyPress}
-                    placeholder={sellerTree.video_search_placeholder || '영상번호를 입력하세요'}
-                    className="flex-1 px-4 py-3 rounded-xl bg-white text-slate-800 text-center font-mono text-lg placeholder-slate-400 focus:outline-none transition-all"
-                    style={{
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                    }}
-                    maxLength={10}
-                  />
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      value={videoCode}
+                      onChange={(e) => {
+                        setVideoCode(e.target.value.toUpperCase())
+                        setSearchError('')
+                      }}
+                      onKeyPress={handleKeyPress}
+                      placeholder=""
+                      className="w-full px-4 py-3 rounded-xl bg-white text-slate-800 text-center font-mono text-lg focus:outline-none transition-all"
+                      style={{
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                      }}
+                      maxLength={10}
+                    />
+                    {!videoCode && (
+                      <span
+                        className="absolute inset-0 flex items-center justify-center font-mono text-lg pointer-events-none"
+                        style={{ color: sellerTree.search_placeholder_color || '#94A3B8' }}
+                      >
+                        {sellerTree.video_search_placeholder || '영상번호를 입력하세요'}
+                      </span>
+                    )}
+                  </div>
                   <button
                     onClick={handleVideoSearch}
                     disabled={searching || !videoCode.trim()}

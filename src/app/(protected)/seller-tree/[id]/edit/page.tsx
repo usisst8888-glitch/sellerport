@@ -93,6 +93,8 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
   const [videoSearchPlaceholder, setVideoSearchPlaceholder] = useState('영상번호를 입력하세요')
   const [searchButtonColor, setSearchButtonColor] = useState('#2563EB')
   const [searchIconColor, setSearchIconColor] = useState('#FFFFFF')
+  const [searchTitleColor, setSearchTitleColor] = useState('#FFFFFF')
+  const [searchPlaceholderColor, setSearchPlaceholderColor] = useState('#94A3B8')
 
   // 모듈 (구분선, 텍스트) - 여러 개 추가 가능
   const [modules, setModules] = useState<Module[]>([])
@@ -198,6 +200,8 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
         setVideoSearchPlaceholder(data.video_search_placeholder || '영상번호를 입력하세요')
         setSearchButtonColor(data.search_button_color || '#2563EB')
         setSearchIconColor(data.search_icon_color || '#FFFFFF')
+        setSearchTitleColor(data.search_title_color || '#FFFFFF')
+        setSearchPlaceholderColor(data.search_placeholder_color || '#94A3B8')
         // 모듈 설정
         setModules(data.modules || [])
       } else {
@@ -227,6 +231,49 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
     }
   }
 
+  // 이미지 리사이즈 함수
+  const resizeImage = (file: File, maxWidth: number, maxHeight: number, quality: number = 0.8): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const img = document.createElement('img')
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+
+      img.onload = () => {
+        let { width, height } = img
+
+        // 비율 유지하며 리사이즈
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height)
+          width = Math.round(width * ratio)
+          height = Math.round(height * ratio)
+        }
+
+        canvas.width = width
+        canvas.height = height
+        ctx?.drawImage(img, 0, 0, width, height)
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const resizedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              })
+              resolve(resizedFile)
+            } else {
+              reject(new Error('이미지 변환 실패'))
+            }
+          },
+          'image/jpeg',
+          quality
+        )
+      }
+
+      img.onerror = () => reject(new Error('이미지 로드 실패'))
+      img.src = URL.createObjectURL(file)
+    })
+  }
+
   // 이미지 업로드 처리
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'header' | 'profile') => {
     const file = e.target.files?.[0]
@@ -234,8 +281,18 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
 
     setUploading(true)
     try {
+      // 타입별 리사이즈 설정
+      let resizedFile: File
+      if (type === 'header') {
+        // 헤더 이미지: 최대 800x400, 품질 80%
+        resizedFile = await resizeImage(file, 800, 400, 0.8)
+      } else {
+        // 프로필 이미지: 최대 200x200, 품질 85%
+        resizedFile = await resizeImage(file, 200, 200, 0.85)
+      }
+
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', resizedFile)
       formData.append('folder', 'seller-tree')
 
       const response = await fetch('/api/upload', {
@@ -289,6 +346,8 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
           video_search_placeholder: videoSearchPlaceholder,
           search_button_color: searchButtonColor,
           search_icon_color: searchIconColor,
+          search_title_color: searchTitleColor,
+          search_placeholder_color: searchPlaceholderColor,
           modules: modules,
         }),
       })
@@ -1045,7 +1104,51 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                   {/* 검색 스타일 */}
                   <div className="pt-2 border-t border-slate-700">
                     <label className="block text-xs text-slate-400 mb-3">검색 스타일</label>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-4 gap-3">
+                      {/* 제목 색상 */}
+                      <div className="text-center">
+                        <div className="relative color-picker-container flex justify-center">
+                          <button
+                            onClick={() => setOpenColorPicker(openColorPicker === 'searchTitle' ? null : 'searchTitle')}
+                            className="w-10 h-10 rounded-lg transition-all hover:scale-105 border border-slate-600"
+                            style={{ backgroundColor: searchTitleColor }}
+                          />
+                          {openColorPicker === 'searchTitle' && (
+                            <div className="absolute left-0 top-12 z-50 p-3 bg-slate-800 border border-slate-700 rounded-xl shadow-xl">
+                              <HexColorPicker color={searchTitleColor} onChange={setSearchTitleColor} />
+                              <input
+                                type="text"
+                                value={searchTitleColor}
+                                onChange={(e) => setSearchTitleColor(e.target.value)}
+                                className="w-full mt-2 px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-xs text-center font-mono"
+                              />
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-500 mt-1">제목</p>
+                      </div>
+                      {/* 안내문구 색상 */}
+                      <div className="text-center">
+                        <div className="relative color-picker-container flex justify-center">
+                          <button
+                            onClick={() => setOpenColorPicker(openColorPicker === 'searchPlaceholder' ? null : 'searchPlaceholder')}
+                            className="w-10 h-10 rounded-lg transition-all hover:scale-105 border border-slate-600"
+                            style={{ backgroundColor: searchPlaceholderColor }}
+                          />
+                          {openColorPicker === 'searchPlaceholder' && (
+                            <div className="absolute left-0 top-12 z-50 p-3 bg-slate-800 border border-slate-700 rounded-xl shadow-xl">
+                              <HexColorPicker color={searchPlaceholderColor} onChange={setSearchPlaceholderColor} />
+                              <input
+                                type="text"
+                                value={searchPlaceholderColor}
+                                onChange={(e) => setSearchPlaceholderColor(e.target.value)}
+                                className="w-full mt-2 px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-xs text-center font-mono"
+                              />
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-500 mt-1">안내문구</p>
+                      </div>
                       {/* 버튼 색상 */}
                       <div className="text-center">
                         <div className="relative color-picker-container flex justify-center">
@@ -1055,7 +1158,7 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                             style={{ backgroundColor: searchButtonColor }}
                           />
                           {openColorPicker === 'searchButton' && (
-                            <div className="absolute left-1/2 -translate-x-1/2 top-12 z-50 p-3 bg-slate-800 border border-slate-700 rounded-xl shadow-xl">
+                            <div className="absolute right-0 top-12 z-50 p-3 bg-slate-800 border border-slate-700 rounded-xl shadow-xl">
                               <HexColorPicker color={searchButtonColor} onChange={setSearchButtonColor} />
                               <input
                                 type="text"
@@ -1080,7 +1183,7 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                             </svg>
                           </button>
                           {openColorPicker === 'searchIcon' && (
-                            <div className="absolute left-1/2 -translate-x-1/2 top-12 z-50 p-3 bg-slate-800 border border-slate-700 rounded-xl shadow-xl">
+                            <div className="absolute right-0 top-12 z-50 p-3 bg-slate-800 border border-slate-700 rounded-xl shadow-xl">
                               <HexColorPicker color={searchIconColor} onChange={setSearchIconColor} />
                               <input
                                 type="text"
@@ -1559,20 +1662,27 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                             <div className="w-full mb-4 space-y-2">
                               <p
                                 className="text-xs font-medium text-center"
-                                style={{ color: titleColor }}
+                                style={{ color: searchTitleColor }}
                               >
                                 {videoSearchTitle}
                               </p>
                               <div className="flex gap-2">
-                                <input
-                                  type="text"
-                                  placeholder={videoSearchPlaceholder}
-                                  className="flex-1 px-4 py-3 rounded-xl bg-white text-slate-800 text-center font-mono text-sm placeholder-slate-400 transition-all"
-                                  style={{
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                                  }}
-                                  disabled
-                                />
+                                <div className="flex-1 relative">
+                                  <input
+                                    type="text"
+                                    className="w-full px-4 py-3 rounded-xl bg-white text-slate-800 text-center font-mono text-sm transition-all"
+                                    style={{
+                                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                    }}
+                                    disabled
+                                  />
+                                  <span
+                                    className="absolute inset-0 flex items-center justify-center text-sm font-mono pointer-events-none"
+                                    style={{ color: searchPlaceholderColor }}
+                                  >
+                                    {videoSearchPlaceholder}
+                                  </span>
+                                </div>
                                 <button
                                   className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm"
                                   style={{ backgroundColor: searchButtonColor }}

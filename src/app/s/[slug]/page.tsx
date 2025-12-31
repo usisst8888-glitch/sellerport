@@ -79,7 +79,8 @@ export default async function Page({ params }: PageProps) {
     .from('seller_trees')
     .update({ view_count: (sellerTree.view_count || 0) + 1 })
     .eq('id', sellerTree.id)
-    .then()
+    .then(() => {})
+    .catch(() => {})
 
   // 활성화된 링크만 필터링하고 정렬
   const activeLinks = (sellerTree.seller_tree_links || [])

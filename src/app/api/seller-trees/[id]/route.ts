@@ -91,6 +91,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       video_search_button_text,
       search_button_color,
       search_icon_color,
+      search_title_color,
+      search_placeholder_color,
       modules
     } = body
 
@@ -129,6 +131,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (video_search_button_text !== undefined) updateData.video_search_button_text = video_search_button_text
     if (search_button_color !== undefined) updateData.search_button_color = search_button_color
     if (search_icon_color !== undefined) updateData.search_icon_color = search_icon_color
+    if (search_title_color !== undefined) updateData.search_title_color = search_title_color
+    if (search_placeholder_color !== undefined) updateData.search_placeholder_color = search_placeholder_color
     if (modules !== undefined) updateData.modules = modules
 
     console.log('Updating seller tree with data:', updateData)
