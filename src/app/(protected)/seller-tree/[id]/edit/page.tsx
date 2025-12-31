@@ -47,6 +47,20 @@ interface Product {
   name: string
   image_url?: string
   price?: number
+  product_url?: string
+  my_site_id?: string
+  my_sites?: {
+    id: string
+    site_type: string
+    site_name: string
+  }
+}
+
+interface MySite {
+  id: string
+  site_type: string
+  site_name: string
+  store_id?: string
 }
 
 interface Module {
@@ -136,7 +150,9 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
   const [newLinkUrl, setNewLinkUrl] = useState('')
   const [addingLink, setAddingLink] = useState(false)
 
-  // 상품 목록
+  // 쇼핑몰 및 상품 목록
+  const [mySites, setMySites] = useState<MySite[]>([])
+  const [selectedSiteId, setSelectedSiteId] = useState<string>('')
   const [products, setProducts] = useState<Product[]>([])
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set())
@@ -215,14 +231,29 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
     }
   }
 
-  // 상품 목록 로드
-  const loadProducts = async () => {
-    setLoadingProducts(true)
+  // 쇼핑몰 목록 로드
+  const loadMySites = async () => {
     try {
-      const response = await fetch('/api/products')
+      const response = await fetch('/api/seller-trees/my-sites')
       if (response.ok) {
         const data = await response.json()
-        setProducts(data.products || data || [])
+        setMySites(data.sites || [])
+      }
+    } catch (error) {
+      console.error('Failed to load my sites:', error)
+    }
+  }
+
+  // 상품 목록 로드 (선택된 쇼핑몰 기준)
+  const loadProducts = async (siteId?: string) => {
+    setLoadingProducts(true)
+    setProducts([])
+    try {
+      const url = siteId ? `/api/products?siteId=${siteId}` : '/api/products'
+      const response = await fetch(url)
+      if (response.ok) {
+        const data = await response.json()
+        setProducts(data.data || data.products || [])
       }
     } catch (error) {
       console.error('Failed to load products:', error)
@@ -594,12 +625,18 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
       const selectedProductList = products.filter(p => selectedProducts.has(p.id))
 
       for (const product of selectedProductList) {
+        // product_url이 없으면 건너뛰기
+        if (!product.product_url) {
+          console.warn(`Product ${product.name} has no product_url`)
+          continue
+        }
+
         const response = await fetch(`/api/seller-trees/${id}/links`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: product.name,
-            url: `/p/${product.id}`,
+            url: product.product_url,
             thumbnail_url: product.image_url,
           }),
         })
@@ -612,6 +649,7 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
 
       setShowAddLinkModal(false)
       setSelectedProducts(new Set())
+      setSelectedSiteId('')
     } catch {
       alert('상품 링크 추가 중 오류가 발생했습니다.')
     } finally {
@@ -1829,7 +1867,10 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
               <button
                 onClick={() => {
                   setAddLinkMode('product')
-                  loadProducts()
+                  setSelectedSiteId('')
+                  setProducts([])
+                  setSelectedProducts(new Set())
+                  loadMySites()
                 }}
                 className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
                   addLinkMode === 'product' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'
@@ -1884,84 +1925,143 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
               </div>
             ) : (
               <div className="space-y-4">
-                {loadingProducts ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                  </div>
-                ) : products.length > 0 ? (
-                  <>
-                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                      {products.map((product) => (
-                        <div
-                          key={product.id}
-                          onClick={() => {
-                            const newSet = new Set(selectedProducts)
-                            if (newSet.has(product.id)) {
-                              newSet.delete(product.id)
-                            } else {
-                              newSet.add(product.id)
-                            }
-                            setSelectedProducts(newSet)
-                          }}
-                          className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
-                            selectedProducts.has(product.id)
-                              ? 'bg-blue-600/20 border border-blue-500'
-                              : 'bg-slate-700/30 hover:bg-slate-700/50 border border-transparent'
-                          }`}
-                        >
-                          {product.image_url && (
-                            <div className="relative w-12 h-12 flex-shrink-0">
-                              <Image
-                                src={product.image_url}
-                                alt={product.name}
-                                fill
-                                className="rounded-lg object-cover"
-                              />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-white truncate">{product.name}</p>
-                            {product.price && (
-                              <p className="text-xs text-slate-400">{product.price.toLocaleString()}원</p>
-                            )}
-                          </div>
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                            selectedProducts.has(product.id)
-                              ? 'bg-blue-600 border-blue-600'
-                              : 'border-slate-500'
-                          }`}>
-                            {selectedProducts.has(product.id) && (
-                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                {/* 쇼핑몰 선택 */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">쇼핑몰 선택</label>
+                  <select
+                    value={selectedSiteId}
+                    onChange={(e) => {
+                      setSelectedSiteId(e.target.value)
+                      setSelectedProducts(new Set())
+                      if (e.target.value) {
+                        loadProducts(e.target.value)
+                      } else {
+                        setProducts([])
+                      }
+                    }}
+                    className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="">쇼핑몰을 선택하세요</option>
+                    {mySites.map((site) => (
+                      <option key={site.id} value={site.id}>
+                        {site.site_name || site.store_id} ({site.site_type})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                    <div className="flex gap-3 mt-6">
-                      <button
-                        onClick={() => {
-                          setShowAddLinkModal(false)
-                          setSelectedProducts(new Set())
-                        }}
-                        className="flex-1 py-2 text-sm font-medium bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
-                      >
-                        취소
-                      </button>
-                      <button
-                        onClick={handleAddProductLinks}
-                        disabled={addingLink || selectedProducts.size === 0}
-                        className="flex-1 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50"
-                      >
-                        {addingLink ? '추가 중...' : `${selectedProducts.size}개 추가`}
-                      </button>
-                    </div>
+                {/* 상품 목록 */}
+                {selectedSiteId && (
+                  <>
+                    {loadingProducts ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    ) : products.length > 0 ? (
+                      <>
+                        <div className="space-y-2 max-h-[250px] overflow-y-auto">
+                          {products.map((product) => (
+                            <div
+                              key={product.id}
+                              onClick={() => {
+                                const newSet = new Set(selectedProducts)
+                                if (newSet.has(product.id)) {
+                                  newSet.delete(product.id)
+                                } else {
+                                  newSet.add(product.id)
+                                }
+                                setSelectedProducts(newSet)
+                              }}
+                              className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                                selectedProducts.has(product.id)
+                                  ? 'bg-blue-600/20 border border-blue-500'
+                                  : 'bg-slate-700/30 hover:bg-slate-700/50 border border-transparent'
+                              }`}
+                            >
+                              {product.image_url && (
+                                <div className="relative w-12 h-12 flex-shrink-0">
+                                  <Image
+                                    src={product.image_url}
+                                    alt={product.name}
+                                    fill
+                                    className="rounded-lg object-cover"
+                                  />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-white truncate">{product.name}</p>
+                                {product.price && (
+                                  <p className="text-xs text-slate-400">{product.price.toLocaleString()}원</p>
+                                )}
+                              </div>
+                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                selectedProducts.has(product.id)
+                                  ? 'bg-blue-600 border-blue-600'
+                                  : 'border-slate-500'
+                              }`}>
+                                {selectedProducts.has(product.id) && (
+                                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="flex gap-3 mt-4">
+                          <button
+                            onClick={() => {
+                              setShowAddLinkModal(false)
+                              setSelectedProducts(new Set())
+                              setSelectedSiteId('')
+                            }}
+                            className="flex-1 py-2 text-sm font-medium bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+                          >
+                            취소
+                          </button>
+                          <button
+                            onClick={handleAddProductLinks}
+                            disabled={addingLink || selectedProducts.size === 0}
+                            className="flex-1 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            {addingLink ? '추가 중...' : `${selectedProducts.size}개 추가`}
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-8 text-slate-400">
+                        해당 쇼핑몰에 등록된 상품이 없습니다
+                      </div>
+                    )}
                   </>
-                ) : (
-                  <div className="text-center py-8 text-slate-400">
-                    등록된 상품이 없습니다
+                )}
+
+                {/* 쇼핑몰 미선택 시 취소 버튼 */}
+                {!selectedSiteId && mySites.length > 0 && (
+                  <div className="flex gap-3 mt-4">
+                    <button
+                      onClick={() => {
+                        setShowAddLinkModal(false)
+                        setSelectedSiteId('')
+                      }}
+                      className="w-full py-2 text-sm font-medium bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+                    >
+                      취소
+                    </button>
+                  </div>
+                )}
+
+                {/* 등록된 쇼핑몰이 없을 때 */}
+                {mySites.length === 0 && (
+                  <div className="text-center py-8">
+                    <p className="text-slate-400 mb-4">등록된 쇼핑몰이 없습니다</p>
+                    <button
+                      onClick={() => router.push('/my-sites')}
+                      className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
+                    >
+                      쇼핑몰 등록하기
+                    </button>
                   </div>
                 )}
               </div>
