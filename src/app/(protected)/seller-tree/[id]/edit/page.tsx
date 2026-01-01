@@ -970,10 +970,10 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
           {activeTab === 'basic' && (
             <>
               {/* 페이지 정보 + 이미지 */}
-              <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
-                <div className="flex gap-5">
+              <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5 overflow-hidden">
+                <div className="flex flex-col sm:flex-row gap-4 sm:gap-5">
                   {/* 프로필 이미지 */}
-                  <div className="flex-shrink-0">
+                  <div className="flex-shrink-0 flex justify-center sm:justify-start">
                     {profileImageUrl ? (
                       <div className="relative group">
                         <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-slate-600 bg-slate-700">
@@ -1028,14 +1028,14 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                   </div>
 
                   {/* 제목/설명 입력 */}
-                  <div className="flex-1 space-y-3">
+                  <div className="flex-1 min-w-0 space-y-3">
                     <div className="flex gap-2">
                       <input
                         type="text"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="페이지 제목"
-                        className="flex-1 px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                        className="flex-1 min-w-0 px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm placeholder-slate-500 focus:border-blue-500 focus:outline-none"
                       />
                       <div className="relative flex-shrink-0 color-picker-container">
                         <button
@@ -1062,7 +1062,7 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                         value={subtitle}
                         onChange={(e) => setSubtitle(e.target.value)}
                         placeholder="설명"
-                        className="flex-1 px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                        className="flex-1 min-w-0 px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm placeholder-slate-500 focus:border-blue-500 focus:outline-none"
                       />
                       <div className="relative flex-shrink-0 color-picker-container">
                         <button
