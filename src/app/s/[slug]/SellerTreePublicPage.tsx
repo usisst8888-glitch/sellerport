@@ -239,17 +239,13 @@ export default function SellerTreePublicPage({ sellerTree }: Props) {
     sellerTree.header_image_size === 'large' ? 'h-48' : 'h-32'
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center py-8 px-4 bg-white">
-      {/* 모바일 프레임 */}
+    <div className="min-h-screen flex flex-col items-center justify-center md:py-8 md:px-4 md:bg-white">
+      {/* 모바일: 전체화면 / 데스크톱: 카드 형태 */}
       <div
-        className="w-full max-w-md rounded-3xl overflow-hidden"
-        style={{
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-          minHeight: '600px',
-        }}
+        className="w-full md:max-w-md md:rounded-3xl overflow-hidden md:shadow-[0_4px_20px_rgba(0,0,0,0.08)]"
       >
         <div
-          className="min-h-[600px] flex flex-col"
+          className="min-h-screen md:min-h-[600px] flex flex-col"
           style={getBackgroundStyle()}
         >
           {/* 상단 헤더 이미지 */}
