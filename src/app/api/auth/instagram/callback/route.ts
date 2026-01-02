@@ -205,6 +205,43 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // 5. Instagram 계정을 앱에 웹훅 구독
+    // Instagram Login 방식에서는 각 계정마다 개별적으로 subscribed_apps API 호출 필요
+    // 참고: https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/content-publishing#step-3--subscribe-to-webhooks
+    try {
+      const subscribeUrl = `https://graph.instagram.com/v21.0/${instagramUserId}/subscribed_apps`
+
+      console.log('Subscribing to Instagram webhooks:', {
+        url: subscribeUrl,
+        instagramUserId,
+      })
+
+      const subscribeResponse = await fetch(subscribeUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          subscribed_fields: 'comments,messages,messaging_postbacks',
+          access_token: accessToken
+        }).toString()
+      })
+
+      const subscribeResult = await subscribeResponse.json()
+
+      if (subscribeResult.error) {
+        console.error('Failed to subscribe webhook:', {
+          error: subscribeResult.error,
+          instagramUserId,
+          status: subscribeResponse.status,
+        })
+      } else {
+        console.log('Instagram webhook subscribed successfully:', subscribeResult)
+      }
+    } catch (webhookError) {
+      console.error('Error subscribing webhook:', webhookError)
+    }
+
     console.log('Instagram account connected successfully:', {
       userId,
       instagramUserId,
