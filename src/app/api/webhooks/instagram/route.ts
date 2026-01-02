@@ -508,6 +508,8 @@ async function handleMessagingEvent(event: {
 }) {
   console.log('Messaging event:', JSON.stringify(event, null, 2))
 
+  const supabase = getSupabaseClient()
+
   // Postback 버튼 클릭 처리 (Button Template의 버튼)
   if (event.postback?.payload) {
     const payload = event.postback.payload
@@ -597,6 +599,8 @@ async function handleFollowConfirmed(
 ) {
   try {
     console.log('Follow confirmed button clicked, checking follower status for:', senderId)
+
+    const supabase = getSupabaseClient()
 
     // DM 설정에서 액세스 토큰 가져오기
     const { data: dmSettings } = await supabase
