@@ -19,11 +19,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Supabase Admin Client (Webhook은 서버 인증 불가)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+// Supabase 클라이언트 생성 함수
+function getSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    }
+  )
+}
 
 // Webhook 검증 (Meta에서 호출)
 export async function GET(request: NextRequest) {
@@ -336,6 +344,7 @@ async function handleCommentEvent(
     // 같은 media ID에 여러 설정이 있을 수 있으므로 가장 최근 것 사용
     console.log('Fetching DM settings for media:', mediaId)
 
+    const supabase = getSupabaseClient()
     const { data: dmSettingsList, error: dmSettingsError } = await supabase
       .from('instagram_dm_settings')
       .select(`
