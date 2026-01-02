@@ -205,9 +205,31 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 5. Webhook은 Meta Developer Console에서 설정됨 (Instagram Login 방식)
-    // Instagram 제품 > Webhooks에서 comments, messages 필드 구독 필요
-    // 앱 레벨에서 설정되므로 여기서 별도 API 호출 불필요
+    // 5. Instagram 계정을 앱에 웹훅 구독 (각 계정별로 필수!)
+    // Instagram Login 방식에서는 각 계정마다 개별적으로 웹훅을 구독해야 함
+    try {
+      const subscribeUrl = `https://graph.instagram.com/v21.0/${instagramUserId}/subscribed_apps`
+      const subscribeResponse = await fetch(subscribeUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          subscribed_fields: 'comments,live_comments,messages,messaging_postbacks,message_reactions',
+          access_token: accessToken
+        }).toString()
+      })
+
+      const subscribeResult = await subscribeResponse.json()
+
+      if (subscribeResult.error) {
+        console.error('Failed to subscribe webhook for Instagram account:', subscribeResult.error)
+        // 웹훅 구독 실패해도 계정 연동은 성공으로 처리 (수동으로 구독 가능)
+      } else {
+        console.log('Instagram webhook subscribed successfully:', subscribeResult)
+      }
+    } catch (webhookError) {
+      console.error('Error subscribing webhook:', webhookError)
+      // 웹훅 구독 실패해도 계정 연동은 성공으로 처리
+    }
 
     console.log('Instagram account connected successfully:', {
       userId,
