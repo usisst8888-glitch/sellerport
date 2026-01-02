@@ -205,6 +205,46 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // 5. 웹훅 구독 - Instagram 계정을 앱에 연결
+    // 참고: https://developers.facebook.com/docs/graph-api/webhooks/getting-started
+    try {
+      // Instagram 계정의 subscribed_apps에 우리 앱 추가
+      const subscribeUrl = `https://graph.instagram.com/v24.0/${instagramUserId}/subscribed_apps`
+
+      console.log('Attempting to subscribe Instagram account to app webhooks:', {
+        instagramUserId,
+        username: userInfo?.username,
+      })
+
+      const subscribeResponse = await fetch(subscribeUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          subscribed_fields: 'comments,messages,messaging_postbacks,live_comments',
+          access_token: accessToken,
+        }).toString(),
+      })
+
+      const subscribeData = await subscribeResponse.json()
+
+      console.log('Instagram webhook subscription response:', {
+        status: subscribeResponse.status,
+        data: subscribeData,
+      })
+
+      if (subscribeData.error) {
+        console.error('Failed to subscribe to Instagram webhooks:', subscribeData.error)
+        // 웹훅 구독 실패해도 계정 연동은 성공으로 처리
+      } else {
+        console.log('Successfully subscribed Instagram account to app webhooks')
+      }
+    } catch (webhookError) {
+      console.error('Error during webhook subscription:', webhookError)
+      // 웹훅 구독 실패해도 계정 연동은 성공으로 처리
+    }
+
     console.log('Instagram account connected successfully:', {
       userId,
       instagramUserId,
