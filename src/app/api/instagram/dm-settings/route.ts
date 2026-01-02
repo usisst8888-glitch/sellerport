@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
           if (!accessToken) continue
 
           // Instagram API에서 미디어 정보 가져오기
-          const mediaUrl = new URL(`https://graph.instagram.com/v21.0/${setting.instagram_media_id}`)
+          const mediaUrl = new URL(`https://graph.instagram.com/v24.0/${setting.instagram_media_id}`)
           mediaUrl.searchParams.set('access_token', accessToken)
           mediaUrl.searchParams.set('fields', 'id,media_type,media_url,thumbnail_url,permalink')
 

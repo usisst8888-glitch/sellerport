@@ -122,7 +122,7 @@ async function checkIfFollower(
 
     // 방법 1: User Profile API로 is_user_follow_business 필드 직접 조회
     // GET /{user-id}?fields=id,username,is_user_follow_business,is_business_follow_user
-    const profileUrl = `https://graph.instagram.com/v21.0/${targetUserId}?fields=id,username,is_user_follow_business,is_business_follow_user`
+    const profileUrl = `https://graph.instagram.com/v24.0/${targetUserId}?fields=id,username,is_user_follow_business,is_business_follow_user`
 
     const profileResponse = await fetch(profileUrl, {
       headers: {
@@ -143,7 +143,7 @@ async function checkIfFollower(
     // 중첩 필드로 요청: participants{id,username,is_user_follow_business}
     console.log('User Profile API failed, trying Conversations API with nested fields...')
 
-    const conversationsUrl = `https://graph.instagram.com/v21.0/${myInstagramUserId}/conversations?platform=instagram&user_id=${targetUserId}&fields=participants{id,username,is_user_follow_business,is_business_follow_user}`
+    const conversationsUrl = `https://graph.instagram.com/v24.0/${myInstagramUserId}/conversations?platform=instagram&user_id=${targetUserId}&fields=participants{id,username,is_user_follow_business,is_business_follow_user}`
 
     const conversationsResponse = await fetch(conversationsUrl, {
       headers: {
@@ -159,7 +159,7 @@ async function checkIfFollower(
 
       // 방법 3: 마지막으로 기본 conversations API 시도
       console.log('Trying basic Conversations API...')
-      const basicUrl = `https://graph.instagram.com/v21.0/${myInstagramUserId}/conversations?platform=instagram&user_id=${targetUserId}`
+      const basicUrl = `https://graph.instagram.com/v24.0/${myInstagramUserId}/conversations?platform=instagram&user_id=${targetUserId}`
 
       const basicResponse = await fetch(basicUrl, {
         headers: {
@@ -232,7 +232,7 @@ async function sendLinkMessageViaPrivateReply(
     const productName = dmSettings.tracking_links?.post_name || '상품 보기'
     const productImageUrl = dmSettings.instagram_media_url || null
 
-    const url = `https://graph.instagram.com/v21.0/me/messages`
+    const url = `https://graph.instagram.com/v24.0/me/messages`
 
     let response
 
@@ -657,7 +657,7 @@ async function handleFollowConfirmed(
 
       if (productImageUrl) {
         // Generic Template (이미지 카드 + 버튼)
-        response = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
+        response = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -684,7 +684,7 @@ async function handleFollowConfirmed(
         })
       } else {
         // Button Template (텍스트 + 버튼)
-        response = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
+        response = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -711,7 +711,7 @@ async function handleFollowConfirmed(
       if (result.error) {
         console.error('Link message send error:', result.error)
         // 템플릿 실패 시 일반 텍스트로 재시도
-        await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
+        await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -745,7 +745,7 @@ async function handleFollowConfirmed(
       const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
 
       // 팔로우 요청 메시지 재발송 (Postback 버튼 사용 - 말풍선 안에 버튼)
-      const response = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
+      const response = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -797,7 +797,7 @@ async function sendInstagramPrivateReplyWithQuickReply(
   try {
     // Private Reply API: POST /me/messages with recipient.comment_id
     // 댓글 ID를 recipient로 사용하여 Private Reply 발송
-    const url = `https://graph.instagram.com/v21.0/me/messages`
+    const url = `https://graph.instagram.com/v24.0/me/messages`
 
     console.log('Sending Private Reply with Button Template to comment:', commentId)
 

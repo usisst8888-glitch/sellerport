@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     // 대신 계정 연결 상태만 확인
     if (authMethod === 'instagram_login') {
       // Instagram 계정 정보 확인 (토큰 유효성 검증)
-      const userInfoUrl = new URL(`https://graph.instagram.com/v21.0/${instagramUserId}`)
+      const userInfoUrl = new URL(`https://graph.instagram.com/v24.0/${instagramUserId}`)
       userInfoUrl.searchParams.set('access_token', accessToken)
       userInfoUrl.searchParams.set('fields', 'id,username')
 

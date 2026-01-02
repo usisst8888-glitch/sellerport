@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
     // 3. Instagram 사용자 정보 가져오기
     // https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/get-started#get-user-info
     // Instagram Login API에서 지원하는 필드만 요청 (account_type, followers_count는 지원 안 될 수 있음)
-    const userInfoUrl = new URL(`https://graph.instagram.com/v21.0/me`)
+    const userInfoUrl = new URL(`https://graph.instagram.com/v24.0/me`)
     userInfoUrl.searchParams.set('access_token', accessToken)
     userInfoUrl.searchParams.set('fields', 'user_id,username,name,profile_picture_url,account_type')
 
