@@ -334,6 +334,8 @@ async function handleCommentEvent(
 
     // 해당 미디어(게시물)에 대한 DM 설정 찾기
     // 같은 media ID에 여러 설정이 있을 수 있으므로 가장 최근 것 사용
+    console.log('Fetching DM settings for media:', mediaId)
+
     const { data: dmSettingsList, error: dmSettingsError } = await supabase
       .from('instagram_dm_settings')
       .select(`
@@ -356,6 +358,12 @@ async function handleCommentEvent(
       .order('created_at', { ascending: false })
       .limit(1)
 
+    console.log('DM settings query result:', {
+      found: dmSettingsList?.length || 0,
+      error: dmSettingsError,
+      mediaId
+    })
+
     if (dmSettingsError) {
       console.error('Error fetching DM settings:', dmSettingsError)
       return
@@ -368,11 +376,19 @@ async function handleCommentEvent(
       return
     }
 
+    console.log('Found DM settings:', {
+      id: dmSettings.id,
+      instagram_account_id: dmSettings.instagram_accounts?.instagram_user_id,
+      has_tracking_link: !!dmSettings.tracking_links
+    })
+
     // 키워드 매칭 확인
     const keywords = dmSettings.trigger_keywords || ['링크', '구매', '정보']
     const matched = keywords.some((keyword: string) =>
       commentText.includes(keyword.toLowerCase())
     )
+
+    console.log('Keyword matching:', { commentText, keywords, matched })
 
     if (!matched) {
       console.log('No keyword match for comment:', commentText)
@@ -386,6 +402,8 @@ async function handleCommentEvent(
       .eq('dm_setting_id', dmSettings.id)
       .eq('recipient_ig_user_id', commenterIgUserId)
       .single()
+
+    console.log('Checking for existing DM:', { existingDm: !!existingDm, commenterUsername })
 
     if (existingDm) {
       console.log('Already sent DM to user:', commenterUsername)
