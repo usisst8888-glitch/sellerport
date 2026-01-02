@@ -15,7 +15,8 @@ interface AdChannel {
 }
 
 const CHANNEL_TYPES = [
-  { value: 'meta', label: 'Meta', icon: '/channel_logo/meta.png', isApi: true },
+  { value: 'meta', label: 'Meta (API 연동)', icon: '/channel_logo/meta.png', isApi: true },
+  { value: 'meta_paid', label: 'Meta 유료광고', icon: '/channel_logo/meta.png', isApi: false },
   { value: 'naver_blog', label: '네이버 블로그', icon: '/channel_logo/naver_blog.png', isApi: false },
   { value: 'tiktok', label: 'TikTok', icon: '/channel_logo/tiktok.png', isApi: false },
   { value: 'youtube', label: 'YouTube', icon: '/channel_logo/youtube.png', isApi: false },
@@ -67,6 +68,11 @@ export default function AdChannelsPage() {
     window.location.href = '/api/auth/meta'
   }
 
+  // 모달 초기화
+  const resetModal = () => {
+    setAddForm({ channel_type: 'meta', channel_name: '', account_id: '' })
+  }
+
   // 채널 목록 불러오기
   const fetchChannels = async () => {
     setLoading(true)
@@ -105,7 +111,7 @@ export default function AdChannelsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('ad_channels')
         .insert({
           user_id: user.id,
@@ -114,13 +120,20 @@ export default function AdChannelsPage() {
           account_id: addForm.account_id || null,
           status: 'active'
         })
+        .select()
+        .single()
 
       if (error) throw error
 
       setMessage({ type: 'success', text: '광고 채널이 추가되었습니다' })
       setShowAddModal(false)
-      setAddForm({ channel_type: 'meta', channel_name: '', account_id: '' })
+      resetModal()
       fetchChannels()
+
+      // 채널 생성 후 상세 페이지로 이동 (추적링크 추가하도록)
+      if (data) {
+        window.location.href = `/ad-channels/${data.id}`
+      }
     } catch (error) {
       console.error('Failed to add channel:', error)
       setMessage({ type: 'error', text: '채널 추가에 실패했습니다' })
@@ -362,12 +375,12 @@ export default function AdChannelsPage() {
       {/* 채널 추가 모달 */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-lg bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+          <div className="w-full max-w-lg bg-slate-800 border border-slate-700 rounded-xl overflow-hidden max-h-[90vh] flex flex-col">
             {/* 헤더 */}
-            <div className="px-5 py-4 border-b border-slate-700 flex items-center justify-between">
+            <div className="px-5 py-4 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
               <h3 className="text-lg font-semibold text-white">광고 채널 추가</h3>
               <button
-                onClick={() => setShowAddModal(false)}
+                onClick={() => { setShowAddModal(false); resetModal(); }}
                 className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -377,99 +390,100 @@ export default function AdChannelsPage() {
             </div>
 
             {/* 채널 선택 그리드 */}
-            <div className="p-5 border-b border-slate-700">
-              <label className="block text-sm text-slate-400 mb-3">채널 선택</label>
-              <div className="grid grid-cols-4 gap-3">
-                {CHANNEL_TYPES.map((type) => (
-                  <button
-                    key={type.value}
-                    type="button"
-                    onClick={() => setAddForm({ ...addForm, channel_type: type.value, channel_name: '', account_id: '' })}
-                    className={`relative p-4 rounded-lg border transition-colors ${
-                      addForm.channel_type === type.value
-                        ? 'border-blue-500 bg-blue-500/10'
-                        : 'border-slate-600 hover:border-slate-500'
-                    }`}
-                  >
-                    {type.isApi && (
-                      <div className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 text-[9px] font-medium bg-blue-500 text-white rounded">
-                        API
+                <div className="p-5 border-b border-slate-700">
+                  <label className="block text-sm text-slate-400 mb-3">채널 선택</label>
+                  <div className="grid grid-cols-4 gap-3">
+                    {CHANNEL_TYPES.map((type) => (
+                      <button
+                        key={type.value}
+                        type="button"
+                        onClick={() => setAddForm({ ...addForm, channel_type: type.value, channel_name: '', account_id: '' })}
+                        className={`relative p-4 rounded-lg border transition-colors ${
+                          addForm.channel_type === type.value
+                            ? 'border-blue-500 bg-blue-500/10'
+                            : 'border-slate-600 hover:border-slate-500'
+                        }`}
+                      >
+                        {type.isApi && (
+                          <div className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 text-[9px] font-medium bg-blue-500 text-white rounded">
+                            API
+                          </div>
+                        )}
+                        <div className="flex flex-col items-center gap-3">
+                          <img src={type.icon} alt={type.label} className="w-10 h-10 object-contain rounded-lg" />
+                          <span className="text-xs text-white text-center font-medium">{type.label}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 설정 영역 */}
+                <div className="p-5">
+                  {/* Meta 선택 시 */}
+                  {addForm.channel_type === 'meta' && (
+                    <div className="space-y-4">
+                      <div className="text-xs text-slate-400 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                        Facebook · Instagram 광고 자동 연동
                       </div>
-                    )}
-                    <div className="flex flex-col items-center gap-3">
-                      <img src={type.icon} alt={type.label} className="w-10 h-10 object-contain rounded-lg" />
-                      <span className="text-xs text-white text-center font-medium">{type.label}</span>
+                      <button
+                        onClick={handleMetaOAuth}
+                        className="w-full h-10 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium transition-colors"
+                      >
+                        Meta 계정 연동하기
+                      </button>
                     </div>
-                  </button>
-                ))}
-              </div>
-            </div>
+                  )}
 
-            {/* 설정 영역 */}
-            <div className="p-5">
-              {/* Meta 선택 시 */}
-              {addForm.channel_type === 'meta' && (
-                <div className="space-y-4">
-                  <div className="text-xs text-slate-400 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                    Facebook · Instagram 광고 자동 연동
-                  </div>
+                  {/* 기타 채널 선택 시 */}
+                  {addForm.channel_type !== 'meta' && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-1.5">채널 이름</label>
+                        <input
+                          type="text"
+                          placeholder="예: 공식 블로그, 메인 계정"
+                          value={addForm.channel_name}
+                          onChange={(e) => setAddForm({ ...addForm, channel_name: e.target.value })}
+                          className="w-full h-10 px-3 rounded-lg bg-slate-900 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-1.5">
+                          계정 ID <span className="text-slate-500">(선택)</span>
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="예: @myaccount"
+                          value={addForm.account_id}
+                          onChange={(e) => setAddForm({ ...addForm, account_id: e.target.value })}
+                          className="w-full h-10 px-3 rounded-lg bg-slate-900 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 푸터 */}
+                <div className="px-5 py-4 border-t border-slate-700 flex gap-3 flex-shrink-0">
                   <button
-                    onClick={handleMetaOAuth}
-                    className="w-full h-10 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium transition-colors"
+                    onClick={() => { setShowAddModal(false); resetModal(); }}
+                    className="flex-1 h-10 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 font-medium transition-colors"
                   >
-                    Meta 계정 연동하기
+                    취소
                   </button>
+                  {addForm.channel_type !== 'meta' && (
+                    <button
+                      onClick={handleAddChannel}
+                      disabled={saving || !addForm.channel_name.trim()}
+                      className="flex-1 h-10 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {saving ? '추가 중...' : '채널 추가'}
+                    </button>
+                  )}
                 </div>
-              )}
 
-              {/* 기타 채널 선택 시 */}
-              {addForm.channel_type !== 'meta' && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-slate-400 mb-1.5">채널 이름</label>
-                    <input
-                      type="text"
-                      placeholder="예: 공식 블로그, 메인 계정"
-                      value={addForm.channel_name}
-                      onChange={(e) => setAddForm({ ...addForm, channel_name: e.target.value })}
-                      className="w-full h-10 px-3 rounded-lg bg-slate-900 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-slate-400 mb-1.5">
-                      계정 ID <span className="text-slate-500">(선택)</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="예: @myaccount"
-                      value={addForm.account_id}
-                      onChange={(e) => setAddForm({ ...addForm, account_id: e.target.value })}
-                      className="w-full h-10 px-3 rounded-lg bg-slate-900 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* 푸터 */}
-            <div className="px-5 py-4 border-t border-slate-700 flex gap-3">
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="flex-1 h-10 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 font-medium transition-colors"
-              >
-                취소
-              </button>
-              {addForm.channel_type !== 'meta' && (
-                <button
-                  onClick={handleAddChannel}
-                  disabled={saving || !addForm.channel_name.trim()}
-                  className="flex-1 h-10 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  {saving ? '추가 중...' : '채널 추가'}
-                </button>
-              )}
-            </div>
           </div>
         </div>
       )}

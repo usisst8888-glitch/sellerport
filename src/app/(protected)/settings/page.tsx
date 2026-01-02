@@ -13,7 +13,16 @@ interface Profile {
   businessNumber: string | null
   ownerName: string | null
   phone: string | null
+  plan: string | null
   createdAt?: string
+}
+
+// 플랜 정보 매핑
+const PLAN_INFO: Record<string, { label: string; description: string }> = {
+  free: { label: '무료', description: '무제한 추적 링크' },
+  basic: { label: '베이직', description: '전환 추적 + 신호등' },
+  pro: { label: '프로', description: '인플루언서 매칭' },
+  enterprise: { label: '엔터프라이즈', description: '전용 지원' },
 }
 
 interface Balance {
@@ -216,9 +225,9 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between py-7 px-5 bg-slate-800/50 rounded-lg">
               <div>
                 <p className="text-lg text-slate-300">구독 플랜</p>
-                <p className="text-sm text-slate-500 mt-1">추적 링크 3개</p>
+                <p className="text-sm text-slate-500 mt-1">{PLAN_INFO[profile?.plan || 'free']?.description || '추적 링크 3개'}</p>
               </div>
-              <p className="text-2xl font-bold text-white">무료</p>
+              <p className="text-2xl font-bold text-white">{PLAN_INFO[profile?.plan || 'free']?.label || '무료'}</p>
             </div>
             <div className="flex items-center justify-between py-7 px-5 bg-slate-800/50 rounded-lg">
               <div>
@@ -366,20 +375,6 @@ export default function SettingsPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
-              <div>
-                <p className="text-sm font-medium text-white">주문 알림</p>
-                <p className="text-xs text-slate-500">새 주문 발생 시</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setAlertSettings({ ...alertSettings, orderAlert: !alertSettings.orderAlert })}
-                className={`relative w-11 h-6 rounded-full transition-colors ${alertSettings.orderAlert ? 'bg-blue-600' : 'bg-slate-600'}`}
-              >
-                <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${alertSettings.orderAlert ? 'left-6' : 'left-1'}`} />
-              </button>
-            </div>
-
             <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg border border-red-500/20">
               <div>
                 <p className="text-sm font-medium text-white flex items-center gap-1">
@@ -436,79 +431,6 @@ export default function SettingsPage() {
             >
               {savingAlerts ? '저장 중...' : '설정 저장'}
             </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* 연동된 사이트 - 전체 너비 */}
-      <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-white flex items-center gap-2">
-            <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-            </svg>
-            연동된 사이트
-          </h2>
-          <Link href="/my-sites" className="text-xs text-blue-400 hover:text-blue-300">
-            전체 관리 →
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {/* 네이버 스마트스토어 */}
-          <Link href="/my-sites" className="flex flex-col items-center p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700 transition-colors">
-            <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center text-2xl mb-2">🛒</div>
-            <p className="text-sm font-medium text-white text-center">네이버</p>
-            <p className="text-xs text-slate-500">스마트스토어</p>
-          </Link>
-
-          {/* 쿠팡 */}
-          <div className="flex flex-col items-center p-4 bg-slate-700/30 rounded-lg border border-dashed border-slate-600 opacity-60">
-            <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center text-2xl mb-2">🚀</div>
-            <p className="text-sm font-medium text-slate-400 text-center">쿠팡</p>
-            <p className="text-xs text-slate-600">준비중</p>
-          </div>
-
-          {/* 카페24 */}
-          <div className="flex flex-col items-center p-4 bg-slate-700/30 rounded-lg border border-dashed border-slate-600 opacity-60">
-            <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center text-2xl mb-2">☕</div>
-            <p className="text-sm font-medium text-slate-400 text-center">카페24</p>
-            <p className="text-xs text-slate-600">준비중</p>
-          </div>
-
-          {/* 고도몰 */}
-          <div className="flex flex-col items-center p-4 bg-slate-700/30 rounded-lg border border-dashed border-slate-600 opacity-60">
-            <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center text-2xl mb-2">🏪</div>
-            <p className="text-sm font-medium text-slate-400 text-center">고도몰</p>
-            <p className="text-xs text-slate-600">준비중</p>
-          </div>
-
-          {/* 11번가 */}
-          <div className="flex flex-col items-center p-4 bg-slate-700/30 rounded-lg border border-dashed border-slate-600 opacity-60">
-            <div className="w-12 h-12 bg-orange-500/10 rounded-xl flex items-center justify-center text-2xl mb-2">🔶</div>
-            <p className="text-sm font-medium text-slate-400 text-center">11번가</p>
-            <p className="text-xs text-slate-600">준비중</p>
-          </div>
-
-          {/* 옥션/G마켓 */}
-          <div className="flex flex-col items-center p-4 bg-slate-700/30 rounded-lg border border-dashed border-slate-600 opacity-60">
-            <div className="w-12 h-12 bg-yellow-500/10 rounded-xl flex items-center justify-center text-2xl mb-2">🔨</div>
-            <p className="text-sm font-medium text-slate-400 text-center">옥션/G마켓</p>
-            <p className="text-xs text-slate-600">준비중</p>
-          </div>
-
-          {/* 위메프 */}
-          <div className="flex flex-col items-center p-4 bg-slate-700/30 rounded-lg border border-dashed border-slate-600 opacity-60">
-            <div className="w-12 h-12 bg-pink-500/10 rounded-xl flex items-center justify-center text-2xl mb-2">💜</div>
-            <p className="text-sm font-medium text-slate-400 text-center">위메프</p>
-            <p className="text-xs text-slate-600">준비중</p>
-          </div>
-
-          {/* 티몬 */}
-          <div className="flex flex-col items-center p-4 bg-slate-700/30 rounded-lg border border-dashed border-slate-600 opacity-60">
-            <div className="w-12 h-12 bg-cyan-500/10 rounded-xl flex items-center justify-center text-2xl mb-2">⏰</div>
-            <p className="text-sm font-medium text-slate-400 text-center">티몬</p>
-            <p className="text-xs text-slate-600">준비중</p>
           </div>
         </div>
       </div>

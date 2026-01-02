@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 // 구독 티어 정의
 const SUBSCRIPTION_TIERS = [
@@ -11,10 +11,10 @@ const SUBSCRIPTION_TIERS = [
     priceLabel: '0원',
     description: '셀러포트를 처음 사용하는 분께 추천',
     features: [
-      '추적 링크 3개',
+      '무제한 추적 링크',
       '기본 전환 추적',
-      '마진 계산기',
-      '세금 계산기',
+      '셀러트리',
+      '인스타그램 자동 DM',
       '디자이너 연결',
     ],
     alerts: 0,
@@ -31,11 +31,13 @@ const SUBSCRIPTION_TIERS = [
     description: '본격적으로 광고 효율을 관리하는 셀러',
     features: [
       '무제한 추적 링크',
-      '모든 채널 전환 추적',
-      '🟢🟡🔴 신호등 시스템',
-      '마진/세금 자동 계산',
-      'AI 최적화 추천',
+      '기본 전환 추적',
+      '셀러트리',
+      '인스타그램 자동 DM',
       '디자이너 연결',
+      '광고 성과 관리 (전환/매출/ROAS)',
+      '🟢🟡🔴 신호등 시스템',
+      '빨간불/노란불 카카오 알림',
     ],
     alerts: 300,
     alertLabel: '알림톡 300건 포함',
@@ -52,7 +54,6 @@ const SUBSCRIPTION_TIERS = [
     features: [
       '베이직의 모든 기능',
       '인플루언서 자동 매칭',
-      '채널 URL 전체 공개',
       '우선 고객 지원',
       '상세 리포트',
     ],
@@ -92,8 +93,38 @@ const mockUsageHistory = [
 ]
 
 export default function BillingPage() {
-  const [currentPlan] = useState('free')
-  const [currentAlerts, setCurrentAlerts] = useState(47)
+  const [currentPlan, setCurrentPlan] = useState('free')
+  const [currentAlerts, setCurrentAlerts] = useState(0)
+  const [loading, setLoading] = useState(true)
+
+  // 프로필 및 잔액 정보 로드
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [profileRes, balanceRes] = await Promise.all([
+          fetch('/api/profile'),
+          fetch('/api/balance')
+        ])
+
+        const profileData = await profileRes.json()
+        const balanceData = await balanceRes.json()
+
+        if (profileData.success && profileData.data?.plan) {
+          setCurrentPlan(profileData.data.plan)
+        }
+
+        if (balanceData.success) {
+          setCurrentAlerts(balanceData.data?.alertBalance || 0)
+        }
+      } catch (error) {
+        console.error('Failed to fetch data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
 
   // 알림 충전 모달
   const [showAlertModal, setShowAlertModal] = useState(false)
@@ -103,6 +134,31 @@ export default function BillingPage() {
   // 구독 변경 모달
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false)
   const [selectedTier, setSelectedTier] = useState<typeof SUBSCRIPTION_TIERS[0] | null>(null)
+
+  // 플랜 순서 (낮은 순 → 높은 순)
+  const PLAN_ORDER = ['free', 'basic', 'pro', 'reseller']
+
+  // 현재 플랜 대비 버튼 텍스트와 스타일 결정
+  const getButtonConfig = (tierId: string) => {
+    if (tierId === currentPlan) {
+      return { text: '현재 플랜', style: 'bg-emerald-600 text-white cursor-not-allowed', disabled: true }
+    }
+
+    const currentIndex = PLAN_ORDER.indexOf(currentPlan)
+    const tierIndex = PLAN_ORDER.indexOf(tierId)
+
+    if (tierId === 'reseller') {
+      return { text: '파트너 문의', style: 'bg-slate-700 hover:bg-slate-600 text-white', disabled: false }
+    }
+
+    if (tierIndex < currentIndex) {
+      // 다운그레이드
+      return { text: '다운그레이드', style: 'bg-slate-600 hover:bg-slate-500 text-slate-300', disabled: false }
+    } else {
+      // 업그레이드
+      return { text: '업그레이드', style: 'bg-blue-600 hover:bg-blue-500 text-white', disabled: false }
+    }
+  }
 
   const handleSubscribe = (tier: typeof SUBSCRIPTION_TIERS[0]) => {
     if (tier.id === 'reseller') {
@@ -202,7 +258,7 @@ export default function BillingPage() {
             {SUBSCRIPTION_TIERS.map((tier) => (
               <div
                 key={tier.id}
-                className={`relative rounded-2xl p-6 transition-all duration-300 ${
+                className={`relative rounded-2xl p-6 transition-all duration-300 flex flex-col ${
                   tier.popular
                     ? 'bg-gradient-to-b from-blue-600/20 to-slate-800/50 border-2 border-blue-500/50 shadow-lg shadow-blue-500/10'
                     : 'bg-slate-800/50 border border-white/10 hover:border-white/20'
@@ -234,7 +290,7 @@ export default function BillingPage() {
                   </p>
                 </div>
 
-                <ul className="space-y-2 mb-6">
+                <ul className="space-y-2 flex-1">
                   {tier.features.map((feature, index) => (
                     <li key={index} className="flex items-start gap-2 text-sm">
                       <svg className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -245,19 +301,18 @@ export default function BillingPage() {
                   ))}
                 </ul>
 
-                <button
-                  onClick={() => handleSubscribe(tier)}
-                  disabled={currentPlan === tier.id}
-                  className={`w-full py-3 rounded-xl font-medium transition-colors ${
-                    currentPlan === tier.id
-                      ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
-                      : tier.popular
-                        ? 'bg-blue-600 hover:bg-blue-500 text-white'
-                        : 'bg-slate-700 hover:bg-slate-600 text-white'
-                  }`}
-                >
-                  {currentPlan === tier.id ? '현재 플랜' : tier.buttonText}
-                </button>
+                {(() => {
+                  const config = getButtonConfig(tier.id)
+                  return (
+                    <button
+                      onClick={() => handleSubscribe(tier)}
+                      disabled={config.disabled}
+                      className={`w-full py-3 rounded-xl font-medium transition-colors mt-6 ${config.style}`}
+                    >
+                      {config.text}
+                    </button>
+                  )
+                })()}
               </div>
             ))}
           </div>

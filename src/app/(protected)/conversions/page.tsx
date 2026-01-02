@@ -212,6 +212,11 @@ export default function ConversionsPage() {
   const [showTiktokVideoCodeModal, setShowTiktokVideoCodeModal] = useState(false)
   const [tiktokVideoCodesStoreSlug, setTiktokVideoCodesStoreSlug] = useState<string | null>(null)
 
+  // 사용자 플랜 상태
+  const [userPlan, setUserPlan] = useState<string>('free')
+
+  // 플랜 체크 (basic 이상인지)
+  const hasBasicPlan = ['basic', 'pro', 'enterprise'].includes(userPlan)
 
   // 플랫폼이 검색광고인지 확인
   const isSearchAdPlatform = (channelType: string) => {
@@ -505,6 +510,19 @@ export default function ConversionsPage() {
     }
   }
 
+  // 사용자 플랜 정보 조회
+  const fetchUserPlan = async () => {
+    try {
+      const response = await fetch('/api/profile')
+      const result = await response.json()
+      if (result.success && result.data?.plan) {
+        setUserPlan(result.data.plan)
+      }
+    } catch (error) {
+      console.error('Failed to fetch user plan:', error)
+    }
+  }
+
   // 광고비 업데이트
   const handleUpdateAdSpend = async () => {
     if (!editingLink) return
@@ -639,6 +657,7 @@ export default function ConversionsPage() {
     fetchSmartstoreSyncStatus()
     fetchVideoCodes()
     fetchTiktokVideoCodes()
+    fetchUserPlan()
   }, [])
 
   // 메시지 3초 후 자동 제거
@@ -976,29 +995,69 @@ export default function ConversionsPage() {
                           {totalClicks.toLocaleString()}
                         </p>
                       </div>
-                      <div className="p-3 rounded-xl bg-slate-800/50">
+                      <div className="p-3 rounded-xl bg-slate-800/50 relative">
                         <p className="text-xs text-slate-500">총 전환</p>
-                        <p className="text-lg font-bold text-emerald-400">
-                          {totalConversions.toLocaleString()}
-                        </p>
+                        {hasBasicPlan ? (
+                          <p className="text-lg font-bold text-emerald-400">
+                            {totalConversions.toLocaleString()}
+                          </p>
+                        ) : (
+                          <p className="text-lg font-bold text-slate-600">--</p>
+                        )}
                       </div>
-                      <div className="p-3 rounded-xl bg-slate-800/50">
+                      <div className="p-3 rounded-xl bg-slate-800/50 relative">
                         <p className="text-xs text-slate-500">총 매출</p>
-                        <p className="text-lg font-bold text-blue-400">
-                          {totalRevenue.toLocaleString()}
-                          <span className="text-sm font-normal text-slate-400">원</span>
-                        </p>
+                        {hasBasicPlan ? (
+                          <p className="text-lg font-bold text-blue-400">
+                            {totalRevenue.toLocaleString()}
+                            <span className="text-sm font-normal text-slate-400">원</span>
+                          </p>
+                        ) : (
+                          <p className="text-lg font-bold text-slate-600">--</p>
+                        )}
                       </div>
-                      <div className={`p-3 rounded-xl ${signal.bg} border ${overallRoas >= 300 ? 'border-emerald-500/30' : overallRoas >= 150 ? 'border-amber-500/30' : 'border-red-500/30'}`}>
+                      <div className={`p-3 rounded-xl ${hasBasicPlan ? signal.bg : 'bg-slate-800/50'} border ${hasBasicPlan ? (overallRoas >= 300 ? 'border-emerald-500/30' : overallRoas >= 150 ? 'border-amber-500/30' : 'border-red-500/30') : 'border-slate-700/50'}`}>
                         <p className="text-xs text-slate-500">전체 ROAS</p>
-                        <p className={`text-lg font-bold ${signal.text}`}>
-                          {overallRoas}%
-                          <span className="ml-1">{signal.label.split(' ')[0]}</span>
-                        </p>
+                        {hasBasicPlan ? (
+                          <p className={`text-lg font-bold ${signal.text}`}>
+                            {overallRoas}%
+                            <span className="ml-1">{signal.label.split(' ')[0]}</span>
+                          </p>
+                        ) : (
+                          <p className="text-lg font-bold text-slate-600">--</p>
+                        )}
                       </div>
                     </div>
                   )
                 })()}
+
+                {/* BASIC 플랜 이상 필요 안내 배너 */}
+                {!hasBasicPlan && (
+                  <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-amber-500/20 rounded-full flex items-center justify-center">
+                          <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="font-medium text-white">전환 · 매출 · ROAS 데이터는 BASIC 플랜부터 확인 가능합니다</p>
+                          <p className="text-sm text-slate-400">광고 효율을 정확히 측정하고 최적화하세요</p>
+                        </div>
+                      </div>
+                      <Link
+                        href="/billing"
+                        className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap flex items-center gap-2"
+                      >
+                        플랜 업그레이드
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                      </Link>
+                    </div>
+                  </div>
+                )}
 
                 {/* 통합 테이블 - 광고 캠페인 + 추적 링크 */}
                 <div className="overflow-x-auto">
@@ -1055,10 +1114,26 @@ export default function ConversionsPage() {
                             </td>
                             <td className="py-4 text-center text-base text-white px-4">{campaign.total_spend.toLocaleString()}원</td>
                             <td className="py-4 text-center text-base text-white px-4">{campaign.total_clicks.toLocaleString()}</td>
-                            <td className="py-4 text-center text-base text-emerald-400 px-4">{campaign.total_conversions.toLocaleString()}</td>
-                            <td className="py-4 text-center text-base text-blue-400 px-4">{campaign.total_conversion_value.toLocaleString()}원</td>
+                            <td className="py-4 text-center text-base px-4">
+                              {hasBasicPlan ? (
+                                <span className="text-emerald-400">{campaign.total_conversions.toLocaleString()}</span>
+                              ) : (
+                                <span className="text-slate-600">--</span>
+                              )}
+                            </td>
+                            <td className="py-4 text-center text-base px-4">
+                              {hasBasicPlan ? (
+                                <span className="text-blue-400">{campaign.total_conversion_value.toLocaleString()}원</span>
+                              ) : (
+                                <span className="text-slate-600">--</span>
+                              )}
+                            </td>
                             <td className="py-4 text-center px-4">
-                              <span className={`px-2 py-1 text-sm rounded ${signal.bg} ${signal.text}`}>{campaignRoas}%</span>
+                              {hasBasicPlan ? (
+                                <span className={`px-2 py-1 text-sm rounded ${signal.bg} ${signal.text}`}>{campaignRoas}%</span>
+                              ) : (
+                                <span className="text-slate-600">--</span>
+                              )}
                             </td>
                             <td className="py-4 text-center px-4">
                               <span className="text-xs text-slate-500">광고 플랫폼</span>
@@ -1221,29 +1296,43 @@ export default function ConversionsPage() {
                             </td>
                             <td className="py-4 text-center text-base text-white px-4">{link.clicks.toLocaleString()}</td>
                             <td className="py-4 text-center px-4">
-                              <div className="flex flex-col items-center">
-                                <span className="text-base text-emerald-400">{link.conversions.toLocaleString()}</span>
-                                <span className="text-xs text-slate-500">{conversionRate}%</span>
-                              </div>
+                              {hasBasicPlan ? (
+                                <div className="flex flex-col items-center">
+                                  <span className="text-base text-emerald-400">{link.conversions.toLocaleString()}</span>
+                                  <span className="text-xs text-slate-500">{conversionRate}%</span>
+                                </div>
+                              ) : (
+                                <span className="text-slate-600">--</span>
+                              )}
                             </td>
-                            <td className="py-4 text-center text-base text-blue-400 px-4">{link.revenue.toLocaleString()}원</td>
+                            <td className="py-4 text-center text-base px-4">
+                              {hasBasicPlan ? (
+                                <span className="text-blue-400">{link.revenue.toLocaleString()}원</span>
+                              ) : (
+                                <span className="text-slate-600">--</span>
+                              )}
+                            </td>
                             <td className="py-4 text-center px-4">
-                              <button
-                                onClick={() => {
-                                  setEditingRoasLink(link)
-                                  setRoasForm({
-                                    greenThreshold: link.target_roas_green ?? 300,
-                                    yellowThreshold: link.target_roas_yellow ?? 150
-                                  })
-                                }}
-                                className={`px-2 py-1 text-sm rounded ${signal.bg} ${signal.text} hover:opacity-80 transition-opacity`}
-                              >
-                                {linkRoas}%
-                                <svg className="w-3 h-3 inline-block ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                              </button>
+                              {hasBasicPlan ? (
+                                <button
+                                  onClick={() => {
+                                    setEditingRoasLink(link)
+                                    setRoasForm({
+                                      greenThreshold: link.target_roas_green ?? 300,
+                                      yellowThreshold: link.target_roas_yellow ?? 150
+                                    })
+                                  }}
+                                  className={`px-2 py-1 text-sm rounded ${signal.bg} ${signal.text} hover:opacity-80 transition-opacity`}
+                                >
+                                  {linkRoas}%
+                                  <svg className="w-3 h-3 inline-block ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  </svg>
+                                </button>
+                              ) : (
+                                <span className="text-slate-600">--</span>
+                              )}
                             </td>
                             <td className="py-4 px-4">
                               <div className="flex items-center justify-center gap-1">

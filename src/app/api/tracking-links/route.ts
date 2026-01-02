@@ -66,7 +66,9 @@ export async function POST(request: NextRequest) {
       channelType, postName, enableDmAutoSend, dmTriggerKeywords, dmMessage,
       requireFollow, followMessage, followButtonText,
       // Instagram 게시물 정보 (DM 자동발송용)
-      instagramMediaId, instagramMediaUrl, instagramMediaType, instagramCaption, instagramThumbnailUrl
+      instagramMediaId, instagramMediaUrl, instagramMediaType, instagramCaption, instagramThumbnailUrl,
+      // 광고 채널 연결
+      adChannelId
     } = body
 
     if (!targetUrl) {
@@ -137,6 +139,7 @@ export async function POST(request: NextRequest) {
         id: trackingLinkId,
         user_id: user.id,
         product_id: productId || null,
+        ad_channel_id: adChannelId || null,
         utm_source: finalUtmSource,
         utm_medium: finalUtmMedium,
         utm_campaign: finalUtmCampaign,

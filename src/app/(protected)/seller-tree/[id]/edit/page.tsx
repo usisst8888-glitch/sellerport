@@ -973,7 +973,7 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
               <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5 overflow-hidden">
                 <div className="flex flex-col sm:flex-row gap-4 sm:gap-5">
                   {/* 프로필 이미지 */}
-                  <div className="flex-shrink-0 flex justify-center sm:justify-start">
+                  <div className="flex-shrink-0 flex flex-col items-center sm:items-start">
                     {profileImageUrl ? (
                       <div className="relative group">
                         <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-slate-600 bg-slate-700">
