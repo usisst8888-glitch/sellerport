@@ -16,12 +16,12 @@ interface TrackingLink {
   products?: {
     id: string
     name: string
-    my_sites?: {
+    my_sites: {
       id: string
       site_type: string
       site_name: string
-    } | null
-  } | null
+    }[]
+  }[] | null
 }
 
 const channelTypeMap: Record<string, { icon: string; label: string }> = {
@@ -175,9 +175,11 @@ export default function TrackingLinksPage() {
           {trackingLinks.map((link) => {
             const channelType = link.channel_type
             const channelInfo = channelType ? channelTypeMap[channelType] : null
-            const siteType = link.products?.my_sites?.site_type
+            const product = link.products?.[0]
+            const site = product?.my_sites?.[0]
+            const siteType = site?.site_type
             const siteInfo = siteType ? siteTypeMap[siteType] : null
-            const siteName = link.products?.my_sites?.site_name
+            const siteName = site?.site_name
 
             return (
               <div
