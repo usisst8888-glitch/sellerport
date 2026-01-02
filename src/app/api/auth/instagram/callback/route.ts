@@ -212,6 +212,32 @@ export async function GET(request: NextRequest) {
       accountType: userInfo?.account_type,
     })
 
+    // Instagram Login 방식에서는 각 계정마다 개별적으로 웹훅 구독 필요
+    // https://developers.facebook.com/docs/graph-api/webhooks/getting-started#configure-webhooks-product
+    try {
+      const subscribeUrl = `https://graph.instagram.com/v21.0/${instagramUserId}/subscribed_apps`
+      const subscribeResponse = await fetch(subscribeUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          access_token: accessToken,
+          subscribed_fields: 'comments,messages',
+        }).toString(),
+      })
+
+      const subscribeData = await subscribeResponse.json()
+      console.log('Instagram webhook subscription result:', subscribeData)
+
+      if (subscribeData.error) {
+        console.error('Failed to subscribe to webhooks:', subscribeData.error)
+      }
+    } catch (subscribeError) {
+      console.error('Webhook subscription error:', subscribeError)
+      // 웹훅 구독 실패해도 계정 연결은 성공으로 처리
+    }
+
     // 성공
     const redirectUrl = siteId
       ? `${process.env.NEXT_PUBLIC_APP_URL}/${redirectPath}?success=instagram_connected&siteId=${siteId}`
