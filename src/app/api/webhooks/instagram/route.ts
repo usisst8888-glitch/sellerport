@@ -29,6 +29,12 @@ function getSupabaseClient() {
         persistSession: false,
         autoRefreshToken: false,
       },
+      global: {
+        fetch: (...args) => fetch(...args),
+      },
+      db: {
+        schema: 'public',
+      },
     }
   )
 }
