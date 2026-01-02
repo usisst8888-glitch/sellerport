@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       channelType, postName, enableDmAutoSend, dmTriggerKeywords, dmMessage,
       requireFollow, followMessage, followButtonText,
       // Instagram 게시물 정보 (DM 자동발송용)
-      instagramMediaId, instagramMediaUrl, instagramMediaType, instagramCaption, instagramThumbnailUrl,
+      instagramAccountId, instagramMediaId, instagramMediaUrl, instagramMediaType, instagramCaption, instagramThumbnailUrl,
       // 광고 채널 연결
       adChannelId
     } = body
@@ -174,14 +174,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Instagram DM 자동발송 설정 (Instagram 채널 + 옵션 활성화 시)
-    if (channelType === 'instagram' && enableDmAutoSend && dmMessage) {
-      // 사용자의 Instagram 계정 찾기 (instagram_accounts 테이블에서)
+    if (channelType === 'instagram' && enableDmAutoSend && dmMessage && instagramAccountId) {
+      // 지정된 Instagram 계정 확인 (본인 계정인지 검증)
       const { data: instagramAccount } = await supabase
         .from('instagram_accounts')
         .select('id')
+        .eq('id', instagramAccountId)
         .eq('user_id', user.id)
         .eq('status', 'connected')
-        .limit(1)
         .single()
 
       if (instagramAccount) {
