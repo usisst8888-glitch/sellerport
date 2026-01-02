@@ -55,26 +55,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true })
     }
 
-    // 각 엔트리 처리
-    for (const entry of body.entry || []) {
-      const instagramUserId = entry.id // 이벤트가 발생한 Instagram 계정 ID
+    // 즉시 200 OK 응답 (Meta 요구사항: 5초 이내 응답 필수)
+    // 실제 처리는 백그라운드에서 진행
+    Promise.resolve().then(async () => {
+      for (const entry of body.entry || []) {
+        const instagramUserId = entry.id // 이벤트가 발생한 Instagram 계정 ID
 
-      // 댓글 이벤트 처리
-      if (entry.changes) {
-        for (const change of entry.changes) {
-          if (change.field === 'comments') {
-            await handleCommentEvent(change.value, instagramUserId)
+        // 댓글 이벤트 처리
+        if (entry.changes) {
+          for (const change of entry.changes) {
+            if (change.field === 'comments') {
+              await handleCommentEvent(change.value, instagramUserId)
+            }
+          }
+        }
+
+        // 메시징 이벤트 (DM 수신 등)
+        if (entry.messaging) {
+          for (const messagingEvent of entry.messaging) {
+            await handleMessagingEvent(messagingEvent)
           }
         }
       }
-
-      // 메시징 이벤트 (DM 수신 등)
-      if (entry.messaging) {
-        for (const messagingEvent of entry.messaging) {
-          await handleMessagingEvent(messagingEvent)
-        }
-      }
-    }
+    }).catch(error => {
+      console.error('Background webhook processing error:', error)
+    })
 
     return NextResponse.json({ received: true })
   } catch (error) {
