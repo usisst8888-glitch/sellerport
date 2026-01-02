@@ -350,33 +350,27 @@ async function handleCommentEvent(
     // 같은 media ID에 여러 설정이 있을 수 있으므로 가장 최근 것 사용
     console.log('Fetching DM settings for media:', mediaId)
 
-    const supabase = getSupabaseClient()
-    const { data: dmSettingsList, error: dmSettingsError } = await supabase
-      .from('instagram_dm_settings')
-      .select(`
-        *,
-        instagram_accounts:instagram_account_id (
-          id,
-          user_id,
-          access_token,
-          instagram_user_id
-        ),
-        tracking_links:tracking_link_id (
-          id,
-          tracking_url,
-          go_url,
-          post_name
-        )
-      `)
-      .eq('instagram_media_id', mediaId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(1)
+    // Supabase REST API 직접 호출 (SDK 연결 문제 회피)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+    const queryUrl = `${supabaseUrl}/rest/v1/instagram_dm_settings?instagram_media_id=eq.${mediaId}&is_active=eq.true&select=*,instagram_accounts:instagram_account_id(id,user_id,access_token,instagram_user_id),tracking_links:tracking_link_id(id,tracking_url,go_url,post_name)&order=created_at.desc&limit=1`
+
+    const response = await fetch(queryUrl, {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+    })
+
+    const dmSettingsList = await response.json()
+    const dmSettingsError = response.ok ? null : dmSettingsList
 
     console.log('DM settings query result:', {
-      found: dmSettingsList?.length || 0,
+      found: Array.isArray(dmSettingsList) ? dmSettingsList.length : 0,
       error: dmSettingsError,
-      mediaId
+      mediaId,
+      isArray: Array.isArray(dmSettingsList)
     })
 
     if (dmSettingsError) {
@@ -384,12 +378,12 @@ async function handleCommentEvent(
       return
     }
 
-    const dmSettings = dmSettingsList?.[0]
-
-    if (!dmSettings) {
+    if (!Array.isArray(dmSettingsList) || dmSettingsList.length === 0) {
       console.log('No DM settings found for media:', mediaId)
       return
     }
+
+    const dmSettings = dmSettingsList[0]
 
     console.log('Found DM settings:', {
       id: dmSettings.id,
@@ -411,6 +405,7 @@ async function handleCommentEvent(
     }
 
     // 이미 DM 발송한 사용자인지 확인 (중복 방지)
+    const supabase = getSupabaseClient()
     const { data: existingDm } = await supabase
       .from('instagram_dm_logs')
       .select('id')
