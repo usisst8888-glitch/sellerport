@@ -377,6 +377,7 @@ export default function InstagramDmAddPage() {
             requireFollow: true,
             followMessage: form.followMessage,
             followButtonText: form.followButtonText,
+            instagramAccountId: selectedAccountId,  // 선택된 Instagram 계정 ID 추가
             instagramMediaId: selectedMediaId,
             instagramMediaUrl: selectedMedia?.permalink,
             instagramMediaType: selectedMedia?.media_type,
@@ -443,10 +444,53 @@ export default function InstagramDmAddPage() {
 
       {/* 폼 */}
       <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 space-y-6">
-        {/* 1. 게시물 선택 */}
+        {/* 1. Instagram 계정 선택 */}
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-3">
             <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs mr-2">1</span>
+            Instagram 계정 선택
+            {isEditMode && <span className="ml-2 text-xs text-slate-500">(변경 불가)</span>}
+          </label>
+          <div className="space-y-2">
+            {instagramAccounts.map((account) => (
+              <button
+                key={account.id}
+                type="button"
+                onClick={() => !isEditMode && setSelectedAccountId(account.id)}
+                disabled={isEditMode}
+                className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all ${
+                  selectedAccountId === account.id
+                    ? 'bg-blue-500/10 border-blue-500/30'
+                    : 'bg-slate-700/30 border-slate-600 hover:border-slate-500'
+                } ${isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              >
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                  </svg>
+                </div>
+                <div className="flex-1 text-left min-w-0">
+                  <p className="text-sm font-medium text-white truncate">
+                    @{account.instagram_username || '사용자명 없음'}
+                  </p>
+                  <p className="text-xs text-slate-400 truncate">
+                    {account.instagram_name || account.instagram_user_id}
+                  </p>
+                </div>
+                {selectedAccountId === account.id && (
+                  <svg className="w-5 h-5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 2. 게시물 선택 */}
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-3">
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs mr-2">2</span>
             게시물 선택
             {isEditMode && <span className="ml-2 text-xs text-slate-500">(변경 불가)</span>}
           </label>
@@ -497,10 +541,10 @@ export default function InstagramDmAddPage() {
           )}
         </div>
 
-        {/* 2. 트리거 키워드 */}
+        {/* 3. 트리거 키워드 */}
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-3">
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs mr-2">2</span>
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs mr-2">3</span>
             댓글 트리거 키워드
           </label>
 
@@ -556,10 +600,10 @@ export default function InstagramDmAddPage() {
           )}
         </div>
 
-        {/* 3. 팔로우 요청 메시지 */}
+        {/* 4. 팔로우 요청 메시지 */}
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-3">
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs mr-2">3</span>
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs mr-2">4</span>
             팔로우 요청 메시지
             <span className="ml-2 text-xs text-blue-400">(첫 번째 DM)</span>
           </label>
@@ -596,10 +640,10 @@ export default function InstagramDmAddPage() {
           </div>
         </div>
 
-        {/* 4. 팔로워용 DM 메시지 */}
+        {/* 5. 팔로워용 DM 메시지 */}
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-3">
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs mr-2">4</span>
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs mr-2">5</span>
             팔로워용 메시지
             <span className="ml-2 text-xs text-green-400">(두 번째 DM)</span>
           </label>
@@ -613,10 +657,10 @@ export default function InstagramDmAddPage() {
           <p className="text-xs text-slate-500 mt-2">팔로우 확인 후 발송됩니다. 메시지 끝에 목적지 URL이 자동 추가됩니다.</p>
         </div>
 
-        {/* 5. 사이트 선택 */}
+        {/* 6. 사이트 선택 */}
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-3">
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs mr-2">5</span>
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs mr-2">6</span>
             사이트 선택
             {isEditMode && <span className="ml-2 text-xs text-slate-500">(변경 불가)</span>}
           </label>
@@ -737,10 +781,10 @@ export default function InstagramDmAddPage() {
           )}
         </div>
 
-        {/* 6. 목적지 URL */}
+        {/* 7. 목적지 URL */}
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-3">
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs mr-2">6</span>
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs mr-2">7</span>
             목적지 URL
             {isEditMode && <span className="ml-2 text-xs text-slate-500">(변경 불가)</span>}
           </label>
