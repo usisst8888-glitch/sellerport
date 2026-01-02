@@ -43,6 +43,8 @@ export async function GET(request: NextRequest) {
       'instagram_business_basic',            // Instagram 프로필 및 미디어 읽기
       'instagram_business_manage_messages',  // DM 관리 (핵심!)
       'instagram_business_manage_comments',  // 댓글 관리 (Webhook용)
+      'instagram_business_content_publish',  // 콘텐츠 게시 및 관리 (댓글 웹훅 필수!)
+      'instagram_business_manage_insights',  // 인사이트 조회
     ].join(',')
 
     // state에 user_id, from, siteId 저장
