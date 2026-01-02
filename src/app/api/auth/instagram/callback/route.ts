@@ -209,19 +209,33 @@ export async function GET(request: NextRequest) {
     // Instagram Login 방식에서는 각 계정마다 개별적으로 웹훅을 구독해야 함
     try {
       const subscribeUrl = `https://graph.instagram.com/v21.0/${instagramUserId}/subscribed_apps`
+      const subscribeParams = {
+        subscribed_fields: 'comments,live_comments,messages,messaging_postbacks,message_reactions',
+        access_token: accessToken
+      }
+
+      console.log('Attempting webhook subscription:', {
+        url: subscribeUrl,
+        instagramUserId,
+        fields: subscribeParams.subscribed_fields,
+        hasAccessToken: !!accessToken
+      })
+
       const subscribeResponse = await fetch(subscribeUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          subscribed_fields: 'comments,live_comments,messages,messaging_postbacks,message_reactions',
-          access_token: accessToken
-        }).toString()
+        body: new URLSearchParams(subscribeParams).toString()
       })
 
       const subscribeResult = await subscribeResponse.json()
 
       if (subscribeResult.error) {
-        console.error('Failed to subscribe webhook for Instagram account:', subscribeResult.error)
+        console.error('Failed to subscribe webhook for Instagram account:', {
+          error: subscribeResult.error,
+          instagramUserId,
+          responseStatus: subscribeResponse.status,
+          fullResponse: subscribeResult
+        })
         // 웹훅 구독 실패해도 계정 연동은 성공으로 처리 (수동으로 구독 가능)
       } else {
         console.log('Instagram webhook subscribed successfully:', subscribeResult)
