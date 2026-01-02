@@ -133,30 +133,36 @@ export async function POST(request: NextRequest) {
     }
 
     // 추적 링크 생성
+    const insertData: any = {
+      id: trackingLinkId,
+      user_id: user.id,
+      product_id: productId || null,
+      utm_source: finalUtmSource,
+      utm_medium: finalUtmMedium,
+      utm_campaign: finalUtmCampaign,
+      target_url: targetUrl,
+      tracking_url: trackingUrl,
+      go_url: goUrl,
+      channel_type: channelType || null,
+      post_name: postName || null,
+      status: 'active',
+      clicks: 0,
+      conversions: 0,
+      revenue: 0,
+      ad_spend: adSpend || 0,
+      target_roas_green: targetRoasGreen ?? 300,
+      target_roas_yellow: targetRoasYellow ?? 150,
+      thumbnail_url: finalThumbnailUrl
+    }
+
+    // ad_channel_id는 컬럼이 존재할 때만 추가 (마이그레이션 적용 전 호환성)
+    if (adChannelId) {
+      insertData.ad_channel_id = adChannelId
+    }
+
     const { data: trackingLink, error } = await supabase
       .from('tracking_links')
-      .insert({
-        id: trackingLinkId,
-        user_id: user.id,
-        product_id: productId || null,
-        ad_channel_id: adChannelId || null,
-        utm_source: finalUtmSource,
-        utm_medium: finalUtmMedium,
-        utm_campaign: finalUtmCampaign,
-        target_url: targetUrl,
-        tracking_url: trackingUrl,
-        go_url: goUrl,
-        channel_type: channelType || null,
-        post_name: postName || null,
-        status: 'active',
-        clicks: 0,
-        conversions: 0,
-        revenue: 0,
-        ad_spend: adSpend || 0,
-        target_roas_green: targetRoasGreen ?? 300,
-        target_roas_yellow: targetRoasYellow ?? 150,
-        thumbnail_url: finalThumbnailUrl
-      })
+      .insert(insertData)
       .select()
       .single()
 
