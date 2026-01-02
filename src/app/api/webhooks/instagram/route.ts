@@ -340,13 +340,13 @@ async function handleCommentEvent(
       .from('instagram_dm_settings')
       .select(`
         *,
-        instagram_accounts!inner (
+        instagram_accounts:instagram_account_id (
           id,
           user_id,
           access_token,
           instagram_user_id
         ),
-        tracking_links (
+        tracking_links:tracking_link_id (
           id,
           tracking_url,
           go_url,
