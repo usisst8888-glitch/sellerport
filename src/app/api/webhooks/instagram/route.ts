@@ -115,9 +115,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// 팔로워 여부 확인 함수
-// Instagram User Profile API를 사용하여 is_user_follow_business 값을 확인
-// 참고: https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/messaging-api
+// 팔로워 여부 확인 함수 (사용 안 함 - Private Reply 실패 여부로 판단)
+// Instagram API는 User consent 필요하여 직접 확인 불가능
+// 대신 링크 메시지 전송 시도 → 실패하면 비팔로워로 판단
+/*
 async function checkIfFollower(
   myInstagramUserId: string,
   targetUserId: string,
@@ -218,6 +219,7 @@ async function checkIfFollower(
     return false
   }
 }
+*/
 
 // 링크 메시지 발송 함수 (Private Reply)
 // 팔로워에게 바로 링크가 포함된 메시지 발송
@@ -480,34 +482,24 @@ async function handleCommentEvent(
       return
     }
 
-    // ⭐ 핵심 로직: 먼저 팔로워인지 확인
-    console.log('Checking follower status before sending DM...')
-    let isFollower = false
-    try {
-      isFollower = await checkIfFollower(myInstagramUserId, commenterIgUserId, accessToken)
-      console.log('Follower check completed:', isFollower)
-    } catch (followerCheckError) {
-      console.error('Follower check failed, assuming not a follower:', followerCheckError)
-      isFollower = false
-    }
+    // ⭐ 핵심 로직: 일단 링크 메시지 전송 시도 → 실패하면 팔로우 요청
+    console.log('Attempting to send link message via Private Reply...')
 
     let dmSent = false
-    let messageType: 'link' | 'follow_request' = 'follow_request'
+    let messageType: 'link' | 'follow_request' = 'link'
 
-    if (isFollower) {
-      // ✅ 팔로워인 경우: 바로 링크 메시지 발송 (두 번째 메시지)
-      console.log('User is a follower! Sending link message directly...')
-      messageType = 'link'
+    // 1차 시도: 링크 메시지 바로 발송 (팔로워면 성공, 아니면 실패)
+    dmSent = await sendLinkMessageViaPrivateReply(
+      commentData.id,
+      dmSettings,
+      accessToken,
+      trackingUrl
+    )
 
-      dmSent = await sendLinkMessageViaPrivateReply(
-        commentData.id,
-        dmSettings,
-        accessToken,
-        trackingUrl
-      )
-    } else {
-      // ❌ 팔로워가 아닌 경우: 팔로우 요청 메시지 발송 (첫 번째 메시지)
-      console.log('User is NOT a follower. Sending follow request message...')
+    if (!dmSent) {
+      // 링크 메시지 실패 → 비팔로워로 판단 → 팔로우 요청 메시지 발송
+      console.log('Link message failed (likely not a follower). Sending follow request message...')
+      messageType = 'follow_request'
 
       const followRequestMessage = dmSettings.follow_cta_message ||
         `팔로우를 완료하셨다면 아래 버튼을 눌러 확인해주세요! 팔로워에게만 본래의DM이 보내집니다!`
@@ -521,20 +513,22 @@ async function handleCommentEvent(
         trackingUrl,
         followButtonText
       )
+    } else {
+      console.log('Link message sent successfully (user is a follower)')
     }
 
-    console.log('DM send result:', { dmSent, messageType, isFollower })
+    console.log('DM send result:', { dmSent, messageType })
 
     if (dmSent) {
       // DM 발송 로그 저장
-      const logMessage = isFollower
+      const logMessage = messageType === 'link'
         ? (dmSettings.dm_message || '링크 메시지')
         : (dmSettings.follow_cta_message || '팔로우 요청 메시지')
 
       console.log('Saving DM log to database:', {
         dm_setting_id: dmSettings.id,
         recipient: commenterUsername,
-        status: isFollower ? 'link_sent' : 'sent'
+        status: messageType === 'link' ? 'link_sent' : 'sent'
       })
 
       const { data: logData, error: logError } = await supabase.from('instagram_dm_logs').insert({
@@ -546,7 +540,7 @@ async function handleCommentEvent(
         comment_text: text,
         dm_message: logMessage,
         sent_at: new Date().toISOString(),
-        status: isFollower ? 'link_sent' : 'sent',
+        status: messageType === 'link' ? 'link_sent' : 'sent',
       })
 
       if (logError) {
@@ -570,7 +564,7 @@ async function handleCommentEvent(
 
       console.log(`DM (${messageType}) sent successfully to:`, commenterUsername)
     } else {
-      console.error('DM send failed for:', commenterUsername, { isFollower, messageType })
+      console.error('DM send failed for:', commenterUsername, { messageType })
     }
   } catch (error) {
     console.error('Error processing comment event:', error)
