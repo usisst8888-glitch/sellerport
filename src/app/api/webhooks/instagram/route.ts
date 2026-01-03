@@ -473,8 +473,9 @@ async function handleCommentEvent(
       console.log('Link message failed (likely not a follower). Sending follow request message...')
       messageType = 'follow_request'
 
-      const followRequestMessage = dmSettings.follow_cta_message ||
-        `팔로우를 완료하셨다면 아래 버튼을 눌러 확인해주세요! 팔로워에게만 본래의DM이 보내집니다!`
+      // DB 컬럼에서 메시지 가져오기 (follow_request_message 또는 follow_cta_message)
+      const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
+        `안녕하세요! 댓글 감사합니다 🙏\n\n링크를 받으시려면 팔로우 후 아래 버튼을 눌러주세요!`
       const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
 
       dmSent = await sendInstagramPrivateReplyWithQuickReply(
@@ -495,7 +496,7 @@ async function handleCommentEvent(
       // DM 발송 로그 저장
       const logMessage = messageType === 'link'
         ? (dmSettings.dm_message || '링크 메시지')
-        : (dmSettings.follow_cta_message || '팔로우 요청 메시지')
+        : (dmSettings.follow_request_message || dmSettings.follow_cta_message || '팔로우 요청 메시지')
 
       console.log('Saving DM log to database:', {
         dm_setting_id: dmSettings.id,
@@ -776,7 +777,8 @@ async function handleFollowConfirmed(
       // ❌ 링크 메시지 실패 → 팔로워가 아닌 경우: 팔로우 요청 메시지 재발송
       console.log('Link message failed (user is NOT a follower). Sending follow request message again...', error)
 
-      const followRequestMessage = dmSettings.follow_cta_message ||
+      // DB 컬럼에서 메시지 가져오기 (follow_request_message 또는 follow_cta_message)
+      const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
         `아직 팔로우가 확인되지 않았어요! 😅\n\n팔로우 후 다시 버튼을 눌러주세요!`
       const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
 
