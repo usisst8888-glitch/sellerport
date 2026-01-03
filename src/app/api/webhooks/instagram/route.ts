@@ -1183,6 +1183,12 @@ async function handleFollowConfirmed(
         finalCommentId = dmLog.comment_id
       }
 
+      // TypeScript: 이 시점에서 finalCommentId는 반드시 값이 있음
+      if (!finalCommentId) {
+        console.error('❌ 예상치 못한 에러: finalCommentId가 없습니다')
+        return
+      }
+
       console.log('📝 Comment ID:', finalCommentId)
       console.log('🔍 Private Reply로 링크 메시지 발송 시도...')
       console.log('발송 내용:', dmMessageText)
