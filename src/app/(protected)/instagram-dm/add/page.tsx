@@ -69,6 +69,7 @@ export default function InstagramDmAddPage() {
   })
   const [urlInputMode, setUrlInputMode] = useState<'product' | 'manual'>('product')
   const [triggerAllComments, setTriggerAllComments] = useState(false)
+  const [requireFollow, setRequireFollow] = useState(true) // 팔로워 체크 필요 여부
   const [creating, setCreating] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [loading, setLoading] = useState(true)
@@ -236,6 +237,7 @@ export default function InstagramDmAddPage() {
           selectedProductId: ''
         })
         setTriggerAllComments(isAllComments)
+        setRequireFollow(settings.require_follow ?? true) // 기본값 true
         setSelectedMediaId(settings.instagram_media_id || null)
         setSelectedMediaUrl(settings.instagram_media_url || null)
         setSelectedMediaCaption(settings.instagram_caption || null)
@@ -318,8 +320,15 @@ export default function InstagramDmAddPage() {
 
   // DM 설정 생성 또는 수정
   const handleSubmit = async () => {
-    if (!form.triggerKeywords || !form.dmMessage || !form.followMessage) {
+    // 필수 필드 검증
+    if (!form.triggerKeywords || !form.dmMessage) {
       setMessage({ type: 'error', text: '모든 필드를 입력해주세요' })
+      return
+    }
+
+    // 팔로워 체크 모드일 때는 팔로우 요청 메시지도 필수
+    if (requireFollow && !form.followMessage) {
+      setMessage({ type: 'error', text: '팔로우 요청 메시지를 입력해주세요' })
       return
     }
 
@@ -359,6 +368,7 @@ export default function InstagramDmAddPage() {
             dmMessage: form.dmMessage,
             followCtaMessage: form.followMessage,
             followButtonText: form.followButtonText,
+            requireFollow: requireFollow,
           })
         })
 
@@ -380,7 +390,7 @@ export default function InstagramDmAddPage() {
             enableDmAutoSend: true,
             dmTriggerKeywords: form.triggerKeywords,
             dmMessage: form.dmMessage,
-            requireFollow: true,
+            requireFollow: requireFollow,
             followMessage: form.followMessage,
             followButtonText: form.followButtonText,
             instagramAccountId: selectedAccountId,  // 선택된 Instagram 계정 ID 추가
@@ -563,13 +573,89 @@ export default function InstagramDmAddPage() {
           )}
         </div>
 
-        {/* 3. 팔로우 요청 메시지 */}
+        {/* 3. 팔로워 체크 설정 */}
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-3">
             <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs mr-2">3</span>
-            팔로우 요청 메시지
-            <span className="ml-2 text-xs text-blue-400">(첫 번째 DM)</span>
+            발송 대상 설정
           </label>
+
+          {/* 팔로워 체크 토글 */}
+          <div className="space-y-2">
+            {/* 옵션 1: 팔로워만 (기본값) */}
+            <button
+              type="button"
+              onClick={() => setRequireFollow(true)}
+              className={`flex items-start gap-3 w-full p-4 rounded-xl border transition-all ${
+                requireFollow
+                  ? 'bg-blue-500/10 border-blue-500/30'
+                  : 'bg-slate-700/30 border-slate-600 hover:border-slate-500'
+              }`}
+            >
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                requireFollow ? 'border-blue-500' : 'border-slate-500'
+              }`}>
+                {requireFollow && (
+                  <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                )}
+              </div>
+              <div className="flex-1 text-left">
+                <p className={`text-sm font-medium ${requireFollow ? 'text-white' : 'text-slate-400'}`}>
+                  팔로워에게만 링크 발송 (권장)
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  먼저 팔로우 요청 메시지 발송 → 팔로우 확인 후 링크 발송
+                </p>
+              </div>
+              {requireFollow && (
+                <svg className="w-5 h-5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </button>
+
+            {/* 옵션 2: 모두에게 */}
+            <button
+              type="button"
+              onClick={() => setRequireFollow(false)}
+              className={`flex items-start gap-3 w-full p-4 rounded-xl border transition-all ${
+                !requireFollow
+                  ? 'bg-amber-500/10 border-amber-500/30'
+                  : 'bg-slate-700/30 border-slate-600 hover:border-slate-500'
+              }`}
+            >
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                !requireFollow ? 'border-amber-500' : 'border-slate-500'
+              }`}>
+                {!requireFollow && (
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                )}
+              </div>
+              <div className="flex-1 text-left">
+                <p className={`text-sm font-medium ${!requireFollow ? 'text-white' : 'text-slate-400'}`}>
+                  모든 댓글 작성자에게 바로 링크 발송
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  팔로워 여부와 관계없이 즉시 링크 발송 (팔로우 요청 메시지 사용 안 함)
+                </p>
+              </div>
+              {!requireFollow && (
+                <svg className="w-5 h-5 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* 4. 팔로우 요청 메시지 (팔로워 체크 모드일 때만) */}
+        {requireFollow && (
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs mr-2">4</span>
+              팔로우 요청 메시지
+              <span className="ml-2 text-xs text-blue-400">(첫 번째 DM)</span>
+            </label>
           <textarea
             rows={3}
             placeholder="팔로우를 완료하셨다면 아래 버튼을 눌러 확인해주세요! 팔로워에게만 본래의DM이 보내집니다!"
@@ -601,14 +687,14 @@ export default function InstagramDmAddPage() {
               ))}
             </div>
           </div>
-        </div>
+        )}
 
-        {/* 4. 팔로워용 DM 메시지 */}
+        {/* 5. 링크 발송 메시지 */}
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-3">
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs mr-2">4</span>
-            팔로워용 메시지
-            <span className="ml-2 text-xs text-green-400">(두 번째 DM)</span>
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs mr-2">5</span>
+            {requireFollow ? '팔로워용 메시지' : '링크 발송 메시지'}
+            {requireFollow && <span className="ml-2 text-xs text-green-400">(두 번째 DM)</span>}
           </label>
           <textarea
             rows={3}
@@ -617,13 +703,18 @@ export default function InstagramDmAddPage() {
             onChange={(e) => setForm({ ...form, dmMessage: e.target.value })}
             className="w-full px-4 py-3 rounded-xl bg-slate-700/50 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none resize-none"
           />
-          <p className="text-xs text-slate-500 mt-2">팔로우 확인 후 발송됩니다. 메시지 끝에 목적지 URL이 자동 추가됩니다.</p>
+          <p className="text-xs text-slate-500 mt-2">
+            {requireFollow
+              ? '팔로우 확인 후 발송됩니다. 메시지 끝에 목적지 URL이 자동 추가됩니다.'
+              : '댓글 작성자에게 즉시 발송됩니다. 메시지 끝에 목적지 URL이 자동 추가됩니다.'
+            }
+          </p>
         </div>
 
-        {/* 5. 사이트 선택 */}
+        {/* 6. 사이트 선택 */}
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-3">
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs mr-2">5</span>
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs mr-2">6</span>
             사이트 선택
             {isEditMode && <span className="ml-2 text-xs text-slate-500">(변경 불가)</span>}
           </label>
@@ -744,10 +835,10 @@ export default function InstagramDmAddPage() {
           )}
         </div>
 
-        {/* 6. 목적지 URL */}
+        {/* 7. 목적지 URL */}
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-3">
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs mr-2">6</span>
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs mr-2">7</span>
             목적지 URL
             {isEditMode && <span className="ml-2 text-xs text-slate-500">(변경 불가)</span>}
           </label>
@@ -933,7 +1024,7 @@ export default function InstagramDmAddPage() {
             creating ||
             !form.dmMessage ||
             !form.triggerKeywords ||
-            !form.followMessage ||
+            (requireFollow && !form.followMessage) ||
             (!isEditMode && selectedSiteId && urlInputMode === 'product' && !form.selectedProductId) ||
             (!isEditMode && (selectedSiteId === null || urlInputMode === 'manual') && !form.targetUrl)
           }

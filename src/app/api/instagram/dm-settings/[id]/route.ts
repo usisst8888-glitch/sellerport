@@ -89,6 +89,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       includeFollowCta,
       followCtaMessage,
       followButtonText,
+      requireFollow,
       isActive,
     } = body
 
@@ -109,6 +110,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
     if (followButtonText !== undefined) {
       updateData.follow_button_text = followButtonText
+    }
+    if (requireFollow !== undefined) {
+      updateData.require_follow = requireFollow
     }
     if (isActive !== undefined) {
       updateData.is_active = isActive
