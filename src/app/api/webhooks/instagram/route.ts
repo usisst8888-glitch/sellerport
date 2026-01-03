@@ -354,13 +354,27 @@ async function handleCommentEvent(
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
+    console.log('Environment check:', {
+      hasSupabaseUrl: !!supabaseUrl,
+      hasSupabaseKey: !!supabaseKey,
+      supabaseUrlPrefix: supabaseUrl?.substring(0, 20)
+    })
+
     const queryUrl = `${supabaseUrl}/rest/v1/instagram_dm_settings?instagram_media_id=eq.${mediaId}&is_active=eq.true&select=*,instagram_accounts:instagram_account_id(id,user_id,access_token,instagram_user_id),tracking_links:tracking_link_id(id,tracking_url,go_url,post_name)&order=created_at.desc&limit=1`
+
+    console.log('Fetching from Supabase:', queryUrl.substring(0, 100) + '...')
 
     const response = await fetch(queryUrl, {
       headers: {
         'apikey': supabaseKey,
         'Authorization': `Bearer ${supabaseKey}`,
       },
+    })
+
+    console.log('Fetch response received:', {
+      status: response.status,
+      ok: response.ok,
+      statusText: response.statusText
     })
 
     const dmSettingsList = await response.json()
@@ -432,7 +446,14 @@ async function handleCommentEvent(
 
     // ⭐ 핵심 로직: 먼저 팔로워인지 확인
     console.log('Checking follower status before sending DM...')
-    const isFollower = await checkIfFollower(myInstagramUserId, commenterIgUserId, accessToken)
+    let isFollower = false
+    try {
+      isFollower = await checkIfFollower(myInstagramUserId, commenterIgUserId, accessToken)
+      console.log('Follower check completed:', isFollower)
+    } catch (followerCheckError) {
+      console.error('Follower check failed, assuming not a follower:', followerCheckError)
+      isFollower = false
+    }
 
     let dmSent = false
     let messageType: 'link' | 'follow_request' = 'follow_request'
@@ -466,13 +487,21 @@ async function handleCommentEvent(
       )
     }
 
+    console.log('DM send result:', { dmSent, messageType, isFollower })
+
     if (dmSent) {
       // DM 발송 로그 저장
       const logMessage = isFollower
         ? (dmSettings.dm_message || '링크 메시지')
         : (dmSettings.follow_cta_message || '팔로우 요청 메시지')
 
-      await supabase.from('instagram_dm_logs').insert({
+      console.log('Saving DM log to database:', {
+        dm_setting_id: dmSettings.id,
+        recipient: commenterUsername,
+        status: isFollower ? 'link_sent' : 'sent'
+      })
+
+      const { data: logData, error: logError } = await supabase.from('instagram_dm_logs').insert({
         dm_setting_id: dmSettings.id,
         tracking_link_id: dmSettings.tracking_link_id,
         recipient_ig_user_id: commenterIgUserId,
@@ -484,8 +513,14 @@ async function handleCommentEvent(
         status: isFollower ? 'link_sent' : 'sent',
       })
 
+      if (logError) {
+        console.error('Failed to save DM log:', logError)
+      } else {
+        console.log('DM log saved successfully:', logData)
+      }
+
       // 통계 업데이트
-      await supabase
+      const { error: updateError } = await supabase
         .from('instagram_dm_settings')
         .update({
           total_dms_sent: (dmSettings.total_dms_sent || 0) + 1,
@@ -493,7 +528,13 @@ async function handleCommentEvent(
         })
         .eq('id', dmSettings.id)
 
+      if (updateError) {
+        console.error('Failed to update DM settings stats:', updateError)
+      }
+
       console.log(`DM (${messageType}) sent successfully to:`, commenterUsername)
+    } else {
+      console.error('DM send failed for:', commenterUsername, { isFollower, messageType })
     }
   } catch (error) {
     console.error('Error processing comment event:', error)
