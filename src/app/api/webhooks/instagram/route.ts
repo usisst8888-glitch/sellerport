@@ -215,8 +215,8 @@ async function checkIfFollower(
 }
 */
 
-// 링크 메시지 발송 함수 (Private Reply)
-// 팔로워에게 바로 링크가 포함된 메시지 발송
+// 링크 메시지 발송 함수 (일반 DM - 팔로워만 가능)
+// 팔로워에게만 성공, 비팔로워는 실패
 async function sendLinkMessageViaPrivateReply(
   commentId: string,
   dmSettings: {
@@ -227,7 +227,8 @@ async function sendLinkMessageViaPrivateReply(
     tracking_links?: { go_url?: string; tracking_url?: string; post_name?: string }
   },
   accessToken: string,
-  trackingUrl: string
+  trackingUrl: string,
+  recipientUserId: string // 팔로워 체크를 위해 일반 DM 사용
 ): Promise<boolean> {
   try {
     const dmMessageText = dmSettings.dm_message || '감사합니다! 요청하신 링크입니다 👇'
@@ -235,6 +236,8 @@ async function sendLinkMessageViaPrivateReply(
     const productImageUrl = dmSettings.instagram_media_url || null
 
     const url = `https://graph.instagram.com/v24.0/me/messages`
+
+    console.log('Sending link message as regular DM (follower check)...')
 
     let response
 
@@ -247,7 +250,7 @@ async function sendLinkMessageViaPrivateReply(
           'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          recipient: { comment_id: commentId },
+          recipient: { id: recipientUserId }, // 일반 DM (팔로워만 성공)
           message: {
             attachment: {
               type: 'template',
@@ -274,7 +277,7 @@ async function sendLinkMessageViaPrivateReply(
           'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          recipient: { comment_id: commentId },
+          recipient: { id: recipientUserId }, // 일반 DM (팔로워만 성공)
           message: {
             attachment: {
               type: 'template',
@@ -292,7 +295,7 @@ async function sendLinkMessageViaPrivateReply(
     const result = await response.json()
 
     if (result.error) {
-      console.error('Link message via Private Reply error:', result.error)
+      console.error('Link message via regular DM error:', result.error)
       // 템플릿 실패 시 일반 텍스트로 재시도
       const fallbackResponse = await fetch(url, {
         method: 'POST',
@@ -301,7 +304,7 @@ async function sendLinkMessageViaPrivateReply(
           'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          recipient: { comment_id: commentId },
+          recipient: { id: recipientUserId }, // 일반 DM (팔로워만 성공)
           message: { text: `${dmMessageText}\n\n👉 ${trackingUrl}` },
         }),
       })
@@ -461,7 +464,8 @@ async function handleCommentEvent(
       commentData.id,
       dmSettings,
       accessToken,
-      trackingUrl
+      trackingUrl,
+      commenterIgUserId // 일반 DM API로 팔로워 체크
     )
 
     if (!dmSent) {
