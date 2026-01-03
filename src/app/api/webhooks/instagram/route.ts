@@ -109,41 +109,17 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// 팔로워 여부 확인 함수 (사용 안 함 - Private Reply 실패 여부로 판단)
-// Instagram API는 User consent 필요하여 직접 확인 불가능
-// 대신 링크 메시지 전송 시도 → 실패하면 비팔로워로 판단
-/*
+// 팔로워 여부 확인 함수
+// Conversations API의 participants 필드에서 is_user_follow_business 확인
 async function checkIfFollower(
   myInstagramUserId: string,
   targetUserId: string,
   accessToken: string
 ): Promise<boolean> {
   try {
-    console.log('Checking if user is follower via User Profile API:', targetUserId)
+    console.log('Checking if user is follower via Conversations API:', targetUserId)
 
-    // 방법 1: User Profile API로 is_user_follow_business 필드 직접 조회
-    // GET /{user-id}?fields=id,username,is_user_follow_business,is_business_follow_user
-    const profileUrl = `https://graph.instagram.com/v24.0/${targetUserId}?fields=id,username,is_user_follow_business,is_business_follow_user`
-
-    const profileResponse = await fetch(profileUrl, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-      },
-    })
-    const profileResult = await profileResponse.json()
-
-    console.log('User Profile API response:', JSON.stringify(profileResult, null, 2))
-
-    if (!profileResult.error && profileResult.is_user_follow_business !== undefined) {
-      const isFollower = profileResult.is_user_follow_business === true
-      console.log('Follower check result from User Profile API:', isFollower)
-      return isFollower
-    }
-
-    // 방법 2: Conversations API에서 participants 내부의 is_user_follow_business 확인
-    // 중첩 필드로 요청: participants{id,username,is_user_follow_business}
-    console.log('User Profile API failed, trying Conversations API with nested fields...')
-
+    // Conversations API에서 participants 내부의 is_user_follow_business 확인
     const conversationsUrl = `https://graph.instagram.com/v24.0/${myInstagramUserId}/conversations?platform=instagram&user_id=${targetUserId}&fields=participants{id,username,is_user_follow_business,is_business_follow_user}`
 
     const conversationsResponse = await fetch(conversationsUrl, {
@@ -157,31 +133,6 @@ async function checkIfFollower(
 
     if (conversationsResult.error) {
       console.error('Conversations API error:', conversationsResult.error)
-
-      // 방법 3: 마지막으로 기본 conversations API 시도
-      console.log('Trying basic Conversations API...')
-      const basicUrl = `https://graph.instagram.com/v24.0/${myInstagramUserId}/conversations?platform=instagram&user_id=${targetUserId}`
-
-      const basicResponse = await fetch(basicUrl, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      })
-      const basicResult = await basicResponse.json()
-
-      console.log('Basic Conversations API response:', JSON.stringify(basicResult, null, 2))
-
-      if (basicResult.error) {
-        console.error('All API methods failed')
-        return false
-      }
-
-      // 대화가 존재하면 기본적으로 팔로워로 간주 (대화 시작 = 관계 있음)
-      if (basicResult.data && basicResult.data.length > 0) {
-        console.log('Conversation exists, assuming follower relationship')
-        return true
-      }
-
       return false
     }
 
@@ -213,7 +164,6 @@ async function checkIfFollower(
     return false
   }
 }
-*/
 
 // 링크 메시지 발송 함수 (Private Reply - 누구에게나 발송 가능)
 // 팔로워 체크 불필요 모드에서 사용
@@ -879,44 +829,78 @@ async function handleFollowConfirmed(
 
     // ⭐ require_follow 설정에 따라 분기
     if (requireFollow) {
-      // 팔로워 체크 필요: 팔로우 확인 없이 무조건 팔로우 요청 메시지만 재발송
-      // Instagram API로는 팔로워 여부를 정확히 확인할 수 없으므로,
-      // 사용자에게 계속 팔로우 요청을 보내는 방식 사용 (인포크/소셜비즈 방식)
-      console.log('require_follow=true: Sending follow request message again (no follower check)...')
+      // 팔로워 체크 필요: Conversations API로 실제 팔로워 여부 확인
+      console.log('require_follow=true: Checking if user is actually a follower...')
 
-      const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
-        `아직 팔로우가 확인되지 않았어요! 😅\n\n팔로우 후 다시 버튼을 눌러주세요!`
-      const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
+      const isFollower = await checkIfFollower(myInstagramUserId, senderId, accessToken)
+      console.log('Is follower?', isFollower)
 
-      const response = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          recipient: { id: senderId },
-          message: {
-            attachment: {
-              type: 'template',
-              payload: {
-                template_type: 'button',
-                text: followRequestMessage,
-                buttons: [{
-                  type: 'postback',
-                  title: followButtonText,
-                  payload: `follow_confirmed:${dmSettingId}:${trackingUrl}`,
-                }],
+      if (isFollower) {
+        // ✅ 팔로워임 → 링크 발송
+        console.log('User is a follower! Sending link...')
+
+        const sendResult = await sendLinkMessage(
+          senderId,
+          accessToken,
+          dmMessageText,
+          trackingUrl,
+          productImageUrl,
+          productName
+        )
+
+        if (sendResult.success) {
+          console.log('Link sent successfully to follower.')
+
+          // DM 로그 업데이트 (링크 발송 완료)
+          await supabase
+            .from('instagram_dm_logs')
+            .update({
+              status: 'link_sent',
+              link_sent_at: new Date().toISOString(),
+            })
+            .eq('dm_setting_id', dmSettingId)
+            .eq('recipient_ig_user_id', senderId)
+        } else {
+          console.error('Failed to send link message to follower:', sendResult.error)
+        }
+      } else {
+        // ❌ 팔로워 아님 → 팔로우 요청 메시지 재발송
+        console.log('User is NOT a follower. Sending follow request message...')
+
+        const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
+          `아직 팔로우가 확인되지 않았어요! 😅\n\n팔로우 후 다시 버튼을 눌러주세요!`
+        const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
+
+        const response = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            recipient: { id: senderId },
+            message: {
+              attachment: {
+                type: 'template',
+                payload: {
+                  template_type: 'button',
+                  text: followRequestMessage,
+                  buttons: [{
+                    type: 'postback',
+                    title: followButtonText,
+                    payload: `follow_confirmed:${dmSettingId}:${trackingUrl}`,
+                  }],
+                },
               },
             },
-          },
-        }),
-      })
+          }),
+        })
 
-      const result = await response.json()
-      console.log('Follow request message sent:', result.error ? 'FAILED' : 'SUCCESS')
+        const result = await response.json()
+        console.log('Follow request message sent:', result.error ? 'FAILED' : 'SUCCESS', result)
+      }
 
-      return // 팔로워 체크 모드에서는 링크를 보내지 않고 종료
+      return // require_follow=true 처리 완료
     } else {
       // require_follow=false: 팔로워 체크 없이 바로 링크 발송
       console.log('require_follow=false: Sending link without follower check...')
