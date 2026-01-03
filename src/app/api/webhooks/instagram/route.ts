@@ -618,21 +618,103 @@ async function handleCommentEvent(
     let messageType: 'link' | 'follow_request' = requireFollow ? 'follow_request' : 'link'
 
     if (requireFollow) {
-      // 옵션 1: 팔로워 체크 필요 → 팔로우 요청 메시지 먼저 발송
-      console.log('Require follow mode: Sending follow request message first...')
+      // 옵션 1: 팔로워 체크 필요 → 3가지 방식으로 모두 팔로우 요청 메시지 발송 테스트
+      console.log('🧪 [테스트 모드] 3가지 방식으로 팔로우 요청 메시지 발송...')
 
       const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
         `안녕하세요! 댓글 감사합니다 🙏\n\n링크를 받으시려면 팔로우 후 아래 버튼을 눌러주세요!`
       const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
 
-      dmSent = await sendInstagramPrivateReplyWithQuickReply(
-        commentData.id,
-        followRequestMessage,
-        accessToken,
-        dmSettings.id,
-        trackingUrl,
-        followButtonText
-      )
+      // 1️⃣ 일반 DM 발송 시도
+      console.log('1️⃣ 일반 DM으로 팔로우 요청 메시지 발송 시도...')
+      const regularDmResponse = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { id: commenterIgUserId },
+          message: {
+            attachment: {
+              type: 'template',
+              payload: {
+                template_type: 'button',
+                text: followRequestMessage,
+                buttons: [{
+                  type: 'postback',
+                  title: followButtonText,
+                  payload: `follow_confirmed:${dmSettings.id}:${trackingUrl}`,
+                }],
+              },
+            },
+          },
+        }),
+      })
+      const regularDmResult = await regularDmResponse.json()
+      console.log('✅ 1️⃣ 일반 DM 결과:', JSON.stringify(regularDmResult, null, 2))
+
+      // 2️⃣ Quick Reply 발송 시도
+      console.log('2️⃣ Quick Reply로 팔로우 요청 메시지 발송 시도...')
+      const quickReplyResponse = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { id: commenterIgUserId },
+          message: {
+            text: `${followRequestMessage}\n\n👉 ${followButtonText}`,
+            quick_replies: [{
+              content_type: 'text',
+              title: followButtonText,
+              payload: `follow_confirmed:${dmSettings.id}:${trackingUrl}`,
+            }],
+          },
+        }),
+      })
+      const quickReplyResult = await quickReplyResponse.json()
+      console.log('✅ 2️⃣ Quick Reply 결과:', JSON.stringify(quickReplyResult, null, 2))
+
+      // 3️⃣ Private Reply 발송 시도
+      console.log('3️⃣ Private Reply로 팔로우 요청 메시지 발송 시도...')
+      const privateReplyResponse = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { comment_id: commentData.id },
+          message: {
+            attachment: {
+              type: 'template',
+              payload: {
+                template_type: 'button',
+                text: followRequestMessage,
+                buttons: [{
+                  type: 'postback',
+                  title: followButtonText,
+                  payload: `follow_confirmed:${dmSettings.id}:${trackingUrl}`,
+                }],
+              },
+            },
+          },
+        }),
+      })
+      const privateReplyResult = await privateReplyResponse.json()
+      console.log('✅ 3️⃣ Private Reply 결과:', JSON.stringify(privateReplyResult, null, 2))
+
+      console.log('========================================')
+      console.log('📊 3가지 발송 방식 결과 요약:')
+      console.log('1️⃣ 일반 DM:', regularDmResult.error ? '❌ 실패' : '✅ 성공', regularDmResult.error || '')
+      console.log('2️⃣ Quick Reply:', quickReplyResult.error ? '❌ 실패' : '✅ 성공', quickReplyResult.error || '')
+      console.log('3️⃣ Private Reply:', privateReplyResult.error ? '❌ 실패' : '✅ 성공', privateReplyResult.error || '')
+      console.log('========================================')
+
+      // 하나라도 성공하면 dmSent = true
+      dmSent = !regularDmResult.error || !quickReplyResult.error || !privateReplyResult.error
     } else {
       // 옵션 2: 팔로워 체크 불필요 → Private Reply로 링크 바로 발송
       console.log('No follow required mode: Sending link directly via Private Reply...')
