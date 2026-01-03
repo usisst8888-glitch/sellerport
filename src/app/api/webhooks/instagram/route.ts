@@ -740,71 +740,6 @@ async function handleMessagingEvent(event: {
   }
 }
 
-// Instagram API로 팔로워 여부 확인
-// 방법: Instagram Business Discovery API 사용
-// 참고: https://developers.facebook.com/docs/instagram-api/reference/ig-user
-async function checkIfFollowerByAPI(
-  myInstagramUserId: string,
-  userInstagramId: string,
-  accessToken: string
-): Promise<boolean> {
-  try {
-    // 먼저 해당 사용자의 관계 상태 확인
-    // follows 엔드포인트 사용 (follower 관계 확인)
-    const url = `https://graph.instagram.com/v24.0/${myInstagramUserId}?fields=followers_count&access_token=${accessToken}`
-
-    console.log('Checking follower status for user:', userInstagramId)
-
-    // Instagram Graph API는 개별 사용자의 팔로워 여부를 직접 확인하는 API가 없음
-    // 대신 메시지 발송 가능 여부로 판단해야 함
-
-    // 간단한 텍스트 메시지로 테스트 (Ice Breaker 형태)
-    const testResponse = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        recipient: { id: userInstagramId },
-        message: {
-          text: '.' // 최소한의 테스트 메시지
-        },
-      }),
-    })
-
-    const testResult = await testResponse.json()
-
-    console.log('Follower test message result:', JSON.stringify(testResult, null, 2))
-
-    // 메시지 발송이 성공하면 팔로워 또는 DM 가능 상태
-    // 에러 코드 확인: 10, 551, 200 등은 권한 없음을 의미
-    if (testResult.error) {
-      const errorCode = testResult.error.code
-      const errorMessage = testResult.error.message
-
-      console.log(`Follower check failed - Error ${errorCode}: ${errorMessage}`)
-
-      // 특정 에러 코드들은 비팔로워를 의미
-      const nonFollowerErrors = [10, 551, 200, 100]
-      if (nonFollowerErrors.includes(errorCode)) {
-        return false // 확실히 비팔로워
-      }
-
-      // 기타 에러는 불확실하므로 true 반환 (안전장치)
-      return true
-    }
-
-    // 성공 → 팔로워 또는 메시지 가능 상태
-    return true
-
-  } catch (error) {
-    console.error('Error checking follower status:', error)
-    // 에러 시 true 반환 (안전장치: 링크 발송 허용)
-    return true
-  }
-}
-
 // 링크 메시지 발송 함수
 async function sendLinkMessage(
   senderId: string,
@@ -944,78 +879,72 @@ async function handleFollowConfirmed(
 
     // ⭐ require_follow 설정에 따라 분기
     if (requireFollow) {
-      // 팔로워 체크 필요: 먼저 팔로워 여부 확인
-      console.log('require_follow=true: Checking if user is a follower...')
+      // 팔로워 체크 필요: 팔로우 확인 없이 무조건 팔로우 요청 메시지만 재발송
+      // Instagram API로는 팔로워 여부를 정확히 확인할 수 없으므로,
+      // 사용자에게 계속 팔로우 요청을 보내는 방식 사용 (인포크/소셜비즈 방식)
+      console.log('require_follow=true: Sending follow request message again (no follower check)...')
 
-      const isFollower = await checkIfFollowerByAPI(myInstagramUserId, senderId, accessToken)
+      const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
+        `아직 팔로우가 확인되지 않았어요! 😅\n\n팔로우 후 다시 버튼을 눌러주세요!`
+      const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
 
-      if (!isFollower) {
-        // ❌ 비팔로워: 팔로우 요청 메시지 재발송
-        console.log('User is NOT a follower. Sending follow request message again...')
-
-        const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
-          `아직 팔로우가 확인되지 않았어요! 😅\n\n팔로우 후 다시 버튼을 눌러주세요!`
-        const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
-
-        await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            recipient: { id: senderId },
-            message: {
-              attachment: {
-                type: 'template',
-                payload: {
-                  template_type: 'button',
-                  text: followRequestMessage,
-                  buttons: [{
-                    type: 'postback',
-                    title: followButtonText,
-                    payload: `follow_confirmed:${dmSettingId}:${trackingUrl}`,
-                  }],
-                },
+      const response = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { id: senderId },
+          message: {
+            attachment: {
+              type: 'template',
+              payload: {
+                template_type: 'button',
+                text: followRequestMessage,
+                buttons: [{
+                  type: 'postback',
+                  title: followButtonText,
+                  payload: `follow_confirmed:${dmSettingId}:${trackingUrl}`,
+                }],
               },
             },
-          }),
-        })
+          },
+        }),
+      })
 
-        return // 팔로워가 아니므로 종료
-      }
+      const result = await response.json()
+      console.log('Follow request message sent:', result.error ? 'FAILED' : 'SUCCESS')
 
-      // ✅ 팔로워 확인됨: 링크 발송
-      console.log('User IS a follower. Sending link message...')
+      return // 팔로워 체크 모드에서는 링크를 보내지 않고 종료
     } else {
       // require_follow=false: 팔로워 체크 없이 바로 링크 발송
       console.log('require_follow=false: Sending link without follower check...')
-    }
 
-    // 공통: 링크 메시지 발송
-    const sendResult = await sendLinkMessage(
-      senderId,
-      accessToken,
-      dmMessageText,
-      trackingUrl,
-      productImageUrl,
-      productName
-    )
+      const sendResult = await sendLinkMessage(
+        senderId,
+        accessToken,
+        dmMessageText,
+        trackingUrl,
+        productImageUrl,
+        productName
+      )
 
-    if (sendResult.success) {
-      console.log('Link message sent successfully.')
+      if (sendResult.success) {
+        console.log('Link message sent successfully.')
 
-      // DM 로그 업데이트 (링크 발송 완료)
-      await supabase
-        .from('instagram_dm_logs')
-        .update({
-          status: 'link_sent',
-          link_sent_at: new Date().toISOString(),
-        })
-        .eq('dm_setting_id', dmSettingId)
-        .eq('recipient_ig_user_id', senderId)
-    } else {
-      console.error('Failed to send link message:', sendResult.error)
+        // DM 로그 업데이트 (링크 발송 완료)
+        await supabase
+          .from('instagram_dm_logs')
+          .update({
+            status: 'link_sent',
+            link_sent_at: new Date().toISOString(),
+          })
+          .eq('dm_setting_id', dmSettingId)
+          .eq('recipient_ig_user_id', senderId)
+      } else {
+        console.error('Failed to send link message:', sendResult.error)
+      }
     }
   } catch (error) {
     console.error('Error handling follow confirmed:', error)
