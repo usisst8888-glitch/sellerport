@@ -740,6 +740,50 @@ async function handleMessagingEvent(event: {
   }
 }
 
+// Instagram API로 팔로워 여부 확인
+async function checkIfFollower(
+  myInstagramUserId: string,
+  userInstagramId: string,
+  accessToken: string
+): Promise<boolean> {
+  try {
+    // Instagram Graph API: GET /{user-id}/followers
+    // 참고: https://developers.facebook.com/docs/instagram-basic-display-api/reference/user/followers
+    const url = `https://graph.instagram.com/v24.0/${myInstagramUserId}/followers?access_token=${accessToken}`
+
+    let isFollower = false
+    let nextUrl: string | null = url
+
+    // 페이지네이션으로 팔로워 목록 검색 (최대 5페이지만)
+    for (let page = 0; page < 5 && nextUrl; page++) {
+      const response: Response = await fetch(nextUrl)
+      const result: { data?: { id: string }[]; error?: unknown; paging?: { next?: string } } = await response.json()
+
+      if (result.error) {
+        console.error('Error checking followers:', result.error)
+        // API 에러 시 true 반환 (링크 발송 허용)
+        return true
+      }
+
+      // 팔로워 목록에서 사용자 ID 검색
+      const followers = result.data || []
+      if (followers.some((follower: { id: string }) => follower.id === userInstagramId)) {
+        isFollower = true
+        break
+      }
+
+      // 다음 페이지
+      nextUrl = result.paging?.next || null
+    }
+
+    return isFollower
+  } catch (error) {
+    console.error('Error checking follower status:', error)
+    // 에러 시 true 반환 (안전장치: 링크 발송 허용)
+    return true
+  }
+}
+
 // 팔로우 확인 버튼 클릭 시 처리
 // 수정된 로직: 먼저 팔로워 여부 확인 → 팔로워면 링크 발송, 아니면 팔로우 요청 재발송
 async function handleFollowConfirmed(
@@ -773,15 +817,63 @@ async function handleFollowConfirmed(
 
     const accessToken = dmSettings.instagram_accounts.access_token
     const myInstagramUserId = dmSettings.instagram_accounts.instagram_user_id
+    const requireFollow = dmSettings.require_follow ?? true // 기본값 true
 
-    // ⭐ 핵심: 링크 메시지 먼저 시도 → 실패하면 비팔로워로 판단
-    console.log('Attempting to send link message directly...')
+    // ⭐ require_follow 설정에 따라 분기
+    if (requireFollow) {
+      // 팔로워 체크 필요: Instagram API로 팔로워 여부 확인
+      console.log('require_follow=true: Checking if user is a follower...')
 
+      const isFollower = await checkIfFollower(myInstagramUserId, senderId, accessToken)
+
+      if (!isFollower) {
+        // ❌ 팔로워가 아님: 팔로우 요청 메시지 재발송
+        console.log('User is NOT a follower. Sending follow request message again...')
+
+        const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
+          `아직 팔로우가 확인되지 않았어요! 😅\n\n팔로우 후 다시 버튼을 눌러주세요!`
+        const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
+
+        await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            recipient: { id: senderId },
+            message: {
+              attachment: {
+                type: 'template',
+                payload: {
+                  template_type: 'button',
+                  text: followRequestMessage,
+                  buttons: [{
+                    type: 'postback',
+                    title: followButtonText,
+                    payload: `follow_confirmed:${dmSettingId}:${trackingUrl}`,
+                  }],
+                },
+              },
+            },
+          }),
+        })
+
+        return // 팔로워가 아니므로 여기서 종료
+      }
+
+      // ✅ 팔로워 확인됨: 링크 발송
+      console.log('User IS a follower. Sending link message...')
+    } else {
+      // require_follow=false: 팔로워 체크 없이 바로 링크 발송
+      console.log('require_follow=false: Sending link without follower check...')
+    }
+
+    // 링크 메시지 발송 (공통)
     let linkSent = false
 
     try {
-      // ✅ 팔로워인 경우: 링크 메시지 발송 성공
-      console.log('Trying to send link message...')
+      console.log('Sending link message...')
 
       const dmMessageText = dmSettings.dm_message || '감사합니다! 요청하신 링크입니다 👇'
 
@@ -861,12 +953,11 @@ async function handleFollowConfirmed(
       const result = await response.json()
 
       if (result.error) {
-        console.error('Link message send error (likely not a follower):', result.error)
-        // 에러 발생 → 비팔로워로 판단
-        throw new Error('User is not a follower')
+        console.error('Link message send error:', result.error)
+        throw new Error('Link message failed')
       }
 
-      console.log('Link message sent successfully to follower:', senderId)
+      console.log('Link message sent successfully:', senderId)
       linkSent = true
 
       // DM 로그 업데이트 (링크 발송 완료)
@@ -880,47 +971,7 @@ async function handleFollowConfirmed(
         .eq('recipient_ig_user_id', senderId)
 
     } catch (error) {
-      // ❌ 링크 메시지 실패 → 팔로워가 아닌 경우: 팔로우 요청 메시지 재발송
-      console.log('Link message failed (user is NOT a follower). Sending follow request message again...', error)
-
-      // DB 컬럼에서 메시지 가져오기 (follow_request_message 또는 follow_cta_message)
-      const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
-        `아직 팔로우가 확인되지 않았어요! 😅\n\n팔로우 후 다시 버튼을 눌러주세요!`
-      const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
-
-      // 팔로우 요청 메시지 재발송 (Postback 버튼 사용 - 말풍선 안에 버튼)
-      const response = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          recipient: { id: senderId },
-          message: {
-            attachment: {
-              type: 'template',
-              payload: {
-                template_type: 'button',
-                text: followRequestMessage,
-                buttons: [{
-                  type: 'postback',
-                  title: followButtonText,
-                  payload: `follow_confirmed:${dmSettingId}:${trackingUrl}`,
-                }],
-              },
-            },
-          },
-        }),
-      })
-
-      const result = await response.json()
-
-      if (result.error) {
-        console.error('Follow request re-send error:', result.error)
-      } else {
-        console.log('Follow request message with button sent again to:', senderId)
-      }
+      console.error('Link message send error:', error)
     }
   } catch (error) {
     console.error('Error handling follow confirmed:', error)
