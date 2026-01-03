@@ -627,46 +627,59 @@ async function handleCommentEvent(
     let messageType: 'link' | 'follow_request' = requireFollow ? 'follow_request' : 'link'
 
     if (requireFollow) {
-      // 옵션 1: 팔로워 체크 필요 → Private Reply로 팔로우 요청 메시지 발송
-      console.log('🔍 [팔로워 체크 모드] Private Reply로 팔로우 요청 메시지 발송...')
+      // 🧪 새로운 테스트: 일반 DM with web_url 버튼으로 링크 직접 발송
+      // 가설: 팔로워가 아니면 이 방식으로 발송 실패할 것!
+      console.log('🔍 [팔로워 체크 모드] 일반 DM with web_url 버튼으로 링크 직접 발송 테스트...')
 
-      const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
-        `안녕하세요! 댓글 감사합니다 🙏\n\n링크를 받으시려면 팔로우 후 아래 버튼을 눌러주세요!`
-      const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
+      const dmMessageText = dmSettings.dm_message || `안녕하세요! 댓글 감사합니다 🙏\n\n아래 버튼을 눌러 링크를 확인하세요!`
+      const linkButtonText = dmSettings.link_button_text || '링크 확인하기'
 
-      // Private Reply로 팔로우 요청 메시지 발송 (comment_id 사용)
-      const privateReplyResponse = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
+      // 일반 DM으로 web_url 버튼 발송 (recipient: {id} 사용)
+      console.log('📤 발송 대상 Instagram User ID:', commentData.from.id)
+      console.log('📝 메시지:', dmMessageText)
+      console.log('🔗 링크:', trackingUrl)
+
+      const regularDmResponse = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          recipient: { comment_id: commentData.id },
+          recipient: { id: commentData.from.id }, // ⭐ 일반 DM (user_id 사용)
           message: {
             attachment: {
               type: 'template',
               payload: {
                 template_type: 'button',
-                text: followRequestMessage,
+                text: dmMessageText,
                 buttons: [{
-                  type: 'postback',
-                  title: followButtonText,
-                  payload: `follow_confirmed:${dmSettings.id}:${trackingUrl}:${commentData.id}`,
+                  type: 'web_url', // ⭐ web_url 버튼 (외부 링크)
+                  title: linkButtonText,
+                  url: trackingUrl,
                 }],
               },
             },
           },
         }),
       })
-      const privateReplyResult = await privateReplyResponse.json()
+      const regularDmResult = await regularDmResponse.json()
 
-      if (privateReplyResult.error) {
-        console.error('❌ Private Reply 발송 실패:', privateReplyResult.error)
+      console.log('📊 일반 DM with web_url 발송 결과:', regularDmResult)
+
+      if (regularDmResult.error) {
+        console.error('❌ 일반 DM 발송 실패 (팔로워 아님?):', {
+          code: regularDmResult.error.code,
+          message: regularDmResult.error.message,
+          type: regularDmResult.error.type,
+          error_subcode: regularDmResult.error.error_subcode,
+          fbtrace_id: regularDmResult.error.fbtrace_id,
+        })
         dmSent = false
       } else {
-        console.log('✅ Private Reply 팔로우 요청 메시지 발송 성공')
+        console.log('✅ 일반 DM 발송 성공 (팔로워임!)')
         dmSent = true
+        messageType = 'link' // 링크를 바로 보냈으므로
       }
     } else {
       // 옵션 2: 팔로워 체크 불필요 → Private Reply로 링크 바로 발송
