@@ -980,7 +980,7 @@ async function handleFollowConfirmed(
         const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
 
         // Private Reply로 팔로우 요청 메시지 재발송
-        await sendInstagramPrivateReplyWithQuickReply(
+        const followRequestSent = await sendInstagramPrivateReplyWithQuickReply(
           commentId,
           followRequestMessage,
           accessToken,
@@ -988,6 +988,12 @@ async function handleFollowConfirmed(
           trackingUrl,
           followButtonText
         )
+
+        if (followRequestSent) {
+          console.log('✅ Follow request message sent successfully via Private Reply')
+        } else {
+          console.error('❌ Failed to send follow request message via Private Reply')
+        }
       }
 
       return // require_follow=true 처리 완료
