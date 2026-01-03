@@ -360,7 +360,8 @@ async function handleCommentEvent(
       supabaseUrlPrefix: supabaseUrl?.substring(0, 20)
     })
 
-    const queryUrl = `${supabaseUrl}/rest/v1/instagram_dm_settings?instagram_media_id=eq.${mediaId}&is_active=eq.true&select=*,instagram_accounts:instagram_account_id(id,user_id,access_token,instagram_user_id),tracking_links:tracking_link_id(id,tracking_url,go_url,post_name)&order=created_at.desc&limit=1`
+    // 먼저 DM 설정만 가져오기 (JOIN 없이)
+    const queryUrl = `${supabaseUrl}/rest/v1/instagram_dm_settings?instagram_media_id=eq.${mediaId}&is_active=eq.true&select=*&limit=1`
 
     console.log('Fetching from Supabase:', queryUrl.substring(0, 100) + '...')
 
@@ -379,6 +380,41 @@ async function handleCommentEvent(
 
     const dmSettingsList = await response.json()
     const dmSettingsError = response.ok ? null : dmSettingsList
+
+    // DM 설정이 있으면 관련 데이터를 별도로 가져오기
+    if (response.ok && Array.isArray(dmSettingsList) && dmSettingsList.length > 0) {
+      const dmSetting = dmSettingsList[0]
+
+      // Instagram 계정 정보 가져오기
+      if (dmSetting.instagram_account_id) {
+        const accountUrl = `${supabaseUrl}/rest/v1/instagram_accounts?id=eq.${dmSetting.instagram_account_id}&select=id,user_id,access_token,instagram_user_id`
+        const accountResponse = await fetch(accountUrl, {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+        })
+        const accountData = await accountResponse.json()
+        if (accountData && accountData.length > 0) {
+          dmSetting.instagram_accounts = accountData[0]
+        }
+      }
+
+      // Tracking Link 정보 가져오기
+      if (dmSetting.tracking_link_id) {
+        const linkUrl = `${supabaseUrl}/rest/v1/tracking_links?id=eq.${dmSetting.tracking_link_id}&select=id,tracking_url,go_url,post_name`
+        const linkResponse = await fetch(linkUrl, {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+        })
+        const linkData = await linkResponse.json()
+        if (linkData && linkData.length > 0) {
+          dmSetting.tracking_links = linkData[0]
+        }
+      }
+    }
 
     console.log('DM settings query result:', {
       found: Array.isArray(dmSettingsList) ? dmSettingsList.length : 0,
