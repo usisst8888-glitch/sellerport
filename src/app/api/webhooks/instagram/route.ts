@@ -1234,9 +1234,10 @@ async function sendFollowerCheckQuickReply(
 }
 
 // 팔로우 확인 버튼 클릭 시 처리
-// ⭐ 핵심 원리: Webhook이 왔다는 것 자체가 팔로워임을 증명!
-// - 팔로워가 버튼 클릭 → 일반 받은편지함 → Webhook 수신 → 이 함수 호출됨
-// - 비팔로워가 버튼 클릭 → 메시지 요청 폴더 → Webhook 안 옴 → 이 함수 호출 안 됨
+// ⭐ 핵심 로직:
+// 1. 버튼 클릭 Webhook 수신 → 링크 메시지 발송 시도
+// 2. 발송 성공 = 팔로워 → 완료
+// 3. 발송 실패 = 비팔로워 → "팔로우 해주세요" 버튼 다시 발송
 async function handleFollowConfirmed(
   senderId: string,
   _recipientId: string,
@@ -1245,7 +1246,7 @@ async function handleFollowConfirmed(
   _commentId?: string
 ) {
   try {
-    console.log('=== ✅ 팔로워 확인됨! (Webhook 수신 = 팔로워) ===')
+    console.log('=== 버튼 클릭 감지! 링크 발송 시도 ===')
     console.log('User ID:', senderId)
     console.log('DM Setting ID:', dmSettingId)
     console.log('Tracking URL:', trackingUrl)
@@ -1292,8 +1293,8 @@ async function handleFollowConfirmed(
       }
     }
 
-    // ⭐ Webhook이 왔다 = 팔로워 확인됨 → 바로 링크 발송!
-    console.log('✅ [팔로워 확인됨] 링크 메시지 발송 중...')
+    // ⭐ 링크 메시지 발송 시도
+    console.log('📤 링크 메시지 발송 시도 중...')
     console.log('발송 내용:', dmMessageText)
     console.log('추적 URL:', trackingUrl)
 
@@ -1308,7 +1309,8 @@ async function handleFollowConfirmed(
     )
 
     if (sendResult.success) {
-      console.log('✅✅✅ 링크 메시지 발송 성공!')
+      // ✅ 발송 성공 = 팔로워!
+      console.log('✅✅✅ 링크 메시지 발송 성공! (팔로워 확인됨)')
 
       // DM 로그 업데이트 (링크 발송 완료)
       await supabase
@@ -1322,7 +1324,49 @@ async function handleFollowConfirmed(
 
       console.log('DM 로그 업데이트 완료 - status: link_sent')
     } else {
-      console.error('❌ 링크 메시지 발송 실패:', sendResult.error)
+      // ❌ 발송 실패 = 비팔로워! → "팔로우 해주세요" 버튼 다시 발송
+      console.log('❌ 링크 메시지 발송 실패 (비팔로워로 판단)')
+      console.log('에러:', sendResult.error)
+
+      const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
+        `아직 팔로우가 확인되지 않았어요! 😅\n\n팔로우 후 다시 버튼을 눌러주세요!`
+      const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
+
+      console.log('📤 팔로우 요청 메시지 재발송 중...')
+
+      // 일반 DM으로 팔로우 요청 버튼 다시 발송
+      const retryResponse = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { id: senderId },
+          message: {
+            attachment: {
+              type: 'template',
+              payload: {
+                template_type: 'button',
+                text: followRequestMessage,
+                buttons: [{
+                  type: 'postback',
+                  title: followButtonText,
+                  payload: `follow_confirmed:${dmSettingId}:${trackingUrl}`,
+                }],
+              },
+            },
+          },
+        }),
+      })
+
+      const retryResult = await retryResponse.json()
+
+      if (retryResult.error) {
+        console.error('❌ 팔로우 요청 버튼 재발송 실패:', retryResult.error)
+      } else {
+        console.log('✅ 팔로우 요청 버튼 재발송 성공:', retryResult)
+      }
     }
   } catch (error) {
     console.error('Error handling follow confirmed:', error)
