@@ -212,6 +212,35 @@ export async function GET(request: NextRequest) {
       accountType: userInfo?.account_type,
     })
 
+    // 5. Webhook 구독 (유저별로 필수!)
+    // 참고: https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/webhooks
+    // POST /{INSTAGRAM_ACCOUNT_ID}/subscribed_apps?subscribed_fields=comments,messages
+    try {
+      const subscribeUrl = `https://graph.instagram.com/v24.0/${instagramUserId}/subscribed_apps`
+      const subscribeResponse = await fetch(subscribeUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          subscribed_fields: 'comments,messages',
+          access_token: accessToken,
+        }).toString(),
+      })
+
+      const subscribeResult = await subscribeResponse.json()
+
+      if (subscribeResult.error) {
+        console.error('Failed to subscribe to webhooks:', subscribeResult.error)
+        // 웹훅 구독 실패해도 계정 연결은 성공으로 처리 (나중에 다시 시도 가능)
+      } else {
+        console.log('Webhook subscription successful:', subscribeResult)
+      }
+    } catch (webhookError) {
+      console.error('Webhook subscription error:', webhookError)
+      // 웹훅 구독 실패해도 계정 연결은 성공으로 처리
+    }
+
     // 성공
     const redirectUrl = siteId
       ? `${process.env.NEXT_PUBLIC_APP_URL}/${redirectPath}?success=instagram_connected&siteId=${siteId}`
