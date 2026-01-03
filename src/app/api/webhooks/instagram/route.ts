@@ -351,9 +351,17 @@ async function handleCommentEvent(
     // 해당 미디어(게시물)에 대한 DM 설정 찾기
     console.log('Fetching DM settings for media:', mediaId)
 
+    // 환경 변수 확인
+    console.log('Environment variables check:', {
+      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasSupabaseKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30)
+    })
+
     const supabase = getSupabaseClient()
 
     // 1. DM 설정만 빠르게 조회 (JOIN 없이)
+    console.log('Starting DM settings query...')
     const { data: dmSettingsList, error: dmSettingsError } = await supabase
       .from('instagram_dm_settings')
       .select('*')
@@ -361,9 +369,11 @@ async function handleCommentEvent(
       .eq('is_active', true)
       .limit(1)
 
+    console.log('DM settings query completed')
     console.log('DM settings query result:', {
       found: dmSettingsList?.length || 0,
       error: dmSettingsError?.message,
+      errorDetails: dmSettingsError,
       mediaId
     })
 
