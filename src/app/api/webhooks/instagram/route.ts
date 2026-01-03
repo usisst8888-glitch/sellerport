@@ -1234,18 +1234,21 @@ async function sendFollowerCheckQuickReply(
 }
 
 // 팔로우 확인 버튼 클릭 시 처리
-// Private Reply 발송으로 팔로워 여부 확인
+// ⭐ 핵심 원리: Webhook이 왔다는 것 자체가 팔로워임을 증명!
+// - 팔로워가 버튼 클릭 → 일반 받은편지함 → Webhook 수신 → 이 함수 호출됨
+// - 비팔로워가 버튼 클릭 → 메시지 요청 폴더 → Webhook 안 옴 → 이 함수 호출 안 됨
 async function handleFollowConfirmed(
   senderId: string,
-  recipientId: string,
+  _recipientId: string,
   dmSettingId: string,
   trackingUrl: string,
-  commentId?: string
+  _commentId?: string
 ) {
   try {
-    console.log('=== 팔로우 확인 버튼 클릭 ===')
+    console.log('=== ✅ 팔로워 확인됨! (Webhook 수신 = 팔로워) ===')
     console.log('User ID:', senderId)
     console.log('DM Setting ID:', dmSettingId)
+    console.log('Tracking URL:', trackingUrl)
 
     const supabase = getSupabaseClient()
 
@@ -1268,9 +1271,6 @@ async function handleFollowConfirmed(
     }
 
     const accessToken = dmSettings.instagram_accounts.access_token
-    const myInstagramUserId = dmSettings.instagram_accounts.instagram_user_id
-    const requireFollow = dmSettings.require_follow ?? true // 기본값 true
-
     const dmMessageText = dmSettings.dm_message || '감사합니다! 요청하신 링크입니다 👇'
 
     // 상품 정보 가져오기 (Generic Template용)
@@ -1292,128 +1292,37 @@ async function handleFollowConfirmed(
       }
     }
 
-    // ⭐ require_follow 설정에 따라 분기
-    if (requireFollow) {
-      // 🧪 새로운 테스트: 링크가 포함된 텍스트 메시지로 팔로워 체크
-      // 가설: 팔로워가 아니면 링크 포함 텍스트 메시지 발송 실패
-      console.log('🔍 [팔로워 체크 모드] 링크 포함 텍스트 메시지로 발송 시도...')
-      console.log('발송 내용:', dmMessageText)
-      console.log('추적 URL:', trackingUrl)
+    // ⭐ Webhook이 왔다 = 팔로워 확인됨 → 바로 링크 발송!
+    console.log('✅ [팔로워 확인됨] 링크 메시지 발송 중...')
+    console.log('발송 내용:', dmMessageText)
+    console.log('추적 URL:', trackingUrl)
 
-      // 방법 1: 텍스트 메시지에 링크 직접 포함
-      const textWithLink = `${dmMessageText}\n\n${trackingUrl}`
+    // 링크 메시지 발송 (일반 DM)
+    const sendResult = await sendLinkMessage(
+      senderId,
+      accessToken,
+      dmMessageText,
+      trackingUrl,
+      productImageUrl,
+      productName
+    )
 
-      const textMessageResponse = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          recipient: { id: senderId },
-          message: {
-            text: textWithLink
-          },
-        }),
-      })
+    if (sendResult.success) {
+      console.log('✅✅✅ 링크 메시지 발송 성공!')
 
-      const textMessageResult = await textMessageResponse.json()
-
-      console.log('===== 링크 포함 텍스트 메시지 발송 결과 =====')
-      console.log('응답:', JSON.stringify(textMessageResult, null, 2))
-      console.log('==========================================')
-
-      if (textMessageResult.error) {
-        // ❌ 텍스트 메시지 발송 실패 = 비팔로워?
-        console.log('❌❌❌ 링크 포함 텍스트 메시지 실패!')
-        console.log('에러 코드:', textMessageResult.error.code)
-        console.log('에러 메시지:', textMessageResult.error.message)
-        console.log('에러 타입:', textMessageResult.error.type)
-        console.log('에러 상세:', JSON.stringify(textMessageResult.error, null, 2))
-
-        const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
-          `아직 팔로우가 확인되지 않았어요! 😅\n\n팔로우 후 다시 버튼을 눌러주세요!`
-        const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
-
-        console.log('팔로우 요청 메시지 재발송 중...')
-
-        // 일반 DM으로 팔로우 요청 메시지 재발송 (버튼 포함)
-        const response = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            recipient: { id: senderId },
-            message: {
-              attachment: {
-                type: 'template',
-                payload: {
-                  template_type: 'button',
-                  text: followRequestMessage,
-                  buttons: [{
-                    type: 'postback',
-                    title: followButtonText,
-                    payload: `follow_confirmed:${dmSettingId}:${trackingUrl}:${commentId || ''}`,
-                  }],
-                },
-              },
-            },
-          }),
+      // DM 로그 업데이트 (링크 발송 완료)
+      await supabase
+        .from('instagram_dm_logs')
+        .update({
+          status: 'link_sent',
+          link_sent_at: new Date().toISOString(),
         })
+        .eq('dm_setting_id', dmSettingId)
+        .eq('recipient_ig_user_id', senderId)
 
-        const result = await response.json()
-
-        if (result.error) {
-          console.error('❌ 팔로우 요청 메시지 재발송 실패:', result.error)
-        } else {
-          console.log('✅ 팔로우 요청 메시지 재발송 성공:', result)
-        }
-      } else {
-        // ✅ 텍스트 메시지 성공 = 팔로워 확인됨
-        console.log('✅✅✅ 링크 포함 텍스트 메시지 성공! 사용자는 팔로워입니다!')
-
-        // DM 로그 업데이트 (링크 발송 완료)
-        await supabase
-          .from('instagram_dm_logs')
-          .update({
-            status: 'link_sent',
-            link_sent_at: new Date().toISOString(),
-          })
-          .eq('dm_setting_id', dmSettingId)
-          .eq('recipient_ig_user_id', senderId)
-      }
-
-      return // require_follow=true 처리 완료
+      console.log('DM 로그 업데이트 완료 - status: link_sent')
     } else {
-      // require_follow=false: 팔로워 체크 없이 바로 링크 발송
-      console.log('require_follow=false: 팔로워 체크 없이 링크 발송...')
-
-      const sendResult = await sendLinkMessage(
-        senderId,
-        accessToken,
-        dmMessageText,
-        trackingUrl,
-        productImageUrl,
-        productName
-      )
-
-      if (sendResult.success) {
-        console.log('링크 메시지 발송 성공.')
-
-        // DM 로그 업데이트 (링크 발송 완료)
-        await supabase
-          .from('instagram_dm_logs')
-          .update({
-            status: 'link_sent',
-            link_sent_at: new Date().toISOString(),
-          })
-          .eq('dm_setting_id', dmSettingId)
-          .eq('recipient_ig_user_id', senderId)
-      } else {
-        console.error('링크 메시지 발송 실패:', sendResult.error)
-      }
+      console.error('❌ 링크 메시지 발송 실패:', sendResult.error)
     }
   } catch (error) {
     console.error('Error handling follow confirmed:', error)
