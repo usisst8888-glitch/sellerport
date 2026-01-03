@@ -1278,6 +1278,100 @@ async function sendLinkMessage(
   }
 }
 
+// 캐러셀 메시지 발송 함수 (여러 상품을 슬라이드로)
+interface CarouselProduct {
+  id: string
+  name: string
+  price: number
+  image_url: string | null
+  product_url: string | null
+}
+
+async function sendCarouselMessage(
+  senderId: string,
+  accessToken: string,
+  dmMessageText: string,
+  products: CarouselProduct[],
+  baseTrackingUrl: string
+): Promise<{ success: boolean; error?: unknown }> {
+  try {
+    console.log('📦 캐러셀 메시지 발송 중...', products.length, '개 상품')
+
+    // 각 상품을 캐러셀 element로 변환
+    const elements = products.map((product, index) => {
+      // 각 상품별 추적 URL 생성 (첫 번째는 기존 URL, 나머지는 상품 URL 사용)
+      const productUrl = index === 0 ? baseTrackingUrl : (product.product_url || baseTrackingUrl)
+
+      return {
+        title: product.name.slice(0, 80), // Instagram 제한: 80자
+        subtitle: `${product.price.toLocaleString()}원`,
+        image_url: product.image_url || 'https://via.placeholder.com/500x500?text=No+Image',
+        default_action: {
+          type: 'web_url',
+          url: productUrl,
+        },
+        buttons: [{
+          type: 'web_url',
+          url: productUrl,
+          title: '바로가기',
+        }],
+      }
+    })
+
+    // 먼저 텍스트 메시지 발송
+    if (dmMessageText) {
+      await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { id: senderId },
+          message: { text: dmMessageText },
+        }),
+      })
+    }
+
+    // Generic Template (캐러셀) 발송
+    const response = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        recipient: { id: senderId },
+        message: {
+          attachment: {
+            type: 'template',
+            payload: {
+              template_type: 'generic',
+              elements: elements,
+            },
+          },
+        },
+      }),
+    })
+
+    const result = await response.json()
+
+    console.log('캐러셀 메시지 발송 결과:', JSON.stringify(result, null, 2))
+
+    if (result.error) {
+      console.error('❌ 캐러셀 메시지 발송 실패:', result.error)
+      return { success: false, error: result.error }
+    }
+
+    console.log('✅ 캐러셀 메시지 발송 성공!')
+    return { success: true }
+
+  } catch (error) {
+    console.error('Error sending carousel message:', error)
+    return { success: false, error }
+  }
+}
+
 // Quick Reply로 팔로워 확인용 메시지 발송 (링크 없이 확인만)
 async function sendFollowerCheckQuickReply(
   senderId: string,
@@ -1431,15 +1525,56 @@ async function handleFollowConfirmed(
       console.log('📤 팔로워 확인됨! 링크 메시지 발송 중...')
       console.log('발송 내용:', dmMessageText)
       console.log('추적 URL:', trackingUrl)
+      console.log('발송 모드:', dmSettings.send_mode || 'single')
 
-      const sendResult = await sendLinkMessage(
-        senderId,
-        accessToken,
-        dmMessageText,
-        trackingUrl,
-        productImageUrl,
-        productName
-      )
+      let sendResult: { success: boolean; error?: unknown }
+
+      // 캐러셀 모드인 경우
+      if (dmSettings.send_mode === 'carousel' && dmSettings.carousel_product_ids?.length >= 2) {
+        console.log('🎠 캐러셀 모드로 발송!')
+        console.log('상품 IDs:', dmSettings.carousel_product_ids)
+
+        // 상품 정보 가져오기
+        const { data: carouselProducts } = await supabase
+          .from('products')
+          .select('id, name, price, image_url, product_url')
+          .in('id', dmSettings.carousel_product_ids)
+
+        if (carouselProducts && carouselProducts.length >= 2) {
+          // 선택한 순서대로 정렬
+          const orderedProducts = dmSettings.carousel_product_ids
+            .map((id: string) => carouselProducts.find(p => p.id === id))
+            .filter((p: CarouselProduct | undefined): p is CarouselProduct => p !== undefined)
+
+          sendResult = await sendCarouselMessage(
+            senderId,
+            accessToken,
+            dmMessageText,
+            orderedProducts,
+            trackingUrl
+          )
+        } else {
+          console.log('⚠️ 캐러셀 상품을 찾을 수 없어 단일 상품으로 발송')
+          sendResult = await sendLinkMessage(
+            senderId,
+            accessToken,
+            dmMessageText,
+            trackingUrl,
+            productImageUrl,
+            productName
+          )
+        }
+      } else {
+        // 단일 상품 모드
+        sendResult = await sendLinkMessage(
+          senderId,
+          accessToken,
+          dmMessageText,
+          trackingUrl,
+          productImageUrl,
+          productName
+        )
+      }
 
       if (sendResult.success) {
         console.log('✅✅✅ 링크 메시지 발송 성공!')

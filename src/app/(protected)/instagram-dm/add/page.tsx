@@ -55,19 +55,26 @@ export default function InstagramDmAddPage() {
   const buttonTextOptions = [
     '팔로우 했어요!',
     '팔로우 완료!',
-    '✅ 팔로우 했어요',
+    '팔로우 했어요 ✅',
     '팔로우했어요 💕',
+    '팔로우 했어요 🙏',
+    '팔로우 했어요 🙌',
+    '팔로우 완료 👍',
+    '팔로우했어요 😊',
+    '팔로우 완료 ✨',
   ]
 
   const [form, setForm] = useState({
     triggerKeywords: '',
-    dmMessage: '',
-    followMessage: '',
+    dmMessage: '감사합니다! 요청하신 링크 보내드립니다 👇',
+    followMessage: '팔로우를 완료하셨다면 아래 버튼을 눌러 확인해주세요! 팔로워에게만 링크가 발송됩니다!',
     followButtonText: '팔로우 했어요!',  // 기본 버튼 텍스트
     targetUrl: '',
-    selectedProductId: ''
+    selectedProductId: '',
+    selectedProductIds: [] as string[]  // 캐러셀용 다중 상품 선택
   })
   const [urlInputMode, setUrlInputMode] = useState<'product' | 'manual'>('product')
+  const [sendMode, setSendMode] = useState<'single' | 'carousel'>('single')  // 발송 모드: 단일 / 캐러셀
   const [triggerAllComments, setTriggerAllComments] = useState(false)
   const [requireFollow, setRequireFollow] = useState(true) // 팔로워 체크 필요 여부
   const [creating, setCreating] = useState(false)
@@ -234,7 +241,8 @@ export default function InstagramDmAddPage() {
           followMessage: settings.follow_cta_message || '',
           followButtonText: settings.follow_button_text || '팔로우 했어요!',
           targetUrl: settings.tracking_links?.target_url || '',
-          selectedProductId: ''
+          selectedProductId: '',
+          selectedProductIds: []
         })
         setTriggerAllComments(isAllComments)
         setRequireFollow(settings.require_follow ?? true) // 기본값 true
@@ -265,14 +273,10 @@ export default function InstagramDmAddPage() {
 
   // 사이트 선택 변경 시 상품 목록 다시 불러오기
   useEffect(() => {
-    if (selectedSiteId) {
-      fetchProducts(selectedSiteId)
-    } else {
-      // 사이트 선택 없음일 때는 상품 목록 비움
-      setProducts([])
-    }
+    // 사이트 선택 여부와 관계없이 상품 불러오기 (전체 또는 사이트별)
+    fetchProducts(selectedSiteId)
     // 사이트 변경 시 선택된 상품 초기화
-    setForm(prev => ({ ...prev, selectedProductId: '' }))
+    setForm(prev => ({ ...prev, selectedProductId: '', selectedProductIds: [] }))
   }, [selectedSiteId, fetchProducts])
 
   // 드롭다운 외부 클릭 감지
@@ -289,12 +293,8 @@ export default function InstagramDmAddPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // 사이트 선택 없음이면 자동으로 직접 입력 모드로 전환
-  useEffect(() => {
-    if (selectedSiteId === null) {
-      setUrlInputMode('manual')
-    }
-  }, [selectedSiteId])
+  // 상품 선택을 기본으로 유지 (사이트 선택과 관계없이)
+  // 사이트 선택 없음이어도 전체 상품에서 선택 가능
 
   // 게시물 목록 불러오기
   const fetchMedia = async () => {
@@ -334,8 +334,24 @@ export default function InstagramDmAddPage() {
 
     // 목적지 URL 결정
     let targetUrl = ''
-    if (selectedSiteId && urlInputMode === 'product') {
-      // 사이트 선택됨 + 상품 선택 모드
+    let carouselProductIds: string[] = []
+
+    if (sendMode === 'carousel') {
+      // 캐러셀 모드
+      if (form.selectedProductIds.length < 2) {
+        setMessage({ type: 'error', text: '캐러셀은 최소 2개 이상 상품을 선택해주세요' })
+        return
+      }
+      // 첫 번째 상품의 URL을 대표 URL로 사용
+      const firstProduct = products.find(p => p.id === form.selectedProductIds[0])
+      if (!firstProduct) {
+        setMessage({ type: 'error', text: '상품 정보를 가져올 수 없습니다' })
+        return
+      }
+      targetUrl = getProductUrl(firstProduct)
+      carouselProductIds = form.selectedProductIds
+    } else if (urlInputMode === 'product') {
+      // 단일 상품 선택 모드
       if (!selectedProduct) {
         setMessage({ type: 'error', text: '상품을 선택해주세요' })
         return
@@ -346,7 +362,7 @@ export default function InstagramDmAddPage() {
         return
       }
     } else {
-      // 사이트 선택 없음 또는 직접 입력 모드
+      // 직접 입력 모드
       if (!form.targetUrl) {
         setMessage({ type: 'error', text: '목적지 URL을 입력해주세요' })
         return
@@ -393,12 +409,16 @@ export default function InstagramDmAddPage() {
             requireFollow: requireFollow,
             followMessage: form.followMessage,
             followButtonText: form.followButtonText,
-            instagramAccountId: selectedAccountId,  // 선택된 Instagram 계정 ID 추가
+            instagramAccountId: selectedAccountId,
             instagramMediaId: selectedMediaId,
             instagramMediaUrl: selectedMedia?.permalink,
             instagramMediaType: selectedMedia?.media_type,
             instagramCaption: selectedMedia?.caption,
-            instagramThumbnailUrl: selectedMedia?.thumbnail_url || selectedMedia?.media_url
+            instagramThumbnailUrl: selectedMedia?.thumbnail_url || selectedMedia?.media_url,
+            // 캐러셀 관련
+            sendMode: sendMode,
+            carouselProductIds: carouselProductIds.length > 0 ? carouselProductIds : undefined,
+            selectedProductId: sendMode === 'single' && urlInputMode === 'product' ? form.selectedProductId : undefined
           })
         })
 
@@ -844,17 +864,50 @@ export default function InstagramDmAddPage() {
             {isEditMode && <span className="ml-2 text-xs text-slate-500">(변경 불가)</span>}
           </label>
 
-          {/* 사이트가 선택된 경우: 상품 선택 / 직접 입력 탭 */}
-          {!isEditMode && selectedSiteId && (
+          {/* 수정 모드가 아닐 때 */}
+          {!isEditMode && (
             <>
+              {/* 발송 모드 선택: 단일 상품 / 캐러셀 */}
+              <div className="flex gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSendMode('single')
+                    setForm(prev => ({ ...prev, selectedProductIds: [] }))
+                  }}
+                  className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-colors ${
+                    sendMode === 'single'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600'
+                  }`}
+                >
+                  단일 상품
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSendMode('carousel')
+                    setForm(prev => ({ ...prev, selectedProductId: '' }))
+                  }}
+                  className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-colors ${
+                    sendMode === 'carousel'
+                      ? 'bg-purple-500 text-white'
+                      : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600'
+                  }`}
+                >
+                  캐러셀 (여러 상품)
+                </button>
+              </div>
+
+              {/* 입력 모드 선택: 상품 선택 / 직접 입력 */}
               <div className="flex gap-2 mb-3">
                 <button
                   type="button"
                   onClick={() => setUrlInputMode('product')}
-                  className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-colors ${
                     urlInputMode === 'product'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600'
+                      ? 'bg-slate-600 text-white'
+                      : 'bg-slate-700/30 text-slate-500 hover:bg-slate-700/50'
                   }`}
                 >
                   상품 선택
@@ -862,18 +915,19 @@ export default function InstagramDmAddPage() {
                 <button
                   type="button"
                   onClick={() => setUrlInputMode('manual')}
-                  className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-colors ${
+                  disabled={sendMode === 'carousel'}
+                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-colors ${
                     urlInputMode === 'manual'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600'
-                  }`}
+                      ? 'bg-slate-600 text-white'
+                      : 'bg-slate-700/30 text-slate-500 hover:bg-slate-700/50'
+                  } ${sendMode === 'carousel' ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   직접 입력
                 </button>
               </div>
 
-              {/* 상품 선택 모드 */}
-              {urlInputMode === 'product' && (
+              {/* 단일 상품 모드 - 상품 선택 */}
+              {sendMode === 'single' && urlInputMode === 'product' && (
                 <div ref={dropdownRef} className="relative">
                   <button
                     type="button"
@@ -907,6 +961,15 @@ export default function InstagramDmAddPage() {
 
                   {isProductDropdownOpen && (
                     <div className="absolute z-50 w-full bottom-full mb-2 rounded-xl bg-slate-700 border border-slate-600 shadow-xl">
+                      <div className="p-2 border-b border-slate-600">
+                        <input
+                          type="text"
+                          placeholder="상품명 검색..."
+                          value={productSearch}
+                          onChange={(e) => setProductSearch(e.target.value)}
+                          className="w-full h-10 px-3 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none text-sm"
+                        />
+                      </div>
                       <div className="max-h-64 overflow-y-auto">
                         {productsLoading ? (
                           <div className="flex items-center justify-center py-4">
@@ -914,7 +977,7 @@ export default function InstagramDmAddPage() {
                           </div>
                         ) : filteredProducts.length === 0 ? (
                           <div className="p-4 text-center text-sm text-slate-400">
-                            {products.length === 0 ? '해당 사이트에 상품이 없습니다' : '검색 결과가 없습니다'}
+                            {products.length === 0 ? '상품이 없습니다. 사이트를 연결하고 상품을 등록해주세요.' : '검색 결과가 없습니다'}
                           </div>
                         ) : (
                           filteredProducts.map((product) => (
@@ -952,15 +1015,6 @@ export default function InstagramDmAddPage() {
                           ))
                         )}
                       </div>
-                      <div className="p-2 border-t border-slate-600">
-                        <input
-                          type="text"
-                          placeholder="상품명 검색..."
-                          value={productSearch}
-                          onChange={(e) => setProductSearch(e.target.value)}
-                          className="w-full h-10 px-3 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none text-sm"
-                        />
-                      </div>
                     </div>
                   )}
 
@@ -972,8 +1026,150 @@ export default function InstagramDmAddPage() {
                 </div>
               )}
 
-              {/* 직접 입력 모드 (사이트 선택됨) */}
-              {urlInputMode === 'manual' && (
+              {/* 캐러셀 모드 - 여러 상품 선택 */}
+              {sendMode === 'carousel' && (
+                <div className="space-y-3">
+                  {/* 선택된 상품들 표시 */}
+                  {form.selectedProductIds.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {form.selectedProductIds.map((productId, index) => {
+                        const product = products.find(p => p.id === productId)
+                        if (!product) return null
+                        return (
+                          <div
+                            key={productId}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-500/20 border border-purple-500/30"
+                          >
+                            <span className="text-xs text-purple-300 font-bold">{index + 1}</span>
+                            {product.image_url && (
+                              <img src={product.image_url} alt={product.name} className="w-6 h-6 rounded object-cover" />
+                            )}
+                            <span className="text-sm text-white truncate max-w-[120px]">{product.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setForm(prev => ({
+                                  ...prev,
+                                  selectedProductIds: prev.selectedProductIds.filter(id => id !== productId)
+                                }))
+                              }}
+                              className="text-slate-400 hover:text-red-400"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {/* 상품 추가 드롭다운 */}
+                  <div ref={dropdownRef} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsProductDropdownOpen(!isProductDropdownOpen)}
+                      disabled={form.selectedProductIds.length >= 10}
+                      className={`w-full h-12 px-4 rounded-xl border text-left flex items-center justify-between ${
+                        form.selectedProductIds.length >= 10
+                          ? 'bg-slate-700/30 border-slate-600 cursor-not-allowed opacity-50'
+                          : 'bg-slate-700/50 border-slate-600 hover:border-slate-500'
+                      }`}
+                    >
+                      <span className="text-slate-400">
+                        {form.selectedProductIds.length >= 10
+                          ? '최대 10개까지 선택 가능'
+                          : `상품 추가 (${form.selectedProductIds.length}/10)`}
+                      </span>
+                      <svg className={`w-5 h-5 text-slate-400 transition-transform flex-shrink-0 ${isProductDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {isProductDropdownOpen && (
+                      <div className="absolute z-50 w-full bottom-full mb-2 rounded-xl bg-slate-700 border border-slate-600 shadow-xl">
+                        <div className="p-2 border-b border-slate-600">
+                          <input
+                            type="text"
+                            placeholder="상품명 검색..."
+                            value={productSearch}
+                            onChange={(e) => setProductSearch(e.target.value)}
+                            className="w-full h-10 px-3 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none text-sm"
+                          />
+                        </div>
+                        <div className="max-h-64 overflow-y-auto">
+                          {productsLoading ? (
+                            <div className="flex items-center justify-center py-4">
+                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-500"></div>
+                            </div>
+                          ) : filteredProducts.length === 0 ? (
+                            <div className="p-4 text-center text-sm text-slate-400">
+                              {products.length === 0 ? '상품이 없습니다. 사이트를 연결하고 상품을 등록해주세요.' : '검색 결과가 없습니다'}
+                            </div>
+                          ) : (
+                            filteredProducts.map((product) => {
+                              const isSelected = form.selectedProductIds.includes(product.id)
+                              return (
+                                <button
+                                  key={product.id}
+                                  type="button"
+                                  onClick={() => {
+                                    if (isSelected) {
+                                      setForm(prev => ({
+                                        ...prev,
+                                        selectedProductIds: prev.selectedProductIds.filter(id => id !== product.id)
+                                      }))
+                                    } else if (form.selectedProductIds.length < 10) {
+                                      setForm(prev => ({
+                                        ...prev,
+                                        selectedProductIds: [...prev.selectedProductIds, product.id]
+                                      }))
+                                    }
+                                  }}
+                                  className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-600/50 border-b border-slate-600 last:border-b-0 text-left ${
+                                    isSelected ? 'bg-purple-500/10' : ''
+                                  }`}
+                                >
+                                  {product.image_url ? (
+                                    <img src={product.image_url} alt={product.name} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                                  ) : (
+                                    <div className="w-10 h-10 rounded-lg bg-slate-600 flex items-center justify-center flex-shrink-0">
+                                      <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                      </svg>
+                                    </div>
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-white truncate">{product.name}</p>
+                                    <p className="text-xs text-slate-400">{product.price.toLocaleString()}원</p>
+                                  </div>
+                                  {isSelected ? (
+                                    <svg className="w-5 h-5 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  ) : (
+                                    <svg className="w-5 h-5 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                  )}
+                                </button>
+                              )
+                            })
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {form.selectedProductIds.length > 0 && form.selectedProductIds.length < 2 && (
+                    <p className="text-xs text-amber-400">캐러셀은 최소 2개 이상 선택해야 합니다</p>
+                  )}
+                </div>
+              )}
+
+              {/* 직접 입력 모드 */}
+              {sendMode === 'single' && urlInputMode === 'manual' && (
                 <input
                   type="url"
                   placeholder="https://smartstore.naver.com/..."
@@ -983,17 +1179,6 @@ export default function InstagramDmAddPage() {
                 />
               )}
             </>
-          )}
-
-          {/* 사이트 선택 없음인 경우: 직접 입력만 */}
-          {!isEditMode && selectedSiteId === null && (
-            <input
-              type="url"
-              placeholder="https://smartstore.naver.com/..."
-              value={form.targetUrl}
-              onChange={(e) => setForm({ ...form, targetUrl: e.target.value })}
-              className="w-full h-12 px-4 rounded-xl bg-slate-700/50 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none"
-            />
           )}
 
           {/* 수정 모드일 때 */}
@@ -1026,8 +1211,9 @@ export default function InstagramDmAddPage() {
             !form.dmMessage ||
             !form.triggerKeywords ||
             (requireFollow && !form.followMessage) ||
-            (!isEditMode && selectedSiteId && urlInputMode === 'product' && !form.selectedProductId) ||
-            (!isEditMode && (selectedSiteId === null || urlInputMode === 'manual') && !form.targetUrl)
+            (!isEditMode && sendMode === 'single' && urlInputMode === 'product' && !form.selectedProductId) ||
+            (!isEditMode && sendMode === 'single' && urlInputMode === 'manual' && !form.targetUrl) ||
+            (!isEditMode && sendMode === 'carousel' && form.selectedProductIds.length < 2)
           }
           className="flex-1 h-12 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >

@@ -68,7 +68,9 @@ export async function POST(request: NextRequest) {
       // Instagram 게시물 정보 (DM 자동발송용)
       instagramAccountId, instagramMediaId, instagramMediaUrl, instagramMediaType, instagramCaption, instagramThumbnailUrl,
       // 광고 채널 연결
-      adChannelId
+      adChannelId,
+      // 캐러셀 관련
+      sendMode, carouselProductIds, selectedProductId
     } = body
 
     if (!targetUrl) {
@@ -217,6 +219,10 @@ export async function POST(request: NextRequest) {
             follow_button_text: followButtonText || '팔로우 했어요!',
             require_follow: requireFollow ?? true,
             is_active: hasMediaInfo,
+            // 캐러셀 관련
+            send_mode: sendMode || 'single',
+            carousel_product_ids: carouselProductIds || null,
+            selected_product_id: selectedProductId || null,
           })
 
         if (dmSettingsError) {
