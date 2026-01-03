@@ -349,80 +349,22 @@ async function handleCommentEvent(
     const mediaId = media.id
 
     // 해당 미디어(게시물)에 대한 DM 설정 찾기
-    // 같은 media ID에 여러 설정이 있을 수 있으므로 가장 최근 것 사용
     console.log('Fetching DM settings for media:', mediaId)
 
-    // Supabase REST API 직접 호출 (SDK 연결 문제 회피)
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+    const supabase = getSupabaseClient()
 
-    console.log('Environment check:', {
-      hasSupabaseUrl: !!supabaseUrl,
-      hasSupabaseKey: !!supabaseKey,
-      supabaseUrlPrefix: supabaseUrl?.substring(0, 20)
-    })
-
-    // 먼저 DM 설정만 가져오기 (JOIN 없이)
-    const queryUrl = `${supabaseUrl}/rest/v1/instagram_dm_settings?instagram_media_id=eq.${mediaId}&is_active=eq.true&select=*&limit=1`
-
-    console.log('Fetching from Supabase:', queryUrl.substring(0, 100) + '...')
-
-    const response = await fetch(queryUrl, {
-      headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
-      },
-    })
-
-    console.log('Fetch response received:', {
-      status: response.status,
-      ok: response.ok,
-      statusText: response.statusText
-    })
-
-    const dmSettingsList = await response.json()
-    const dmSettingsError = response.ok ? null : dmSettingsList
-
-    // DM 설정이 있으면 관련 데이터를 별도로 가져오기
-    if (response.ok && Array.isArray(dmSettingsList) && dmSettingsList.length > 0) {
-      const dmSetting = dmSettingsList[0]
-
-      // Instagram 계정 정보 가져오기
-      if (dmSetting.instagram_account_id) {
-        const accountUrl = `${supabaseUrl}/rest/v1/instagram_accounts?id=eq.${dmSetting.instagram_account_id}&select=id,user_id,access_token,instagram_user_id`
-        const accountResponse = await fetch(accountUrl, {
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-          },
-        })
-        const accountData = await accountResponse.json()
-        if (accountData && accountData.length > 0) {
-          dmSetting.instagram_accounts = accountData[0]
-        }
-      }
-
-      // Tracking Link 정보 가져오기
-      if (dmSetting.tracking_link_id) {
-        const linkUrl = `${supabaseUrl}/rest/v1/tracking_links?id=eq.${dmSetting.tracking_link_id}&select=id,tracking_url,go_url,post_name`
-        const linkResponse = await fetch(linkUrl, {
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-          },
-        })
-        const linkData = await linkResponse.json()
-        if (linkData && linkData.length > 0) {
-          dmSetting.tracking_links = linkData[0]
-        }
-      }
-    }
+    // 1. DM 설정만 빠르게 조회 (JOIN 없이)
+    const { data: dmSettingsList, error: dmSettingsError } = await supabase
+      .from('instagram_dm_settings')
+      .select('*')
+      .eq('instagram_media_id', mediaId)
+      .eq('is_active', true)
+      .limit(1)
 
     console.log('DM settings query result:', {
-      found: Array.isArray(dmSettingsList) ? dmSettingsList.length : 0,
-      error: dmSettingsError,
-      mediaId,
-      isArray: Array.isArray(dmSettingsList)
+      found: dmSettingsList?.length || 0,
+      error: dmSettingsError?.message,
+      mediaId
     })
 
     if (dmSettingsError) {
@@ -430,12 +372,35 @@ async function handleCommentEvent(
       return
     }
 
-    if (!Array.isArray(dmSettingsList) || dmSettingsList.length === 0) {
+    if (!dmSettingsList || dmSettingsList.length === 0) {
       console.log('No DM settings found for media:', mediaId)
       return
     }
 
     const dmSettings = dmSettingsList[0]
+
+    // 2. Instagram 계정 정보 조회
+    const { data: instagramAccount } = await supabase
+      .from('instagram_accounts')
+      .select('id,user_id,access_token,instagram_user_id')
+      .eq('id', dmSettings.instagram_account_id)
+      .single()
+
+    if (!instagramAccount) {
+      console.error('Instagram account not found:', dmSettings.instagram_account_id)
+      return
+    }
+
+    // 3. Tracking Link 정보 조회
+    const { data: trackingLink } = await supabase
+      .from('tracking_links')
+      .select('id,tracking_url,go_url,post_name')
+      .eq('id', dmSettings.tracking_link_id)
+      .single()
+
+    // dmSettings에 관련 데이터 첨부
+    dmSettings.instagram_accounts = instagramAccount
+    dmSettings.tracking_links = trackingLink
 
     console.log('Found DM settings:', {
       id: dmSettings.id,
