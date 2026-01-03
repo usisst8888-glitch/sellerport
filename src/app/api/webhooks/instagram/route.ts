@@ -69,45 +69,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true })
     }
 
-    // 즉시 200 OK 응답 (Meta 요구사항: 5초 이내 응답 필수)
-    // 실제 처리는 백그라운드에서 진행
-    Promise.resolve().then(async () => {
-      try {
-        for (const entry of body.entry || []) {
-          const instagramUserId = entry.id // 이벤트가 발생한 Instagram 계정 ID
+    // 동기적으로 처리 (Vercel 서버리스 환경에서 백그라운드 Promise가 제대로 작동하지 않음)
+    console.log('Processing webhook entries synchronously...')
 
-          // 댓글 이벤트 처리
-          if (entry.changes) {
-            for (const change of entry.changes) {
-              if (change.field === 'comments') {
-                try {
-                  await handleCommentEvent(change.value, instagramUserId)
-                } catch (commentError) {
-                  console.error('Error handling comment event:', commentError)
-                  console.error('Comment data:', JSON.stringify(change.value))
-                }
-              }
-            }
-          }
+    for (const entry of body.entry || []) {
+      const instagramUserId = entry.id // 이벤트가 발생한 Instagram 계정 ID
 
-          // 메시징 이벤트 (DM 수신 등)
-          if (entry.messaging) {
-            for (const messagingEvent of entry.messaging) {
-              try {
-                await handleMessagingEvent(messagingEvent)
-              } catch (messagingError) {
-                console.error('Error handling messaging event:', messagingError)
-              }
+      // 댓글 이벤트 처리
+      if (entry.changes) {
+        for (const change of entry.changes) {
+          if (change.field === 'comments') {
+            try {
+              await handleCommentEvent(change.value, instagramUserId)
+            } catch (commentError) {
+              console.error('Error handling comment event:', commentError)
+              console.error('Comment data:', JSON.stringify(change.value))
             }
           }
         }
-      } catch (outerError) {
-        console.error('Background webhook processing outer error:', outerError)
       }
-    }).catch(error => {
-      console.error('Background webhook processing promise rejection:', error)
-    })
 
+      // 메시징 이벤트 (DM 수신 등)
+      if (entry.messaging) {
+        for (const messagingEvent of entry.messaging) {
+          try {
+            await handleMessagingEvent(messagingEvent)
+          } catch (messagingError) {
+            console.error('Error handling messaging event:', messagingError)
+          }
+        }
+      }
+    }
+
+    console.log('Webhook processing completed')
     return NextResponse.json({ received: true })
   } catch (error) {
     console.error('Instagram Webhook error:', error)
