@@ -835,6 +835,89 @@ async function sendLinkMessageWithQuickReply(
   }
 }
 
+// Private Reply로 링크 메시지 발송 (팔로워 확인용)
+// Private Reply는 팔로워에게만 발송 가능
+// 성공 = 팔로워, 실패 = 비팔로워
+async function sendPrivateReply(
+  commentId: string,
+  accessToken: string,
+  dmMessageText: string,
+  trackingUrl: string,
+  productImageUrl: string | null,
+  productName: string
+): Promise<{ success: boolean; error?: unknown }> {
+  try {
+    console.log('Sending Private Reply with link...')
+    console.log('Comment ID:', commentId)
+
+    let response
+
+    if (productImageUrl) {
+      // Generic Template (이미지 카드 + 버튼)
+      response = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { comment_id: commentId }, // Private Reply
+          message: {
+            attachment: {
+              type: 'template',
+              payload: {
+                template_type: 'generic',
+                elements: [{
+                  title: productName,
+                  subtitle: dmMessageText,
+                  image_url: productImageUrl,
+                  default_action: { type: 'web_url', url: trackingUrl },
+                  buttons: [{ type: 'web_url', url: trackingUrl, title: '바로가기' }],
+                }],
+              },
+            },
+          },
+        }),
+      })
+    } else {
+      // Button Template (텍스트 + 버튼)
+      response = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { comment_id: commentId }, // Private Reply
+          message: {
+            attachment: {
+              type: 'template',
+              payload: {
+                template_type: 'button',
+                text: dmMessageText,
+                buttons: [{ type: 'web_url', url: trackingUrl, title: '바로가기' }],
+              },
+            },
+          },
+        }),
+      })
+    }
+
+    const result = await response.json()
+
+    if (result.error) {
+      console.error('❌ Private Reply 발송 실패:', result.error)
+      return { success: false, error: result.error }
+    }
+
+    console.log('✅ Private Reply 발송 성공')
+    return { success: true }
+  } catch (error) {
+    console.error('Error sending Private Reply:', error)
+    return { success: false, error }
+  }
+}
+
 // 링크 메시지 발송 함수
 async function sendLinkMessage(
   senderId: string,
@@ -961,7 +1044,7 @@ async function sendFollowerCheckQuickReply(
 }
 
 // 팔로우 확인 버튼 클릭 시 처리
-// 테스트 로직: 일반 DM 발송 결과로 팔로워 여부 확인
+// Private Reply 발송으로 팔로워 여부 확인
 async function handleFollowConfirmed(
   senderId: string,
   recipientId: string,
@@ -1020,13 +1103,55 @@ async function handleFollowConfirmed(
 
     // ⭐ require_follow 설정에 따라 분기
     if (requireFollow) {
-      // 팔로워 체크 필요: 일반 DM으로 링크 메시지 발송 시도 (팔로워 체크)
-      console.log('🔍 [팔로워 체크 모드] 일반 DM으로 링크 메시지 발송 시도...')
+      // 팔로워 체크 필요: comment_id로 Private Reply 발송 시도
+      console.log('🔍 [팔로워 체크 모드] DM 로그에서 comment_id 조회...')
+
+      // DM 로그에서 comment_id 가져오기
+      const { data: dmLog } = await supabase
+        .from('instagram_dm_logs')
+        .select('comment_id')
+        .eq('dm_setting_id', dmSettingId)
+        .eq('recipient_ig_user_id', senderId)
+        .order('sent_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (!dmLog?.comment_id) {
+        console.error('❌ Comment ID를 찾을 수 없습니다. Private Reply를 보낼 수 없습니다.')
+
+        // comment_id가 없으면 일반 DM으로 폴백
+        console.log('⚠️ 일반 DM으로 폴백하여 링크 발송...')
+        const linkResult = await sendLinkMessage(
+          senderId,
+          accessToken,
+          dmMessageText,
+          trackingUrl,
+          productImageUrl,
+          productName
+        )
+
+        if (linkResult.success) {
+          await supabase
+            .from('instagram_dm_logs')
+            .update({
+              status: 'link_sent',
+              link_sent_at: new Date().toISOString(),
+            })
+            .eq('dm_setting_id', dmSettingId)
+            .eq('recipient_ig_user_id', senderId)
+        }
+        return
+      }
+
+      const commentId = dmLog.comment_id
+      console.log('📝 Comment ID 찾음:', commentId)
+      console.log('🔍 Private Reply로 링크 메시지 발송 시도...')
       console.log('발송 내용:', dmMessageText)
       console.log('추적 URL:', trackingUrl)
 
-      const linkResult = await sendLinkMessage(
-        senderId,
+      // Private Reply로 링크 메시지 발송 시도
+      const privateReplyResult = await sendPrivateReply(
+        commentId,
         accessToken,
         dmMessageText,
         trackingUrl,
@@ -1034,14 +1159,14 @@ async function handleFollowConfirmed(
         productName
       )
 
-      console.log('===== 일반 DM 발송 결과 =====')
-      console.log('성공 여부:', linkResult.success)
-      console.log('에러 정보:', JSON.stringify(linkResult.error, null, 2))
-      console.log('==========================')
+      console.log('===== Private Reply 발송 결과 =====')
+      console.log('성공 여부:', privateReplyResult.success)
+      console.log('에러 정보:', JSON.stringify(privateReplyResult.error, null, 2))
+      console.log('====================================')
 
-      if (linkResult.success) {
-        // ✅ 일반 DM 성공 = 팔로워 확인됨 → 링크 발송 완료
-        console.log('✅✅✅ 일반 DM 성공! 사용자는 팔로워입니다!')
+      if (privateReplyResult.success) {
+        // ✅ Private Reply 성공 = 팔로워 확인됨 → 링크 발송 완료
+        console.log('✅✅✅ Private Reply 성공! 사용자는 팔로워입니다!')
 
         // DM 로그 업데이트 (링크 발송 완료)
         await supabase
@@ -1053,9 +1178,9 @@ async function handleFollowConfirmed(
           .eq('dm_setting_id', dmSettingId)
           .eq('recipient_ig_user_id', senderId)
       } else {
-        // ❌ 일반 DM 실패 = 비팔로워 → 팔로우 요청 재발송
-        console.log('❌❌❌ 일반 DM 실패! 사용자는 팔로워가 아닙니다!')
-        console.log('에러 상세:', linkResult.error)
+        // ❌ Private Reply 실패 = 비팔로워 → 팔로우 요청 재발송
+        console.log('❌❌❌ Private Reply 실패! 사용자는 팔로워가 아닙니다!')
+        console.log('에러 상세:', privateReplyResult.error)
 
         const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
           `아직 팔로우가 확인되지 않았어요! 😅\n\n팔로우 후 다시 버튼을 눌러주세요!`
