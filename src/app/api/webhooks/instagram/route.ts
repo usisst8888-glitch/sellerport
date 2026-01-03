@@ -829,43 +829,35 @@ async function handleFollowConfirmed(
 
     // ⭐ require_follow 설정에 따라 분기
     if (requireFollow) {
-      // 팔로워 체크 필요: Conversations API로 실제 팔로워 여부 확인
-      console.log('require_follow=true: Checking if user is actually a follower...')
+      // 팔로워 체크 필요: 링크 메시지 전송을 시도하여 팔로워 여부 판단
+      // 팔로워가 아니면 메시지 전송이 실패함 (권한 에러)
+      console.log('require_follow=true: Trying to send link message to check follower status...')
 
-      const isFollower = await checkIfFollower(myInstagramUserId, senderId, accessToken)
-      console.log('Is follower?', isFollower)
+      const sendResult = await sendLinkMessage(
+        senderId,
+        accessToken,
+        dmMessageText,
+        trackingUrl,
+        productImageUrl,
+        productName
+      )
 
-      if (isFollower) {
-        // ✅ 팔로워임 → 링크 발송
-        console.log('User is a follower! Sending link...')
+      if (sendResult.success) {
+        // ✅ 링크 발송 성공 = 팔로워임
+        console.log('Link sent successfully! User IS a follower.')
 
-        const sendResult = await sendLinkMessage(
-          senderId,
-          accessToken,
-          dmMessageText,
-          trackingUrl,
-          productImageUrl,
-          productName
-        )
-
-        if (sendResult.success) {
-          console.log('Link sent successfully to follower.')
-
-          // DM 로그 업데이트 (링크 발송 완료)
-          await supabase
-            .from('instagram_dm_logs')
-            .update({
-              status: 'link_sent',
-              link_sent_at: new Date().toISOString(),
-            })
-            .eq('dm_setting_id', dmSettingId)
-            .eq('recipient_ig_user_id', senderId)
-        } else {
-          console.error('Failed to send link message to follower:', sendResult.error)
-        }
+        // DM 로그 업데이트 (링크 발송 완료)
+        await supabase
+          .from('instagram_dm_logs')
+          .update({
+            status: 'link_sent',
+            link_sent_at: new Date().toISOString(),
+          })
+          .eq('dm_setting_id', dmSettingId)
+          .eq('recipient_ig_user_id', senderId)
       } else {
-        // ❌ 팔로워 아님 → 팔로우 요청 메시지 재발송
-        console.log('User is NOT a follower. Sending follow request message...')
+        // ❌ 링크 발송 실패 = 팔로워 아님 → 팔로우 요청 메시지 재발송
+        console.log('Failed to send link message. User is NOT a follower. Sending follow request...')
 
         const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
           `아직 팔로우가 확인되지 않았어요! 😅\n\n팔로우 후 다시 버튼을 눌러주세요!`
