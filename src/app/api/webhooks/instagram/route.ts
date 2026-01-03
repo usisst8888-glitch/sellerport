@@ -562,8 +562,8 @@ async function handleCommentEvent(
     }
 
     // ⭐ 핵심 로직: require_follow 설정에 따라 분기
-    const requireFollow = dmSettings.require_follow ?? false
-    console.log('DM send mode:', { requireFollow })
+    const requireFollow = dmSettings.require_follow ?? true // 기본값 true로 변경
+    console.log('DM send mode:', { requireFollow, rawValue: dmSettings.require_follow })
 
     let dmSent = false
     let messageType: 'link' | 'follow_request' = requireFollow ? 'follow_request' : 'link'
