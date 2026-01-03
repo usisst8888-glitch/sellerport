@@ -47,8 +47,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing Instagram credentials. Please reconnect.' }, { status: 400 })
     }
 
-    // Instagram Login 방식: Webhook은 앱 레벨에서 설정되므로 별도 구독 불필요
-    // 대신 계정 연결 상태만 확인
+    // Instagram Login 방식: 유저별 Webhook 구독 필요!
     if (authMethod === 'instagram_login') {
       // Instagram 계정 정보 확인 (토큰 유효성 검증)
       const userInfoUrl = new URL(`https://graph.instagram.com/v24.0/${instagramUserId}`)
@@ -67,23 +66,80 @@ export async function POST(request: NextRequest) {
         }, { status: 400 })
       }
 
+      // subscribed_apps API 호출 (재시도 로직 포함)
+      let subscribeSuccess = false
+      let subscribeError = null
+      const maxRetries = 3
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`Attempting webhook subscription (${attempt}/${maxRetries})...`)
+
+          const subscribeUrl = `https://graph.instagram.com/v24.0/${instagramUserId}/subscribed_apps`
+          const subscribeResponse = await fetch(subscribeUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              subscribed_fields: 'comments,messages',
+              access_token: accessToken,
+            }).toString(),
+          })
+
+          const subscribeResult = await subscribeResponse.json()
+
+          if (subscribeResult.error) {
+            subscribeError = subscribeResult.error
+            console.error(`Webhook subscription attempt ${attempt} failed:`, subscribeResult.error)
+
+            // 일시적 에러면 재시도
+            if (subscribeResult.error.is_transient && attempt < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * attempt)) // 지수 백오프
+              continue
+            }
+            break
+          } else {
+            console.log('Webhook subscription successful:', subscribeResult)
+            subscribeSuccess = true
+            break
+          }
+        } catch (error) {
+          console.error(`Webhook subscription attempt ${attempt} error:`, error)
+          subscribeError = error
+          if (attempt < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
+          }
+        }
+      }
+
       // 메타데이터 업데이트
       await supabase
         .from('ad_channels')
         .update({
           metadata: {
             ...channel.metadata,
-            webhook_subscribed: true, // 앱 레벨에서 설정됨
-            webhook_subscribed_at: new Date().toISOString(),
+            webhook_subscribed: subscribeSuccess,
+            webhook_subscribed_at: subscribeSuccess ? new Date().toISOString() : channel.metadata?.webhook_subscribed_at,
             last_verified_at: new Date().toISOString(),
+            last_subscription_error: subscribeError ? JSON.stringify(subscribeError) : null,
           }
         })
         .eq('id', channelId)
 
+      if (!subscribeSuccess) {
+        return NextResponse.json({
+          success: false,
+          error: 'Webhook 구독에 실패했습니다. 나중에 다시 시도해주세요.',
+          details: subscribeError,
+          authMethod: 'instagram_login',
+          accountVerified: true
+        }, { status: 400 })
+      }
+
       return NextResponse.json({
         success: true,
-        message: 'Instagram Login 방식에서는 Webhook이 앱 레벨에서 설정됩니다.',
-        note: 'Meta Developer Console > Instagram > Webhooks에서 comments, messages 필드를 구독하세요.',
+        message: 'Webhook 구독이 완료되었습니다.',
         authMethod: 'instagram_login',
         accountVerified: true
       })

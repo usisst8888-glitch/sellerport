@@ -215,30 +215,55 @@ export async function GET(request: NextRequest) {
     // 5. Webhook 구독 (유저별로 필수!)
     // 참고: https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/webhooks
     // POST /{INSTAGRAM_ACCOUNT_ID}/subscribed_apps?subscribed_fields=comments,messages
-    try {
-      const subscribeUrl = `https://graph.instagram.com/v24.0/${instagramUserId}/subscribed_apps`
-      const subscribeResponse = await fetch(subscribeUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          subscribed_fields: 'comments,messages',
-          access_token: accessToken,
-        }).toString(),
-      })
+    // 재시도 로직 포함 (일시적 에러 대응)
+    const maxRetries = 3
+    let webhookSubscribed = false
 
-      const subscribeResult = await subscribeResponse.json()
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`Webhook subscription attempt ${attempt}/${maxRetries}...`)
 
-      if (subscribeResult.error) {
-        console.error('Failed to subscribe to webhooks:', subscribeResult.error)
-        // 웹훅 구독 실패해도 계정 연결은 성공으로 처리 (나중에 다시 시도 가능)
-      } else {
-        console.log('Webhook subscription successful:', subscribeResult)
+        const subscribeUrl = `https://graph.instagram.com/v24.0/${instagramUserId}/subscribed_apps`
+        const subscribeResponse = await fetch(subscribeUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            subscribed_fields: 'comments,messages',
+            access_token: accessToken,
+          }).toString(),
+        })
+
+        const subscribeResult = await subscribeResponse.json()
+
+        if (subscribeResult.error) {
+          console.error(`Webhook subscription attempt ${attempt} failed:`, subscribeResult.error)
+
+          // 일시적 에러면 재시도
+          if (subscribeResult.error.is_transient && attempt < maxRetries) {
+            console.log(`Retrying in ${attempt} second(s)...`)
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
+            continue
+          }
+          // 영구적 에러이거나 마지막 시도면 포기
+          break
+        } else {
+          console.log('Webhook subscription successful:', subscribeResult)
+          webhookSubscribed = true
+          break
+        }
+      } catch (webhookError) {
+        console.error(`Webhook subscription attempt ${attempt} error:`, webhookError)
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
+        }
       }
-    } catch (webhookError) {
-      console.error('Webhook subscription error:', webhookError)
-      // 웹훅 구독 실패해도 계정 연결은 성공으로 처리
+    }
+
+    // 웹훅 구독 실패해도 계정 연결은 성공으로 처리
+    if (!webhookSubscribed) {
+      console.warn('Webhook subscription failed after all retries. User can retry later via settings.')
     }
 
     // 성공
