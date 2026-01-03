@@ -884,19 +884,42 @@ async function handleCommentEvent(
 }
 
 // 메시징 이벤트 처리 (DM 수신, Quick Reply/Postback 버튼 클릭 등)
-async function handleMessagingEvent(event: {
-  sender: { id: string }
-  recipient: { id: string }
-  message?: { mid: string; text: string; quick_reply?: { payload: string } }
-  postback?: { mid: string; title: string; payload: string }
-}) {
-  console.log('Messaging event:', JSON.stringify(event, null, 2))
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleMessagingEvent(event: any) {
+  // is_echo 메시지는 무시 (우리가 보낸 메시지가 에코로 돌아온 것)
+  if (event.message?.is_echo) {
+    console.log('📤 [is_echo] 우리가 보낸 메시지 에코 - 무시')
+    return
+  }
+
+  // read 이벤트도 무시
+  if (event.read) {
+    console.log('👁️ [read] 메시지 읽음 이벤트 - 무시')
+    return
+  }
+
+  console.log('📩 Messaging event (전체 필드):', JSON.stringify(event, null, 2))
 
   const supabase = getSupabaseClient()
 
   // Postback 버튼 클릭 처리 (Button Template의 버튼)
   if (event.postback?.payload) {
     const payload = event.postback.payload
+
+    console.log('🔘 ===== POSTBACK 이벤트 상세 분석 =====')
+    console.log('sender:', JSON.stringify(event.sender, null, 2))
+    console.log('recipient:', JSON.stringify(event.recipient, null, 2))
+    console.log('postback:', JSON.stringify(event.postback, null, 2))
+    console.log('timestamp:', event.timestamp)
+    // 팔로워/비팔로워 구분 필드 찾기
+    console.log('🔍 event 전체 키:', Object.keys(event))
+    console.log('🔍 postback 전체 키:', Object.keys(event.postback))
+    // 혹시 있을 수 있는 필드들
+    console.log('🔍 event.message_request:', event.message_request)
+    console.log('🔍 event.is_message_request:', event.is_message_request)
+    console.log('🔍 event.folder:', event.folder)
+    console.log('🔍 postback.referral:', event.postback.referral)
+    console.log('========================================')
 
     // payload 형식: "follow_confirmed:{dm_setting_id}:{tracking_url}"
     // URL에 : 가 포함되어 있으므로 주의해서 파싱
@@ -911,7 +934,7 @@ async function handleMessagingEvent(event: {
 
         console.log('Parsed payload - dmSettingId:', dmSettingId, 'trackingUrl:', trackingUrl)
 
-        await handleFollowConfirmed(event.sender.id, event.recipient.id, dmSettingId, trackingUrl)
+        await handleFollowConfirmed(event.sender.id, event.recipient.id, dmSettingId, trackingUrl, event)
         return
       }
     }
@@ -920,6 +943,15 @@ async function handleMessagingEvent(event: {
   // Quick Reply 버튼 클릭 처리 (팔로우 확인) - 폴백용
   if (event.message?.quick_reply?.payload) {
     const payload = event.message.quick_reply.payload
+
+    console.log('💬 ===== QUICK REPLY 이벤트 상세 분석 =====')
+    console.log('sender:', JSON.stringify(event.sender, null, 2))
+    console.log('recipient:', JSON.stringify(event.recipient, null, 2))
+    console.log('message:', JSON.stringify(event.message, null, 2))
+    console.log('🔍 event 전체 키:', Object.keys(event))
+    console.log('🔍 event.message_request:', event.message_request)
+    console.log('🔍 event.is_message_request:', event.is_message_request)
+    console.log('==========================================')
 
     // payload 형식: "follow_confirmed:{dm_setting_id}:{tracking_url}"
     if (payload.startsWith('follow_confirmed:')) {
@@ -932,7 +964,7 @@ async function handleMessagingEvent(event: {
 
         console.log('Parsed Quick Reply payload - dmSettingId:', dmSettingId, 'trackingUrl:', trackingUrl)
 
-        await handleFollowConfirmed(event.sender.id, event.recipient.id, dmSettingId, trackingUrl)
+        await handleFollowConfirmed(event.sender.id, event.recipient.id, dmSettingId, trackingUrl, event)
         return
       }
     }
@@ -1243,21 +1275,39 @@ async function sendFollowerCheckQuickReply(
 
 // 팔로우 확인 버튼 클릭 시 처리
 // ⭐ 핵심 로직:
-// 1. 버튼 클릭 Webhook 수신 → 링크 메시지 발송 시도
-// 2. 발송 성공 = 팔로워 → 완료
-// 3. 발송 실패 = 비팔로워 → "팔로우 해주세요" 버튼 다시 발송
+// 1. 버튼 클릭 Webhook 수신 → 이벤트 분석
+// 2. 팔로워/비팔로워 구분 필드 확인
+// 3. 팔로워 → 링크 발송
+// 4. 비팔로워 → "팔로우 해주세요" 버튼 다시 발송
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleFollowConfirmed(
   senderId: string,
   _recipientId: string,
   dmSettingId: string,
   trackingUrl: string,
-  _commentId?: string
+  webhookEvent?: any
 ) {
   try {
-    console.log('=== 버튼 클릭 감지! 링크 발송 시도 ===')
+    console.log('=== 버튼 클릭 감지! ===')
     console.log('User ID:', senderId)
     console.log('DM Setting ID:', dmSettingId)
     console.log('Tracking URL:', trackingUrl)
+
+    // ⭐ 팔로워/비팔로워 구분 필드 분석
+    console.log('🔍 ===== 팔로워 구분 필드 분석 =====')
+    if (webhookEvent) {
+      console.log('event.message_request:', webhookEvent.message_request)
+      console.log('event.is_message_request:', webhookEvent.is_message_request)
+      console.log('event.folder:', webhookEvent.folder)
+      console.log('event.referral:', webhookEvent.referral)
+      // 더 많은 필드 탐색
+      for (const key of Object.keys(webhookEvent)) {
+        if (!['sender', 'recipient', 'timestamp', 'postback', 'message'].includes(key)) {
+          console.log(`event.${key}:`, webhookEvent[key])
+        }
+      }
+    }
+    console.log('======================================')
 
     const supabase = getSupabaseClient()
 
