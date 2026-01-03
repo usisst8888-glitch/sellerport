@@ -627,57 +627,51 @@ async function handleCommentEvent(
     let messageType: 'link' | 'follow_request' = requireFollow ? 'follow_request' : 'link'
 
     if (requireFollow) {
-      // 🧪 새로운 테스트: 일반 DM with web_url 버튼으로 링크 직접 발송
-      // 가설: 팔로워가 아니면 이 방식으로 발송 실패할 것!
-      console.log('🔍 [팔로워 체크 모드] 일반 DM with web_url 버튼으로 링크 직접 발송 테스트...')
+      // 🧪 최종 테스트: 댓글 이벤트에서 처음부터 링크 포함 텍스트 메시지 발송
+      // 가설: 비팔로워에게는 링크 포함 메시지 발송 실패
+      console.log('🔍 [팔로워 체크 모드] 댓글 이벤트에서 링크 포함 텍스트 메시지 직접 발송 테스트...')
 
-      const dmMessageText = dmSettings.dm_message || `안녕하세요! 댓글 감사합니다 🙏\n\n아래 버튼을 눌러 링크를 확인하세요!`
-      const linkButtonText = dmSettings.link_button_text || '링크 확인하기'
+      const dmMessageText = dmSettings.dm_message || `안녕하세요! 댓글 감사합니다 🙏\n\n아래 링크를 확인하세요!`
+      const textWithLink = `${dmMessageText}\n\n${trackingUrl}`
 
-      // 일반 DM으로 web_url 버튼 발송 (recipient: {id} 사용)
       console.log('📤 발송 대상 Instagram User ID:', commentData.from.id)
-      console.log('📝 메시지:', dmMessageText)
-      console.log('🔗 링크:', trackingUrl)
+      console.log('📝 메시지 (링크 포함):', textWithLink)
 
-      const regularDmResponse = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
+      // 링크 포함 텍스트 메시지 발송
+      const textMessageResponse = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          recipient: { id: commentData.from.id }, // ⭐ 일반 DM (user_id 사용)
+          recipient: { id: commentData.from.id },
           message: {
-            attachment: {
-              type: 'template',
-              payload: {
-                template_type: 'button',
-                text: dmMessageText,
-                buttons: [{
-                  type: 'web_url', // ⭐ web_url 버튼 (외부 링크)
-                  title: linkButtonText,
-                  url: trackingUrl,
-                }],
-              },
-            },
+            text: textWithLink
           },
         }),
       })
-      const regularDmResult = await regularDmResponse.json()
+      const textMessageResult = await textMessageResponse.json()
 
-      console.log('📊 일반 DM with web_url 발송 결과:', regularDmResult)
+      console.log('===== 댓글 이벤트: 링크 포함 텍스트 메시지 발송 결과 =====')
+      console.log('응답:', JSON.stringify(textMessageResult, null, 2))
+      console.log('=======================================================')
 
-      if (regularDmResult.error) {
-        console.error('❌ 일반 DM 발송 실패 (팔로워 아님?):', {
-          code: regularDmResult.error.code,
-          message: regularDmResult.error.message,
-          type: regularDmResult.error.type,
-          error_subcode: regularDmResult.error.error_subcode,
-          fbtrace_id: regularDmResult.error.fbtrace_id,
+      if (textMessageResult.error) {
+        console.error('❌ 링크 포함 텍스트 메시지 발송 실패 (비팔로워?):', {
+          code: textMessageResult.error.code,
+          message: textMessageResult.error.message,
+          type: textMessageResult.error.type,
+          error_subcode: textMessageResult.error.error_subcode,
+          fbtrace_id: textMessageResult.error.fbtrace_id,
         })
         dmSent = false
+
+        // 실패하면 팔로우 요청 메시지 발송
+        console.log('⚠️ 링크 발송 실패 → 팔로우 요청 메시지 발송...')
+        // TODO: 팔로우 요청 메시지 로직 추가
       } else {
-        console.log('✅ 일반 DM 발송 성공 (팔로워임!)')
+        console.log('✅✅✅ 링크 포함 텍스트 메시지 발송 성공 (팔로워임!)')
         dmSent = true
         messageType = 'link' // 링크를 바로 보냈으므로
       }
