@@ -272,6 +272,105 @@ async function sendLinkViaPrivateReply(
   }
 }
 
+// 링크 메시지 발송 함수 (Private Reply - 직접 호출용)
+// handleFollowConfirmed에서 사용
+async function sendLinkViaPrivateReplyDirect(
+  commentId: string,
+  dmMessageText: string,
+  trackingUrl: string,
+  productImageUrl: string | null,
+  productName: string,
+  accessToken: string
+): Promise<boolean> {
+  try {
+    const url = `https://graph.instagram.com/v24.0/me/messages`
+
+    console.log('Sending link message via Private Reply (direct)...')
+
+    let response
+
+    if (productImageUrl) {
+      // Generic Template (이미지 카드 + 버튼)
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { comment_id: commentId }, // Private Reply
+          message: {
+            attachment: {
+              type: 'template',
+              payload: {
+                template_type: 'generic',
+                elements: [{
+                  title: productName,
+                  subtitle: dmMessageText,
+                  image_url: productImageUrl,
+                  default_action: { type: 'web_url', url: trackingUrl },
+                  buttons: [{ type: 'web_url', url: trackingUrl, title: '바로가기' }],
+                }],
+              },
+            },
+          },
+        }),
+      })
+    } else {
+      // Button Template (텍스트 + 버튼)
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { comment_id: commentId }, // Private Reply
+          message: {
+            attachment: {
+              type: 'template',
+              payload: {
+                template_type: 'button',
+                text: dmMessageText,
+                buttons: [{ type: 'web_url', url: trackingUrl, title: '바로가기' }],
+              },
+            },
+          },
+        }),
+      })
+    }
+
+    const result = await response.json()
+
+    if (result.error) {
+      console.error('Link message via Private Reply (direct) error:', result.error)
+      // 템플릿 실패 시 일반 텍스트로 재시도
+      const fallbackResponse = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { comment_id: commentId }, // Private Reply
+          message: { text: `${dmMessageText}\n\n👉 ${trackingUrl}` },
+        }),
+      })
+      const fallbackResult = await fallbackResponse.json()
+      if (fallbackResult.error) {
+        console.error('Fallback link message (direct) error:', fallbackResult.error)
+        return false
+      }
+    }
+
+    console.log('Link message sent successfully via Private Reply (direct)')
+    return true
+  } catch (error) {
+    console.error('Error sending link via Private Reply (direct):', error)
+    return false
+  }
+}
+
 // 링크 메시지 발송 함수 (일반 DM - 팔로워만 가능)
 // 팔로워에게만 성공, 비팔로워는 실패
 // 팔로워 체크 필요 모드에서 버튼 클릭 시 사용
@@ -827,24 +926,41 @@ async function handleFollowConfirmed(
       }
     }
 
+    // ⭐ comment_id 가져오기 (Private Reply용)
+    const { data: dmLog } = await supabase
+      .from('instagram_dm_logs')
+      .select('comment_id')
+      .eq('dm_setting_id', dmSettingId)
+      .eq('recipient_ig_user_id', senderId)
+      .order('sent_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    const commentId = dmLog?.comment_id
+
+    if (!commentId) {
+      console.error('comment_id not found in DM log. Cannot send Private Reply.')
+      return
+    }
+
     // ⭐ require_follow 설정에 따라 분기
     if (requireFollow) {
-      // 팔로워 체크 필요: 링크 메시지 전송을 시도하여 팔로워 여부 판단
-      // 팔로워가 아니면 메시지 전송이 실패함 (권한 에러)
-      console.log('require_follow=true: Trying to send link message to check follower status...')
+      // 팔로워 체크 필요: Private Reply로 링크 메시지 전송 시도
+      // 팔로워가 아니면 메시지 전송이 실패함 (Private Reply는 팔로워만 받을 수 있음)
+      console.log('require_follow=true: Trying to send link via Private Reply to check follower status...')
 
-      const sendResult = await sendLinkMessage(
-        senderId,
-        accessToken,
+      const linkSent = await sendLinkViaPrivateReplyDirect(
+        commentId,
         dmMessageText,
         trackingUrl,
         productImageUrl,
-        productName
+        productName,
+        accessToken
       )
 
-      if (sendResult.success) {
+      if (linkSent) {
         // ✅ 링크 발송 성공 = 팔로워임
-        console.log('Link sent successfully! User IS a follower.')
+        console.log('Link sent successfully via Private Reply! User IS a follower.')
 
         // DM 로그 업데이트 (링크 발송 완료)
         await supabase
@@ -856,58 +972,40 @@ async function handleFollowConfirmed(
           .eq('dm_setting_id', dmSettingId)
           .eq('recipient_ig_user_id', senderId)
       } else {
-        // ❌ 링크 발송 실패 = 팔로워 아님 → 팔로우 요청 메시지 재발송
-        console.log('Failed to send link message. User is NOT a follower. Sending follow request...')
+        // ❌ 링크 발송 실패 = 팔로워 아님 → 팔로우 요청 메시지 재발송 (Private Reply로)
+        console.log('Failed to send link via Private Reply. User is NOT a follower. Sending follow request...')
 
         const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
           `아직 팔로우가 확인되지 않았어요! 😅\n\n팔로우 후 다시 버튼을 눌러주세요!`
         const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
 
-        const response = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            recipient: { id: senderId },
-            message: {
-              attachment: {
-                type: 'template',
-                payload: {
-                  template_type: 'button',
-                  text: followRequestMessage,
-                  buttons: [{
-                    type: 'postback',
-                    title: followButtonText,
-                    payload: `follow_confirmed:${dmSettingId}:${trackingUrl}`,
-                  }],
-                },
-              },
-            },
-          }),
-        })
-
-        const result = await response.json()
-        console.log('Follow request message sent:', result.error ? 'FAILED' : 'SUCCESS', result)
+        // Private Reply로 팔로우 요청 메시지 재발송
+        await sendInstagramPrivateReplyWithQuickReply(
+          commentId,
+          followRequestMessage,
+          accessToken,
+          dmSettingId,
+          trackingUrl,
+          followButtonText
+        )
       }
 
       return // require_follow=true 처리 완료
     } else {
-      // require_follow=false: 팔로워 체크 없이 바로 링크 발송
-      console.log('require_follow=false: Sending link without follower check...')
+      // require_follow=false: 팔로워 체크 없이 바로 링크 발송 (Private Reply로)
+      console.log('require_follow=false: Sending link via Private Reply without follower check...')
 
-      const sendResult = await sendLinkMessage(
-        senderId,
-        accessToken,
+      const linkSent = await sendLinkViaPrivateReplyDirect(
+        commentId,
         dmMessageText,
         trackingUrl,
         productImageUrl,
-        productName
+        productName,
+        accessToken
       )
 
-      if (sendResult.success) {
-        console.log('Link message sent successfully.')
+      if (linkSent) {
+        console.log('Link message sent successfully via Private Reply.')
 
         // DM 로그 업데이트 (링크 발송 완료)
         await supabase
@@ -919,7 +1017,7 @@ async function handleFollowConfirmed(
           .eq('dm_setting_id', dmSettingId)
           .eq('recipient_ig_user_id', senderId)
       } else {
-        console.error('Failed to send link message:', sendResult.error)
+        console.error('Failed to send link message via Private Reply')
       }
     }
   } catch (error) {
