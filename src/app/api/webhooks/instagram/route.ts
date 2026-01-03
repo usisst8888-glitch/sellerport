@@ -741,46 +741,86 @@ async function handleMessagingEvent(event: {
 }
 
 // Instagram API로 팔로워 여부 확인
-async function checkIfFollower(
-  myInstagramUserId: string,
-  userInstagramId: string,
-  accessToken: string
-): Promise<boolean> {
+// 방법: 링크 메시지를 먼저 보내보고, 실패하면 비팔로워로 판단
+// Instagram은 비팔로워에게 메시지 보내기를 차단하므로 이 방법이 가장 정확함
+async function checkIfFollowerByMessageAttempt(
+  senderId: string,
+  accessToken: string,
+  dmMessageText: string,
+  trackingUrl: string,
+  productImageUrl: string | null,
+  productName: string
+): Promise<{ isFollower: boolean; messageSent: boolean; error?: unknown }> {
   try {
-    // Instagram Graph API: GET /{user-id}/followers
-    // 참고: https://developers.facebook.com/docs/instagram-basic-display-api/reference/user/followers
-    const url = `https://graph.instagram.com/v24.0/${myInstagramUserId}/followers?access_token=${accessToken}`
+    // 링크 메시지 발송 시도
+    let response
 
-    let isFollower = false
-    let nextUrl: string | null = url
-
-    // 페이지네이션으로 팔로워 목록 검색 (최대 5페이지만)
-    for (let page = 0; page < 5 && nextUrl; page++) {
-      const response: Response = await fetch(nextUrl)
-      const result: { data?: { id: string }[]; error?: unknown; paging?: { next?: string } } = await response.json()
-
-      if (result.error) {
-        console.error('Error checking followers:', result.error)
-        // API 에러 시 true 반환 (링크 발송 허용)
-        return true
-      }
-
-      // 팔로워 목록에서 사용자 ID 검색
-      const followers = result.data || []
-      if (followers.some((follower: { id: string }) => follower.id === userInstagramId)) {
-        isFollower = true
-        break
-      }
-
-      // 다음 페이지
-      nextUrl = result.paging?.next || null
+    if (productImageUrl) {
+      // Generic Template (이미지 카드 + 버튼)
+      response = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { id: senderId },
+          message: {
+            attachment: {
+              type: 'template',
+              payload: {
+                template_type: 'generic',
+                elements: [{
+                  title: productName,
+                  subtitle: dmMessageText,
+                  image_url: productImageUrl,
+                  default_action: { type: 'web_url', url: trackingUrl },
+                  buttons: [{ type: 'web_url', url: trackingUrl, title: '바로가기' }],
+                }],
+              },
+            },
+          },
+        }),
+      })
+    } else {
+      // Button Template (텍스트 + 버튼)
+      response = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { id: senderId },
+          message: {
+            attachment: {
+              type: 'template',
+              payload: {
+                template_type: 'button',
+                text: dmMessageText,
+                buttons: [{ type: 'web_url', url: trackingUrl, title: '바로가기' }],
+              },
+            },
+          },
+        }),
+      })
     }
 
-    return isFollower
+    const result = await response.json()
+
+    if (result.error) {
+      // 에러 발생 → 비팔로워로 판단
+      console.log('Message send failed (user is NOT a follower):', result.error)
+      return { isFollower: false, messageSent: false, error: result.error }
+    }
+
+    // 성공 → 팔로워임
+    console.log('Message sent successfully (user IS a follower)')
+    return { isFollower: true, messageSent: true }
+
   } catch (error) {
-    console.error('Error checking follower status:', error)
-    // 에러 시 true 반환 (안전장치: 링크 발송 허용)
-    return true
+    console.error('Error checking follower by message attempt:', error)
+    return { isFollower: false, messageSent: false, error }
   }
 }
 
@@ -819,15 +859,58 @@ async function handleFollowConfirmed(
     const myInstagramUserId = dmSettings.instagram_accounts.instagram_user_id
     const requireFollow = dmSettings.require_follow ?? true // 기본값 true
 
+    const dmMessageText = dmSettings.dm_message || '감사합니다! 요청하신 링크입니다 👇'
+
+    // 상품 정보 가져오기 (Generic Template용)
+    let productName = dmSettings.tracking_links?.post_name || '상품 보기'
+    let productImageUrl = dmSettings.instagram_media_url || null
+
+    // tracking_links에서 product 정보 가져오기
+    if (dmSettings.tracking_link_id) {
+      const { data: trackingLinkWithProduct } = await supabase
+        .from('tracking_links')
+        .select('products(name, image_url)')
+        .eq('id', dmSettings.tracking_link_id)
+        .single()
+
+      if (trackingLinkWithProduct?.products) {
+        const product = trackingLinkWithProduct.products as { name?: string; image_url?: string }
+        productName = product.name || productName
+        productImageUrl = product.image_url || productImageUrl
+      }
+    }
+
     // ⭐ require_follow 설정에 따라 분기
     if (requireFollow) {
-      // 팔로워 체크 필요: Instagram API로 팔로워 여부 확인
-      console.log('require_follow=true: Checking if user is a follower...')
+      // 팔로워 체크 필요: 링크 메시지 발송 시도로 팔로워 여부 확인
+      console.log('require_follow=true: Checking follower by sending link...')
 
-      const isFollower = await checkIfFollower(myInstagramUserId, senderId, accessToken)
+      const checkResult = await checkIfFollowerByMessageAttempt(
+        senderId,
+        accessToken,
+        dmMessageText,
+        trackingUrl,
+        productImageUrl,
+        productName
+      )
 
-      if (!isFollower) {
-        // ❌ 팔로워가 아님: 팔로우 요청 메시지 재발송
+      if (checkResult.messageSent) {
+        // ✅ 팔로워 확인됨 + 링크 발송 완료
+        console.log('User IS a follower. Link message sent successfully.')
+
+        // DM 로그 업데이트 (링크 발송 완료)
+        await supabase
+          .from('instagram_dm_logs')
+          .update({
+            status: 'link_sent',
+            link_sent_at: new Date().toISOString(),
+          })
+          .eq('dm_setting_id', dmSettingId)
+          .eq('recipient_ig_user_id', senderId)
+
+        return // 성공적으로 완료
+      } else {
+        // ❌ 비팔로워: 팔로우 요청 메시지 재발송
         console.log('User is NOT a follower. Sending follow request message again...')
 
         const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
@@ -859,119 +942,36 @@ async function handleFollowConfirmed(
           }),
         })
 
-        return // 팔로워가 아니므로 여기서 종료
+        return // 팔로워가 아니므로 종료
       }
-
-      // ✅ 팔로워 확인됨: 링크 발송
-      console.log('User IS a follower. Sending link message...')
     } else {
       // require_follow=false: 팔로워 체크 없이 바로 링크 발송
       console.log('require_follow=false: Sending link without follower check...')
-    }
 
-    // 링크 메시지 발송 (공통)
-    let linkSent = false
+      const checkResult = await checkIfFollowerByMessageAttempt(
+        senderId,
+        accessToken,
+        dmMessageText,
+        trackingUrl,
+        productImageUrl,
+        productName
+      )
 
-    try {
-      console.log('Sending link message...')
+      if (checkResult.messageSent) {
+        console.log('Link message sent successfully (no follower check required).')
 
-      const dmMessageText = dmSettings.dm_message || '감사합니다! 요청하신 링크입니다 👇'
-
-      // 상품 정보 가져오기 (Generic Template용)
-      let productName = dmSettings.tracking_links?.post_name || '상품 보기'
-      let productImageUrl = dmSettings.instagram_media_url || null
-
-      // tracking_links에서 product 정보 가져오기
-      if (dmSettings.tracking_link_id) {
-        const { data: trackingLinkWithProduct } = await supabase
-          .from('tracking_links')
-          .select('products(name, image_url)')
-          .eq('id', dmSettings.tracking_link_id)
-          .single()
-
-        if (trackingLinkWithProduct?.products) {
-          const product = trackingLinkWithProduct.products as { name?: string; image_url?: string }
-          productName = product.name || productName
-          productImageUrl = product.image_url || productImageUrl
-        }
-      }
-
-      // 링크 메시지 발송
-      let response
-
-      if (productImageUrl) {
-        // Generic Template (이미지 카드 + 버튼)
-        response = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            recipient: { id: senderId },
-            message: {
-              attachment: {
-                type: 'template',
-                payload: {
-                  template_type: 'generic',
-                  elements: [{
-                    title: productName,
-                    subtitle: dmMessageText,
-                    image_url: productImageUrl,
-                    default_action: { type: 'web_url', url: trackingUrl },
-                    buttons: [{ type: 'web_url', url: trackingUrl, title: '바로가기' }],
-                  }],
-                },
-              },
-            },
-          }),
-        })
+        // DM 로그 업데이트 (링크 발송 완료)
+        await supabase
+          .from('instagram_dm_logs')
+          .update({
+            status: 'link_sent',
+            link_sent_at: new Date().toISOString(),
+          })
+          .eq('dm_setting_id', dmSettingId)
+          .eq('recipient_ig_user_id', senderId)
       } else {
-        // Button Template (텍스트 + 버튼)
-        response = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            recipient: { id: senderId },
-            message: {
-              attachment: {
-                type: 'template',
-                payload: {
-                  template_type: 'button',
-                  text: dmMessageText,
-                  buttons: [{ type: 'web_url', url: trackingUrl, title: '바로가기' }],
-                },
-              },
-            },
-          }),
-        })
+        console.error('Failed to send link message:', checkResult.error)
       }
-
-      const result = await response.json()
-
-      if (result.error) {
-        console.error('Link message send error:', result.error)
-        throw new Error('Link message failed')
-      }
-
-      console.log('Link message sent successfully:', senderId)
-      linkSent = true
-
-      // DM 로그 업데이트 (링크 발송 완료)
-      await supabase
-        .from('instagram_dm_logs')
-        .update({
-          status: 'link_sent',
-          link_sent_at: new Date().toISOString(),
-        })
-        .eq('dm_setting_id', dmSettingId)
-        .eq('recipient_ig_user_id', senderId)
-
-    } catch (error) {
-      console.error('Link message send error:', error)
     }
   } catch (error) {
     console.error('Error handling follow confirmed:', error)
