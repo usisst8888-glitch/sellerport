@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
             dm_message: dmMessage,
             follow_cta_message: followMessage || null,
             follow_button_text: followButtonText || '팔로우 했어요!',
-            include_follow_cta: requireFollow || false,
+            require_follow: requireFollow ?? true,
             is_active: hasMediaInfo,
           })
 
