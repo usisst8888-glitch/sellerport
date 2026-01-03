@@ -605,8 +605,17 @@ async function handleCommentEvent(
     const myInstagramUserId = dmSettings.instagram_accounts.instagram_user_id
     const trackingUrl = dmSettings.tracking_links?.go_url || dmSettings.tracking_links?.tracking_url
 
+    console.log('🔍 DM 발송 준비:', {
+      hasAccessToken: !!accessToken,
+      myInstagramUserId,
+      trackingUrl,
+      goUrl: dmSettings.tracking_links?.go_url,
+      trackingUrlFromDb: dmSettings.tracking_links?.tracking_url,
+      trackingLinkId: dmSettings.tracking_link_id
+    })
+
     if (!accessToken || !myInstagramUserId || !trackingUrl) {
-      console.error('Missing required data for DM:', { accessToken: !!accessToken, myInstagramUserId, trackingUrl })
+      console.error('❌ Missing required data for DM:', { accessToken: !!accessToken, myInstagramUserId, trackingUrl })
       return
     }
 
