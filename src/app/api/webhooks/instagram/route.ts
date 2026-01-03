@@ -786,76 +786,36 @@ async function handleCommentEvent(
     let messageType: 'link' | 'follow_request' = requireFollow ? 'follow_request' : 'link'
 
     if (requireFollow) {
-      // 🔍 새로운 전략: 1px 투명 이미지를 포함한 메시지 발송 시도
-      // 가설: 비팔로워에게는 이미지 발송 실패 (Error 발생)
-      console.log('🔍 [팔로워 체크 모드] 1px 이미지 메시지 발송 시도 → 실패 시 팔로우 요청 메시지')
+      // 🔍 새로운 전략: 버튼 클릭 기반 팔로워 체크
+      // 원리: 비팔로워의 버튼 클릭 응답은 "메시지 요청" 폴더로 가서 Webhook이 안 옴
+      //       팔로워의 버튼 클릭 응답은 일반 받은편지함으로 와서 Webhook이 옴
+      console.log('🔍 [팔로워 체크 모드] 버튼 클릭 기반 팔로워 체크')
       console.log('📤 발송 대상:', commentData.from.id, commentData.from.username)
 
-      const dmMessageText = dmSettings.dm_message || `안녕하세요! 댓글 감사합니다 🙏\n\n아래 링크를 확인하세요!`
+      // 모든 사용자에게 "링크 받기" 버튼 발송
+      // 팔로워: 버튼 클릭 → Webhook 수신 → 링크 발송
+      // 비팔로워: 버튼 클릭 → 메시지 요청 폴더 → Webhook 안 옴 → 링크 못 받음
+      const followCheckMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
+        `안녕하세요! 댓글 감사합니다 😊\n\n아래 버튼을 눌러주시면 링크를 보내드립니다!\n\n(팔로워만 링크를 받으실 수 있어요 👇)`
+      const buttonText = dmSettings.follow_button_text || '링크 받기'
 
-      // 방법 1: 1px 투명 이미지로 팔로워 체크
-      console.log('🧪 1px 이미지로 팔로워 체크 시도...')
+      console.log('📤 팔로워 체크용 버튼 메시지 발송 중...')
 
-      const followerCheckResult = await sendImageMessageForFollowerCheck(
+      // Private Reply로 버튼 메시지 발송
+      dmSent = await sendInstagramPrivateReplyWithQuickReply(
         commentData.id,
-        accessToken
+        followCheckMessage,
+        accessToken,
+        dmSettings.id,
+        trackingUrl,
+        buttonText
       )
 
-      console.log('===== 1px 이미지 팔로워 체크 결과 =====')
-      console.log('Success:', followerCheckResult.success)
-      console.log('Error:', JSON.stringify(followerCheckResult.error, null, 2))
-      console.log('======================================')
-
-      if (followerCheckResult.success) {
-        // ✅ 이미지 발송 성공 = 팔로워임 → 링크 메시지 발송
-        console.log('✅✅✅ 1px 이미지 발송 성공! 팔로워로 판단 → 링크 메시지 발송')
-
-        dmSent = await sendLinkViaPrivateReply(
-          commentData.id,
-          dmSettings,
-          accessToken,
-          trackingUrl
-        )
-
-        if (dmSent) {
-          messageType = 'link'
-          console.log('✅ 팔로워에게 링크 발송 성공')
-        }
-      } else {
-        // ❌ 이미지 발송 실패 - 에러 코드 분석
-        const error = followerCheckResult.error as any
-        const errorCode = error?.code
-        const errorSubcode = error?.error_subcode
-        const errorMessage = error?.message
-
-        console.log('❌ 1px 이미지 발송 실패 - 에러 분석:', {
-          code: errorCode,
-          subcode: errorSubcode,
-          message: errorMessage,
-          type: error?.type,
-        })
-
-        // 비팔로워로 판단 → 팔로우 요청 메시지 발송
-        console.log('⚠️ 비팔로워로 판단 → 팔로우 요청 메시지 발송')
-
-        const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
-          `안녕하세요! 😊\n\n링크를 받으시려면 먼저 저희 계정을 팔로우해 주세요!\n\n팔로우 후 아래 버튼을 눌러주시면 링크를 보내드립니다 👇`
-        const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
-
-        // Private Reply로 팔로우 요청 메시지 발송
-        dmSent = await sendInstagramPrivateReplyWithQuickReply(
-          commentData.id,
-          followRequestMessage,
-          accessToken,
-          dmSettings.id,
-          trackingUrl,
-          followButtonText
-        )
-
-        if (dmSent) {
-          messageType = 'follow_request'
-          console.log('✅ 비팔로워에게 팔로우 요청 메시지 발송 성공')
-        }
+      if (dmSent) {
+        messageType = 'follow_request' // 아직 링크 발송 전이므로 follow_request로 표시
+        console.log('✅ 팔로워 체크용 버튼 메시지 발송 성공')
+        console.log('ℹ️ 팔로워가 버튼 클릭하면 Webhook으로 이벤트 수신 → 링크 발송')
+        console.log('ℹ️ 비팔로워가 버튼 클릭하면 메시지 요청 폴더로 감 → Webhook 안 옴')
       }
     } else {
       // 옵션 2: 팔로워 체크 불필요 → Private Reply로 링크 바로 발송
