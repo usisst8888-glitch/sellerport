@@ -422,7 +422,6 @@ async function handleCommentEvent(
     }
 
     // 이미 DM 발송한 사용자인지 확인 (중복 방지)
-    const supabase = getSupabaseClient()
     const { data: existingDm } = await supabase
       .from('instagram_dm_logs')
       .select('id')
