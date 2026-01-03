@@ -695,13 +695,14 @@ async function handleFollowConfirmed(
     const accessToken = dmSettings.instagram_accounts.access_token
     const myInstagramUserId = dmSettings.instagram_accounts.instagram_user_id
 
-    // ⭐ 핵심: 먼저 팔로워 여부 확인 (checkIfFollower 함수 사용)
-    console.log('Checking follower status via API...')
-    const isFollower = await checkIfFollower(myInstagramUserId, senderId, accessToken)
+    // ⭐ 핵심: 링크 메시지 먼저 시도 → 실패하면 비팔로워로 판단
+    console.log('Attempting to send link message directly...')
 
-    if (isFollower) {
-      // ✅ 팔로워인 경우: 링크 메시지 발송
-      console.log('User IS a follower! Sending link message...')
+    let linkSent = false
+
+    try {
+      // ✅ 팔로워인 경우: 링크 메시지 발송 성공
+      console.log('Trying to send link message...')
 
       const dmMessageText = dmSettings.dm_message || '감사합니다! 요청하신 링크입니다 👇'
 
@@ -781,22 +782,13 @@ async function handleFollowConfirmed(
       const result = await response.json()
 
       if (result.error) {
-        console.error('Link message send error:', result.error)
-        // 템플릿 실패 시 일반 텍스트로 재시도
-        await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            recipient: { id: senderId },
-            message: { text: `${dmMessageText}\n\n👉 ${trackingUrl}` },
-          }),
-        })
+        console.error('Link message send error (likely not a follower):', result.error)
+        // 에러 발생 → 비팔로워로 판단
+        throw new Error('User is not a follower')
       }
 
       console.log('Link message sent successfully to follower:', senderId)
+      linkSent = true
 
       // DM 로그 업데이트 (링크 발송 완료)
       await supabase
@@ -808,9 +800,9 @@ async function handleFollowConfirmed(
         .eq('dm_setting_id', dmSettingId)
         .eq('recipient_ig_user_id', senderId)
 
-    } else {
-      // ❌ 팔로워가 아닌 경우: 팔로우 요청 메시지 재발송
-      console.log('User is NOT a follower. Sending follow request message again...')
+    } catch (error) {
+      // ❌ 링크 메시지 실패 → 팔로워가 아닌 경우: 팔로우 요청 메시지 재발송
+      console.log('Link message failed (user is NOT a follower). Sending follow request message again...', error)
 
       const followRequestMessage = dmSettings.follow_cta_message ||
         `아직 팔로우가 확인되지 않았어요! 😅\n\n팔로우 후 다시 버튼을 눌러주세요!`
