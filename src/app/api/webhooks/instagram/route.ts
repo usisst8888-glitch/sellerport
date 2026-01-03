@@ -786,22 +786,18 @@ async function handleCommentEvent(
     let messageType: 'link' | 'follow_request' = requireFollow ? 'follow_request' : 'link'
 
     if (requireFollow) {
-      // 🔍 새로운 전략: 버튼 클릭 기반 팔로워 체크
-      // 원리: 비팔로워의 버튼 클릭 응답은 "메시지 요청" 폴더로 가서 Webhook이 안 옴
-      //       팔로워의 버튼 클릭 응답은 일반 받은편지함으로 와서 Webhook이 옴
-      console.log('🔍 [팔로워 체크 모드] 버튼 클릭 기반 팔로워 체크')
+      // 🔍 팔로워 체크 모드: Private Reply로 버튼 발송
+      // 버튼 클릭 시 is_user_follow_business API로 팔로워 확인
+      console.log('🔍 [팔로워 체크 모드] Private Reply로 버튼 발송')
       console.log('📤 발송 대상:', commentData.from.id, commentData.from.username)
 
-      // 모든 사용자에게 "링크 받기" 버튼 발송
-      // 팔로워: 버튼 클릭 → Webhook 수신 → 링크 발송
-      // 비팔로워: 버튼 클릭 → 메시지 요청 폴더 → Webhook 안 옴 → 링크 못 받음
       const followCheckMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
-        `안녕하세요! 댓글 감사합니다 😊\n\n아래 버튼을 눌러주시면 링크를 보내드립니다!\n\n(팔로워만 링크를 받으실 수 있어요 👇)`
+        `안녕하세요! 댓글 감사합니다 😊\n\n아래 버튼을 눌러주시면 링크를 보내드려요!`
       const buttonText = dmSettings.follow_button_text || '링크 받기'
 
-      console.log('📤 팔로워 체크용 버튼 메시지 발송 중...')
+      // Private Reply로 버튼 발송 (누구에게나 발송 가능)
+      console.log('📤 Private Reply로 버튼 발송 중...')
 
-      // Private Reply로 버튼 메시지 발송
       dmSent = await sendInstagramPrivateReplyWithQuickReply(
         commentData.id,
         followCheckMessage,
@@ -812,10 +808,9 @@ async function handleCommentEvent(
       )
 
       if (dmSent) {
-        messageType = 'follow_request' // 아직 링크 발송 전이므로 follow_request로 표시
-        console.log('✅ 팔로워 체크용 버튼 메시지 발송 성공')
-        console.log('ℹ️ 팔로워가 버튼 클릭하면 Webhook으로 이벤트 수신 → 링크 발송')
-        console.log('ℹ️ 비팔로워가 버튼 클릭하면 메시지 요청 폴더로 감 → Webhook 안 옴')
+        messageType = 'follow_request'
+        console.log('✅ Private Reply 버튼 발송 성공!')
+        console.log('ℹ️ 버튼 클릭 → is_user_follow_business API로 팔로워 확인 → 링크 또는 버튼 재발송')
       }
     } else {
       // 옵션 2: 팔로워 체크 불필요 → Private Reply로 링크 바로 발송
@@ -1148,6 +1143,60 @@ async function sendPrivateReply(
   }
 }
 
+// 일반 DM으로 버튼 발송 (팔로워 체크용)
+// Quick Reply 버튼을 일반 DM으로 발송
+// 상대방이 버튼 클릭 → 상대방이 나한테 메시지 보내는 것
+// 팔로워 → Webhook 옴, 비팔로워 → 메시지 요청 폴더 → Webhook 안 옴
+async function sendButtonViaDM(
+  recipientId: string,
+  accessToken: string,
+  message: string,
+  buttonText: string,
+  dmSettingId: string,
+  trackingUrl: string
+): Promise<{ success: boolean; error?: unknown }> {
+  try {
+    console.log('📤 일반 DM으로 Quick Reply 버튼 발송 중...')
+    console.log('recipient:', recipientId)
+
+    const response = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        recipient: { id: recipientId }, // 일반 DM (Private Reply 아님!)
+        message: {
+          text: message,
+          quick_replies: [
+            {
+              content_type: 'text',
+              title: buttonText,
+              payload: `follow_confirmed:${dmSettingId}:${trackingUrl}`,
+            },
+          ],
+        },
+      }),
+    })
+
+    const result = await response.json()
+
+    console.log('일반 DM 버튼 발송 결과:', JSON.stringify(result, null, 2))
+
+    if (result.error) {
+      console.error('❌ 일반 DM 버튼 발송 실패:', result.error)
+      return { success: false, error: result.error }
+    }
+
+    console.log('✅ 일반 DM 버튼 발송 성공')
+    return { success: true }
+  } catch (error) {
+    console.error('Error sending button via DM:', error)
+    return { success: false, error }
+  }
+}
+
 // 링크 메시지 발송 함수
 async function sendLinkMessage(
   senderId: string,
@@ -1273,10 +1322,47 @@ async function sendFollowerCheckQuickReply(
   }
 }
 
+// Instagram API로 팔로워 여부 확인
+// GET /{user_id}?fields=is_user_follow_business
+async function checkFollowerViaAPI(
+  userId: string,
+  accessToken: string
+): Promise<boolean> {
+  try {
+    console.log('🔍 checkFollowerViaAPI 호출:', userId)
+
+    const response = await fetch(
+      `https://graph.instagram.com/v24.0/${userId}?fields=id,username,is_user_follow_business`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
+    )
+
+    const result = await response.json()
+
+    console.log('🔍 팔로워 확인 API 응답:', JSON.stringify(result, null, 2))
+
+    if (result.error) {
+      console.error('❌ 팔로워 확인 API 에러:', result.error)
+      return false
+    }
+
+    const isFollower = result.is_user_follow_business === true
+    console.log('🔍 is_user_follow_business:', result.is_user_follow_business, '→', isFollower ? '팔로워' : '비팔로워')
+
+    return isFollower
+  } catch (error) {
+    console.error('Error checking follower via API:', error)
+    return false
+  }
+}
+
 // 팔로우 확인 버튼 클릭 시 처리
 // ⭐ 핵심 로직:
-// 1. 버튼 클릭 Webhook 수신 → 이벤트 분석
-// 2. 팔로워/비팔로워 구분 필드 확인
+// 1. 버튼 클릭 Webhook 수신
+// 2. Instagram API로 is_user_follow_business 확인
 // 3. 팔로워 → 링크 발송
 // 4. 비팔로워 → "팔로우 해주세요" 버튼 다시 발송
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1285,29 +1371,13 @@ async function handleFollowConfirmed(
   _recipientId: string,
   dmSettingId: string,
   trackingUrl: string,
-  webhookEvent?: any
+  _webhookEvent?: any
 ) {
   try {
     console.log('=== 버튼 클릭 감지! ===')
     console.log('User ID:', senderId)
     console.log('DM Setting ID:', dmSettingId)
     console.log('Tracking URL:', trackingUrl)
-
-    // ⭐ 팔로워/비팔로워 구분 필드 분석
-    console.log('🔍 ===== 팔로워 구분 필드 분석 =====')
-    if (webhookEvent) {
-      console.log('event.message_request:', webhookEvent.message_request)
-      console.log('event.is_message_request:', webhookEvent.is_message_request)
-      console.log('event.folder:', webhookEvent.folder)
-      console.log('event.referral:', webhookEvent.referral)
-      // 더 많은 필드 탐색
-      for (const key of Object.keys(webhookEvent)) {
-        if (!['sender', 'recipient', 'timestamp', 'postback', 'message'].includes(key)) {
-          console.log(`event.${key}:`, webhookEvent[key])
-        }
-      }
-    }
-    console.log('======================================')
 
     const supabase = getSupabaseClient()
 
@@ -1332,6 +1402,11 @@ async function handleFollowConfirmed(
     const accessToken = dmSettings.instagram_accounts.access_token
     const dmMessageText = dmSettings.dm_message || '감사합니다! 요청하신 링크입니다 👇'
 
+    // ⭐ 핵심: Instagram API로 팔로워 여부 확인
+    console.log('🔍 Instagram API로 팔로워 여부 확인 중...')
+    const isFollower = await checkFollowerViaAPI(senderId, accessToken)
+    console.log('🔍 팔로워 여부:', isFollower ? '✅ 팔로워' : '❌ 비팔로워')
+
     // 상품 정보 가져오기 (Generic Template용)
     let productName = dmSettings.tracking_links?.post_name || '상품 보기'
     let productImageUrl = dmSettings.instagram_media_url || null
@@ -1351,46 +1426,45 @@ async function handleFollowConfirmed(
       }
     }
 
-    // ⭐ 링크 메시지 발송 시도
-    console.log('📤 링크 메시지 발송 시도 중...')
-    console.log('발송 내용:', dmMessageText)
-    console.log('추적 URL:', trackingUrl)
+    if (isFollower) {
+      // ✅ 팔로워! → 링크 발송
+      console.log('📤 팔로워 확인됨! 링크 메시지 발송 중...')
+      console.log('발송 내용:', dmMessageText)
+      console.log('추적 URL:', trackingUrl)
 
-    // 링크 메시지 발송 (일반 DM)
-    const sendResult = await sendLinkMessage(
-      senderId,
-      accessToken,
-      dmMessageText,
-      trackingUrl,
-      productImageUrl,
-      productName
-    )
+      const sendResult = await sendLinkMessage(
+        senderId,
+        accessToken,
+        dmMessageText,
+        trackingUrl,
+        productImageUrl,
+        productName
+      )
 
-    if (sendResult.success) {
-      // ✅ 발송 성공 = 팔로워!
-      console.log('✅✅✅ 링크 메시지 발송 성공! (팔로워 확인됨)')
+      if (sendResult.success) {
+        console.log('✅✅✅ 링크 메시지 발송 성공!')
 
-      // DM 로그 업데이트 (링크 발송 완료)
-      await supabase
-        .from('instagram_dm_logs')
-        .update({
-          status: 'link_sent',
-          link_sent_at: new Date().toISOString(),
-        })
-        .eq('dm_setting_id', dmSettingId)
-        .eq('recipient_ig_user_id', senderId)
+        // DM 로그 업데이트 (링크 발송 완료)
+        await supabase
+          .from('instagram_dm_logs')
+          .update({
+            status: 'link_sent',
+            link_sent_at: new Date().toISOString(),
+          })
+          .eq('dm_setting_id', dmSettingId)
+          .eq('recipient_ig_user_id', senderId)
 
-      console.log('DM 로그 업데이트 완료 - status: link_sent')
+        console.log('DM 로그 업데이트 완료 - status: link_sent')
+      } else {
+        console.error('❌ 링크 메시지 발송 실패:', sendResult.error)
+      }
     } else {
-      // ❌ 발송 실패 = 비팔로워! → "팔로우 해주세요" 버튼 다시 발송
-      console.log('❌ 링크 메시지 발송 실패 (비팔로워로 판단)')
-      console.log('에러:', sendResult.error)
+      // ❌ 비팔로워! → "팔로우 해주세요" 버튼 다시 발송
+      console.log('📤 비팔로워! 팔로우 요청 메시지 발송 중...')
 
       const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
         `아직 팔로우가 확인되지 않았어요! 😅\n\n팔로우 후 다시 버튼을 눌러주세요!`
       const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
-
-      console.log('📤 팔로우 요청 메시지 재발송 중...')
 
       // 일반 DM으로 팔로우 요청 버튼 다시 발송
       const retryResponse = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
@@ -1421,9 +1495,9 @@ async function handleFollowConfirmed(
       const retryResult = await retryResponse.json()
 
       if (retryResult.error) {
-        console.error('❌ 팔로우 요청 버튼 재발송 실패:', retryResult.error)
+        console.error('❌ 팔로우 요청 버튼 발송 실패:', retryResult.error)
       } else {
-        console.log('✅ 팔로우 요청 버튼 재발송 성공:', retryResult)
+        console.log('✅ 팔로우 요청 버튼 발송 성공:', retryResult)
       }
     }
   } catch (error) {
