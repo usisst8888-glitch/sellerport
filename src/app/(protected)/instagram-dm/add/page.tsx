@@ -687,6 +687,7 @@ export default function InstagramDmAddPage() {
               ))}
             </div>
           </div>
+          </div>
         )}
 
         {/* 5. 링크 발송 메시지 */}
