@@ -215,6 +215,11 @@ export async function GET(request: NextRequest) {
     // 5. Webhook 구독 (유저별로 필수!)
     // 참고: https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/webhooks
     // POST /{INSTAGRAM_ACCOUNT_ID}/subscribed_apps?subscribed_fields=comments,messages
+
+    // 토큰 전파 대기 (Meta 서버 간 동기화 시간 필요)
+    console.log('Waiting 3 seconds for token propagation across Meta servers...')
+    await new Promise(resolve => setTimeout(resolve, 3000))
+
     // 재시도 로직 포함 (일시적 에러 대응)
     const maxRetries = 3
     let webhookSubscribed = false
