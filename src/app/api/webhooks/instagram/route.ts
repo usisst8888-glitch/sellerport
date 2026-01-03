@@ -215,8 +215,116 @@ async function checkIfFollower(
 }
 */
 
+// 링크 메시지 발송 함수 (Private Reply - 누구에게나 발송 가능)
+// 팔로워 체크 불필요 모드에서 사용
+async function sendLinkViaPrivateReply(
+  commentId: string,
+  dmSettings: {
+    id: string
+    dm_message: string
+    tracking_link_id: string
+    instagram_media_url?: string
+    tracking_links?: { go_url?: string; tracking_url?: string; post_name?: string }
+  },
+  accessToken: string,
+  trackingUrl: string
+): Promise<boolean> {
+  try {
+    const dmMessageText = dmSettings.dm_message || '감사합니다! 요청하신 링크입니다 👇'
+    const productName = dmSettings.tracking_links?.post_name || '상품 보기'
+    const productImageUrl = dmSettings.instagram_media_url || null
+
+    const url = `https://graph.instagram.com/v24.0/me/messages`
+
+    console.log('Sending link message via Private Reply (no follower check)...')
+
+    let response
+
+    if (productImageUrl) {
+      // Generic Template (이미지 카드 + 버튼)
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { comment_id: commentId }, // Private Reply
+          message: {
+            attachment: {
+              type: 'template',
+              payload: {
+                template_type: 'generic',
+                elements: [{
+                  title: productName,
+                  subtitle: dmMessageText,
+                  image_url: productImageUrl,
+                  default_action: { type: 'web_url', url: trackingUrl },
+                  buttons: [{ type: 'web_url', url: trackingUrl, title: '바로가기' }],
+                }],
+              },
+            },
+          },
+        }),
+      })
+    } else {
+      // Button Template (텍스트 + 버튼)
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { comment_id: commentId }, // Private Reply
+          message: {
+            attachment: {
+              type: 'template',
+              payload: {
+                template_type: 'button',
+                text: dmMessageText,
+                buttons: [{ type: 'web_url', url: trackingUrl, title: '바로가기' }],
+              },
+            },
+          },
+        }),
+      })
+    }
+
+    const result = await response.json()
+
+    if (result.error) {
+      console.error('Link message via Private Reply error:', result.error)
+      // 템플릿 실패 시 일반 텍스트로 재시도
+      const fallbackResponse = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { comment_id: commentId }, // Private Reply
+          message: { text: `${dmMessageText}\n\n👉 ${trackingUrl}` },
+        }),
+      })
+      const fallbackResult = await fallbackResponse.json()
+      if (fallbackResult.error) {
+        console.error('Fallback link message error:', fallbackResult.error)
+        return false
+      }
+    }
+
+    console.log('Link message sent successfully via Private Reply')
+    return true
+  } catch (error) {
+    console.error('Error sending link via Private Reply:', error)
+    return false
+  }
+}
+
 // 링크 메시지 발송 함수 (일반 DM - 팔로워만 가능)
 // 팔로워에게만 성공, 비팔로워는 실패
+// 팔로워 체크 필요 모드에서 버튼 클릭 시 사용
 async function sendLinkMessageViaPrivateReply(
   commentId: string,
   dmSettings: {
@@ -453,27 +561,17 @@ async function handleCommentEvent(
       return
     }
 
-    // ⭐ 핵심 로직: 일단 링크 메시지 전송 시도 → 실패하면 팔로우 요청
-    console.log('Attempting to send link message via Private Reply...')
+    // ⭐ 핵심 로직: require_follow 설정에 따라 분기
+    const requireFollow = dmSettings.require_follow ?? false
+    console.log('DM send mode:', { requireFollow })
 
     let dmSent = false
-    let messageType: 'link' | 'follow_request' = 'link'
+    let messageType: 'link' | 'follow_request' = requireFollow ? 'follow_request' : 'link'
 
-    // 1차 시도: 링크 메시지 바로 발송 (팔로워면 성공, 아니면 실패)
-    dmSent = await sendLinkMessageViaPrivateReply(
-      commentData.id,
-      dmSettings,
-      accessToken,
-      trackingUrl,
-      commenterIgUserId // 일반 DM API로 팔로워 체크
-    )
+    if (requireFollow) {
+      // 옵션 1: 팔로워 체크 필요 → 팔로우 요청 메시지 먼저 발송
+      console.log('Require follow mode: Sending follow request message first...')
 
-    if (!dmSent) {
-      // 링크 메시지 실패 → 비팔로워로 판단 → 팔로우 요청 메시지 발송
-      console.log('Link message failed (likely not a follower). Sending follow request message...')
-      messageType = 'follow_request'
-
-      // DB 컬럼에서 메시지 가져오기 (follow_request_message 또는 follow_cta_message)
       const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
         `안녕하세요! 댓글 감사합니다 🙏\n\n링크를 받으시려면 팔로우 후 아래 버튼을 눌러주세요!`
       const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
@@ -487,7 +585,15 @@ async function handleCommentEvent(
         followButtonText
       )
     } else {
-      console.log('Link message sent successfully (user is a follower)')
+      // 옵션 2: 팔로워 체크 불필요 → Private Reply로 링크 바로 발송
+      console.log('No follow required mode: Sending link directly via Private Reply...')
+
+      dmSent = await sendLinkViaPrivateReply(
+        commentData.id,
+        dmSettings,
+        accessToken,
+        trackingUrl
+      )
     }
 
     console.log('DM send result:', { dmSent, messageType })
