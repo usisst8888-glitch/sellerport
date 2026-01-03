@@ -898,17 +898,22 @@ async function handleMessagingEvent(event: {
   if (event.postback?.payload) {
     const payload = event.postback.payload
 
-    // payload 형식: "follow_confirmed:{dm_setting_id}:{tracking_url}:{comment_id}"
+    // payload 형식: "follow_confirmed:{dm_setting_id}:{tracking_url}"
+    // URL에 : 가 포함되어 있으므로 주의해서 파싱
     if (payload.startsWith('follow_confirmed:')) {
-      const parts = payload.split(':')
-      const dmSettingId = parts[1]
-      // comment_id는 마지막 부분
-      const commentId = parts[parts.length - 1]
-      // trackingUrl은 중간 부분 (URL에 : 포함될 수 있음)
-      const trackingUrl = parts.slice(2, -1).join(':')
+      // "follow_confirmed:" 제거 후 첫 번째 ":"로만 분리
+      const withoutPrefix = payload.substring('follow_confirmed:'.length)
+      const firstColonIndex = withoutPrefix.indexOf(':')
 
-      await handleFollowConfirmed(event.sender.id, event.recipient.id, dmSettingId, trackingUrl, commentId)
-      return
+      if (firstColonIndex > 0) {
+        const dmSettingId = withoutPrefix.substring(0, firstColonIndex)
+        const trackingUrl = withoutPrefix.substring(firstColonIndex + 1)
+
+        console.log('Parsed payload - dmSettingId:', dmSettingId, 'trackingUrl:', trackingUrl)
+
+        await handleFollowConfirmed(event.sender.id, event.recipient.id, dmSettingId, trackingUrl)
+        return
+      }
     }
   }
 
@@ -916,17 +921,20 @@ async function handleMessagingEvent(event: {
   if (event.message?.quick_reply?.payload) {
     const payload = event.message.quick_reply.payload
 
-    // payload 형식: "follow_confirmed:{dm_setting_id}:{tracking_url}:{comment_id}"
+    // payload 형식: "follow_confirmed:{dm_setting_id}:{tracking_url}"
     if (payload.startsWith('follow_confirmed:')) {
-      const parts = payload.split(':')
-      const dmSettingId = parts[1]
-      // comment_id는 마지막 부분
-      const commentId = parts[parts.length - 1]
-      // trackingUrl은 중간 부분 (URL에 : 포함될 수 있음)
-      const trackingUrl = parts.slice(2, -1).join(':')
+      const withoutPrefix = payload.substring('follow_confirmed:'.length)
+      const firstColonIndex = withoutPrefix.indexOf(':')
 
-      await handleFollowConfirmed(event.sender.id, event.recipient.id, dmSettingId, trackingUrl, commentId)
-      return
+      if (firstColonIndex > 0) {
+        const dmSettingId = withoutPrefix.substring(0, firstColonIndex)
+        const trackingUrl = withoutPrefix.substring(firstColonIndex + 1)
+
+        console.log('Parsed Quick Reply payload - dmSettingId:', dmSettingId, 'trackingUrl:', trackingUrl)
+
+        await handleFollowConfirmed(event.sender.id, event.recipient.id, dmSettingId, trackingUrl)
+        return
+      }
     }
   }
 
