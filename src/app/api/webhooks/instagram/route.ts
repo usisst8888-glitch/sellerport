@@ -165,6 +165,58 @@ async function checkIfFollower(
   }
 }
 
+// 1px 투명 이미지 발송으로 팔로워 체크
+// 비팔로워에게는 이미지 발송 실패 가능성 테스트
+async function sendImageMessageForFollowerCheck(
+  commentId: string,
+  accessToken: string
+): Promise<{ success: boolean; error?: unknown }> {
+  try {
+    console.log('🧪 1px 투명 이미지로 팔로워 체크 중...')
+
+    // 1px 투명 PNG 이미지 URL (공개적으로 접근 가능한 URL)
+    const transparentPixelUrl = 'https://via.placeholder.com/1x1.png'
+
+    const url = `https://graph.instagram.com/v24.0/me/messages`
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        recipient: { comment_id: commentId },
+        message: {
+          attachment: {
+            type: 'image',
+            payload: {
+              url: transparentPixelUrl,
+            },
+          },
+        },
+      }),
+    })
+
+    const result = await response.json()
+
+    console.log('===== 1px 이미지 발송 결과 =====')
+    console.log('응답:', JSON.stringify(result, null, 2))
+    console.log('================================')
+
+    if (result.error) {
+      console.error('❌ 1px 이미지 발송 실패:', result.error)
+      return { success: false, error: result.error }
+    }
+
+    console.log('✅ 1px 이미지 발송 성공 (팔로워로 판단)')
+    return { success: true }
+  } catch (error) {
+    console.error('Error sending 1px image:', error)
+    return { success: false, error }
+  }
+}
+
 // 링크 메시지 발송 함수 (에러 체크 버전)
 // 에러 정보를 포함한 결과 반환
 async function sendLinkViaPrivateReplyWithErrorCheck(
@@ -734,77 +786,75 @@ async function handleCommentEvent(
     let messageType: 'link' | 'follow_request' = requireFollow ? 'follow_request' : 'link'
 
     if (requireFollow) {
-      // 🔍 새로운 전략: 링크가 포함된 메시지를 먼저 보내고, 에러 발생 시 팔로우 요청 메시지 발송
-      // 가설: 비팔로워에게는 특정 에러 코드 발생 (Error #200, #230, #10 등)
-      console.log('🔍 [팔로워 체크 모드] 링크 메시지 먼저 발송 시도 → 실패 시 팔로우 요청 메시지')
+      // 🔍 새로운 전략: 1px 투명 이미지를 포함한 메시지 발송 시도
+      // 가설: 비팔로워에게는 이미지 발송 실패 (Error 발생)
+      console.log('🔍 [팔로워 체크 모드] 1px 이미지 메시지 발송 시도 → 실패 시 팔로우 요청 메시지')
       console.log('📤 발송 대상:', commentData.from.id, commentData.from.username)
 
       const dmMessageText = dmSettings.dm_message || `안녕하세요! 댓글 감사합니다 🙏\n\n아래 링크를 확인하세요!`
 
-      // 방법 1: Private Reply로 링크 메시지 발송 시도
-      console.log('🧪 Private Reply로 링크 메시지 발송 시도...')
+      // 방법 1: 1px 투명 이미지로 팔로워 체크
+      console.log('🧪 1px 이미지로 팔로워 체크 시도...')
 
-      const privateReplyResult = await sendLinkViaPrivateReplyWithErrorCheck(
+      const followerCheckResult = await sendImageMessageForFollowerCheck(
         commentData.id,
-        dmSettings,
-        accessToken,
-        trackingUrl
+        accessToken
       )
 
-      console.log('===== Private Reply 발송 결과 =====')
-      console.log('Success:', privateReplyResult.success)
-      console.log('Error:', JSON.stringify(privateReplyResult.error, null, 2))
-      console.log('==================================')
+      console.log('===== 1px 이미지 팔로워 체크 결과 =====')
+      console.log('Success:', followerCheckResult.success)
+      console.log('Error:', JSON.stringify(followerCheckResult.error, null, 2))
+      console.log('======================================')
 
-      if (privateReplyResult.success) {
-        // ✅ 링크 메시지 발송 성공 = 팔로워임
-        console.log('✅✅✅ Private Reply 성공! 팔로워로 판단')
-        dmSent = true
-        messageType = 'link'
+      if (followerCheckResult.success) {
+        // ✅ 이미지 발송 성공 = 팔로워임 → 링크 메시지 발송
+        console.log('✅✅✅ 1px 이미지 발송 성공! 팔로워로 판단 → 링크 메시지 발송')
+
+        dmSent = await sendLinkViaPrivateReply(
+          commentData.id,
+          dmSettings,
+          accessToken,
+          trackingUrl
+        )
+
+        if (dmSent) {
+          messageType = 'link'
+          console.log('✅ 팔로워에게 링크 발송 성공')
+        }
       } else {
-        // ❌ 링크 메시지 발송 실패 - 에러 코드 분석
-        const error = privateReplyResult.error as any
+        // ❌ 이미지 발송 실패 - 에러 코드 분석
+        const error = followerCheckResult.error as any
         const errorCode = error?.code
         const errorSubcode = error?.error_subcode
         const errorMessage = error?.message
 
-        console.log('❌ Private Reply 실패 - 에러 분석:', {
+        console.log('❌ 1px 이미지 발송 실패 - 에러 분석:', {
           code: errorCode,
           subcode: errorSubcode,
           message: errorMessage,
           type: error?.type,
         })
 
-        // 에러 코드 기반 판단
-        // Error #200: 권한 없음 (비팔로워 가능성)
-        // Error #230: User consent required (비팔로워 가능성)
-        // Error #10: 일반적인 메시지 발송 실패
-        const isProbablyNonFollower = [200, 230, 10].includes(errorCode)
+        // 비팔로워로 판단 → 팔로우 요청 메시지 발송
+        console.log('⚠️ 비팔로워로 판단 → 팔로우 요청 메시지 발송')
 
-        if (isProbablyNonFollower) {
-          console.log('⚠️ 에러 코드로 비팔로워로 판단 → 팔로우 요청 메시지 발송')
+        const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
+          `안녕하세요! 😊\n\n링크를 받으시려면 먼저 저희 계정을 팔로우해 주세요!\n\n팔로우 후 아래 버튼을 눌러주시면 링크를 보내드립니다 👇`
+        const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
 
-          const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
-            `안녕하세요! 😊\n\n링크를 받으시려면 먼저 저희 계정을 팔로우해 주세요!\n\n팔로우 후 아래 버튼을 눌러주시면 링크를 보내드립니다 👇`
-          const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
+        // Private Reply로 팔로우 요청 메시지 발송
+        dmSent = await sendInstagramPrivateReplyWithQuickReply(
+          commentData.id,
+          followRequestMessage,
+          accessToken,
+          dmSettings.id,
+          trackingUrl,
+          followButtonText
+        )
 
-          // Private Reply로 팔로우 요청 메시지 발송
-          dmSent = await sendInstagramPrivateReplyWithQuickReply(
-            commentData.id,
-            followRequestMessage,
-            accessToken,
-            dmSettings.id,
-            trackingUrl,
-            followButtonText
-          )
-
-          if (dmSent) {
-            messageType = 'follow_request'
-            console.log('✅ 비팔로워에게 팔로우 요청 메시지 발송 성공')
-          }
-        } else {
-          console.error('⚠️ 예상치 못한 에러 발생:', error)
-          dmSent = false
+        if (dmSent) {
+          messageType = 'follow_request'
+          console.log('✅ 비팔로워에게 팔로우 요청 메시지 발송 성공')
         }
       }
     } else {
