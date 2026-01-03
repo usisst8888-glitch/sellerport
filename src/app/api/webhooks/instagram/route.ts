@@ -789,6 +789,52 @@ async function handleMessagingEvent(event: {
   }
 }
 
+// Quick Reply로 링크 메시지 발송 (팔로워 체크용)
+async function sendLinkMessageWithQuickReply(
+  senderId: string,
+  accessToken: string,
+  dmMessageText: string,
+  trackingUrl: string
+): Promise<{ success: boolean; error?: unknown }> {
+  try {
+    console.log('Trying to send link message with Quick Reply (follower check)...')
+
+    const response = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        recipient: { id: senderId },
+        message: {
+          text: `${dmMessageText}\n\n👉 ${trackingUrl}`,
+          quick_replies: [
+            {
+              content_type: 'text',
+              title: '✅ 링크 확인',
+              payload: 'LINK_CONFIRMED',
+            },
+          ],
+        },
+      }),
+    })
+
+    const result = await response.json()
+
+    if (result.error) {
+      console.error('Quick Reply link message error:', result.error)
+      return { success: false, error: result.error }
+    }
+
+    console.log('✅ Quick Reply link message sent successfully')
+    return { success: true }
+  } catch (error) {
+    console.error('Error sending Quick Reply link message:', error)
+    return { success: false, error }
+  }
+}
+
 // 링크 메시지 발송 함수
 async function sendLinkMessage(
   senderId: string,
@@ -928,22 +974,20 @@ async function handleFollowConfirmed(
 
     // ⭐ require_follow 설정에 따라 분기
     if (requireFollow) {
-      // 팔로워 체크 필요: 일반 DM으로 링크 메시지 전송 시도
-      // 팔로워가 아니면 메시지 전송이 실패할 수 있음
-      console.log('require_follow=true: Trying to send link message to check follower status...')
+      // 팔로워 체크 필요: Quick Reply로 링크 메시지 전송 시도
+      // 팔로워가 아니면 메시지 전송이 실패할 수 있음 (테스트)
+      console.log('require_follow=true: Step 1 - Trying Quick Reply link message (follower check test)...')
 
-      const sendResult = await sendLinkMessage(
+      const quickReplyResult = await sendLinkMessageWithQuickReply(
         senderId,
         accessToken,
         dmMessageText,
-        trackingUrl,
-        productImageUrl,
-        productName
+        trackingUrl
       )
 
-      if (sendResult.success) {
-        // ✅ 링크 발송 성공 = 팔로워임
-        console.log('Link sent successfully! User IS a follower.')
+      if (quickReplyResult.success) {
+        // ✅ Quick Reply 성공 = 팔로워일 가능성
+        console.log('✅ Quick Reply link sent successfully! User might be a follower.')
 
         // DM 로그 업데이트 (링크 발송 완료)
         await supabase
@@ -955,46 +999,73 @@ async function handleFollowConfirmed(
           .eq('dm_setting_id', dmSettingId)
           .eq('recipient_ig_user_id', senderId)
       } else {
-        // ❌ 링크 발송 실패 = 팔로워 아님 → 팔로우 요청 메시지 재발송 (일반 DM으로)
-        console.log('Failed to send link message. User is NOT a follower. Sending follow request...')
-        console.log('Send error:', sendResult.error)
+        // ❌ Quick Reply 실패 - 일반 DM으로 재시도
+        console.log('❌ Quick Reply failed. Trying regular DM with template...')
+        console.log('Quick Reply error:', quickReplyResult.error)
 
-        const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
-          `아직 팔로우가 확인되지 않았어요! 😅\n\n팔로우 후 다시 버튼을 눌러주세요!`
-        const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
+        const regularDmResult = await sendLinkMessage(
+          senderId,
+          accessToken,
+          dmMessageText,
+          trackingUrl,
+          productImageUrl,
+          productName
+        )
 
-        // 일반 DM으로 팔로우 요청 메시지 재발송 (버튼 포함)
-        const response = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            recipient: { id: senderId },
-            message: {
-              attachment: {
-                type: 'template',
-                payload: {
-                  template_type: 'button',
-                  text: followRequestMessage,
-                  buttons: [{
-                    type: 'postback',
-                    title: followButtonText,
-                    payload: `follow_confirmed:${dmSettingId}:${trackingUrl}`,
-                  }],
+        if (regularDmResult.success) {
+          // ✅ 일반 DM 성공
+          console.log('✅ Regular DM link sent successfully!')
+
+          await supabase
+            .from('instagram_dm_logs')
+            .update({
+              status: 'link_sent',
+              link_sent_at: new Date().toISOString(),
+            })
+            .eq('dm_setting_id', dmSettingId)
+            .eq('recipient_ig_user_id', senderId)
+        } else {
+          // ❌ 일반 DM도 실패 = 팔로워 아님 → 팔로우 요청 메시지 재발송
+          console.log('❌ Regular DM also failed. User is NOT a follower. Sending follow request...')
+          console.log('Regular DM error:', regularDmResult.error)
+
+          const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
+            `아직 팔로우가 확인되지 않았어요! 😅\n\n팔로우 후 다시 버튼을 눌러주세요!`
+          const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
+
+          // 일반 DM으로 팔로우 요청 메시지 재발송 (버튼 포함)
+          const response = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({
+              recipient: { id: senderId },
+              message: {
+                attachment: {
+                  type: 'template',
+                  payload: {
+                    template_type: 'button',
+                    text: followRequestMessage,
+                    buttons: [{
+                      type: 'postback',
+                      title: followButtonText,
+                      payload: `follow_confirmed:${dmSettingId}:${trackingUrl}`,
+                    }],
+                  },
                 },
               },
-            },
-          }),
-        })
+            }),
+          })
 
-        const result = await response.json()
+          const result = await response.json()
 
-        if (result.error) {
-          console.error('❌ Failed to send follow request message:', result.error)
-        } else {
-          console.log('✅ Follow request message sent successfully')
+          if (result.error) {
+            console.error('❌ Failed to send follow request message:', result.error)
+          } else {
+            console.log('✅ Follow request message sent successfully')
+          }
         }
       }
 
