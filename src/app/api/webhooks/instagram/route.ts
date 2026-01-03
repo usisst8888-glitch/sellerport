@@ -165,6 +165,113 @@ async function checkIfFollower(
   }
 }
 
+// 링크 메시지 발송 함수 (에러 체크 버전)
+// 에러 정보를 포함한 결과 반환
+async function sendLinkViaPrivateReplyWithErrorCheck(
+  commentId: string,
+  dmSettings: {
+    id: string
+    dm_message: string
+    tracking_link_id: string
+    instagram_media_url?: string
+    tracking_links?: { go_url?: string; tracking_url?: string; post_name?: string }
+  },
+  accessToken: string,
+  trackingUrl: string
+): Promise<{ success: boolean; error?: unknown }> {
+  try {
+    const dmMessageText = dmSettings.dm_message || '감사합니다! 요청하신 링크입니다 👇'
+    const productName = dmSettings.tracking_links?.post_name || '상품 보기'
+    const productImageUrl = dmSettings.instagram_media_url || null
+
+    const url = `https://graph.instagram.com/v24.0/me/messages`
+
+    console.log('Sending link message via Private Reply (with error check)...')
+
+    let response
+
+    if (productImageUrl) {
+      // Generic Template (이미지 카드 + 버튼)
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { comment_id: commentId }, // Private Reply
+          message: {
+            attachment: {
+              type: 'template',
+              payload: {
+                template_type: 'generic',
+                elements: [{
+                  title: productName,
+                  subtitle: dmMessageText,
+                  image_url: productImageUrl,
+                  default_action: { type: 'web_url', url: trackingUrl },
+                  buttons: [{ type: 'web_url', url: trackingUrl, title: '바로가기' }],
+                }],
+              },
+            },
+          },
+        }),
+      })
+    } else {
+      // Button Template (텍스트 + 버튼)
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { comment_id: commentId }, // Private Reply
+          message: {
+            attachment: {
+              type: 'template',
+              payload: {
+                template_type: 'button',
+                text: dmMessageText,
+                buttons: [{ type: 'web_url', url: trackingUrl, title: '바로가기' }],
+              },
+            },
+          },
+        }),
+      })
+    }
+
+    const result = await response.json()
+
+    if (result.error) {
+      console.error('Link message via Private Reply error:', result.error)
+      // 템플릿 실패 시 일반 텍스트로 재시도
+      const fallbackResponse = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { comment_id: commentId }, // Private Reply
+          message: { text: `${dmMessageText}\n\n👉 ${trackingUrl}` },
+        }),
+      })
+      const fallbackResult = await fallbackResponse.json()
+      if (fallbackResult.error) {
+        console.error('Fallback link message error:', fallbackResult.error)
+        return { success: false, error: fallbackResult.error }
+      }
+    }
+
+    console.log('Link message sent successfully via Private Reply')
+    return { success: true }
+  } catch (error) {
+    console.error('Error sending link via Private Reply:', error)
+    return { success: false, error }
+  }
+}
+
 // 링크 메시지 발송 함수 (Private Reply - 누구에게나 발송 가능)
 // 팔로워 체크 불필요 모드에서 사용
 async function sendLinkViaPrivateReply(
@@ -627,53 +734,78 @@ async function handleCommentEvent(
     let messageType: 'link' | 'follow_request' = requireFollow ? 'follow_request' : 'link'
 
     if (requireFollow) {
-      // 🧪 최종 테스트: 댓글 이벤트에서 처음부터 링크 포함 텍스트 메시지 발송
-      // 가설: 비팔로워에게는 링크 포함 메시지 발송 실패
-      console.log('🔍 [팔로워 체크 모드] 댓글 이벤트에서 링크 포함 텍스트 메시지 직접 발송 테스트...')
+      // 🔍 새로운 전략: 링크가 포함된 메시지를 먼저 보내고, 에러 발생 시 팔로우 요청 메시지 발송
+      // 가설: 비팔로워에게는 특정 에러 코드 발생 (Error #200, #230, #10 등)
+      console.log('🔍 [팔로워 체크 모드] 링크 메시지 먼저 발송 시도 → 실패 시 팔로우 요청 메시지')
+      console.log('📤 발송 대상:', commentData.from.id, commentData.from.username)
 
       const dmMessageText = dmSettings.dm_message || `안녕하세요! 댓글 감사합니다 🙏\n\n아래 링크를 확인하세요!`
-      const textWithLink = `${dmMessageText}\n\n${trackingUrl}`
 
-      console.log('📤 발송 대상 Instagram User ID:', commentData.from.id)
-      console.log('📝 메시지 (링크 포함):', textWithLink)
+      // 방법 1: Private Reply로 링크 메시지 발송 시도
+      console.log('🧪 Private Reply로 링크 메시지 발송 시도...')
 
-      // 링크 포함 텍스트 메시지 발송
-      const textMessageResponse = await fetch(`https://graph.instagram.com/v24.0/me/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          recipient: { id: commentData.from.id },
-          message: {
-            text: textWithLink
-          },
-        }),
-      })
-      const textMessageResult = await textMessageResponse.json()
+      const privateReplyResult = await sendLinkViaPrivateReplyWithErrorCheck(
+        commentData.id,
+        dmSettings,
+        accessToken,
+        trackingUrl
+      )
 
-      console.log('===== 댓글 이벤트: 링크 포함 텍스트 메시지 발송 결과 =====')
-      console.log('응답:', JSON.stringify(textMessageResult, null, 2))
-      console.log('=======================================================')
+      console.log('===== Private Reply 발송 결과 =====')
+      console.log('Success:', privateReplyResult.success)
+      console.log('Error:', JSON.stringify(privateReplyResult.error, null, 2))
+      console.log('==================================')
 
-      if (textMessageResult.error) {
-        console.error('❌ 링크 포함 텍스트 메시지 발송 실패 (비팔로워?):', {
-          code: textMessageResult.error.code,
-          message: textMessageResult.error.message,
-          type: textMessageResult.error.type,
-          error_subcode: textMessageResult.error.error_subcode,
-          fbtrace_id: textMessageResult.error.fbtrace_id,
-        })
-        dmSent = false
-
-        // 실패하면 팔로우 요청 메시지 발송
-        console.log('⚠️ 링크 발송 실패 → 팔로우 요청 메시지 발송...')
-        // TODO: 팔로우 요청 메시지 로직 추가
-      } else {
-        console.log('✅✅✅ 링크 포함 텍스트 메시지 발송 성공 (팔로워임!)')
+      if (privateReplyResult.success) {
+        // ✅ 링크 메시지 발송 성공 = 팔로워임
+        console.log('✅✅✅ Private Reply 성공! 팔로워로 판단')
         dmSent = true
-        messageType = 'link' // 링크를 바로 보냈으므로
+        messageType = 'link'
+      } else {
+        // ❌ 링크 메시지 발송 실패 - 에러 코드 분석
+        const error = privateReplyResult.error as any
+        const errorCode = error?.code
+        const errorSubcode = error?.error_subcode
+        const errorMessage = error?.message
+
+        console.log('❌ Private Reply 실패 - 에러 분석:', {
+          code: errorCode,
+          subcode: errorSubcode,
+          message: errorMessage,
+          type: error?.type,
+        })
+
+        // 에러 코드 기반 판단
+        // Error #200: 권한 없음 (비팔로워 가능성)
+        // Error #230: User consent required (비팔로워 가능성)
+        // Error #10: 일반적인 메시지 발송 실패
+        const isProbablyNonFollower = [200, 230, 10].includes(errorCode)
+
+        if (isProbablyNonFollower) {
+          console.log('⚠️ 에러 코드로 비팔로워로 판단 → 팔로우 요청 메시지 발송')
+
+          const followRequestMessage = dmSettings.follow_request_message || dmSettings.follow_cta_message ||
+            `안녕하세요! 😊\n\n링크를 받으시려면 먼저 저희 계정을 팔로우해 주세요!\n\n팔로우 후 아래 버튼을 눌러주시면 링크를 보내드립니다 👇`
+          const followButtonText = dmSettings.follow_button_text || '팔로우 했어요!'
+
+          // Private Reply로 팔로우 요청 메시지 발송
+          dmSent = await sendInstagramPrivateReplyWithQuickReply(
+            commentData.id,
+            followRequestMessage,
+            accessToken,
+            dmSettings.id,
+            trackingUrl,
+            followButtonText
+          )
+
+          if (dmSent) {
+            messageType = 'follow_request'
+            console.log('✅ 비팔로워에게 팔로우 요청 메시지 발송 성공')
+          }
+        } else {
+          console.error('⚠️ 예상치 못한 에러 발생:', error)
+          dmSent = false
+        }
       }
     } else {
       // 옵션 2: 팔로워 체크 불필요 → Private Reply로 링크 바로 발송
