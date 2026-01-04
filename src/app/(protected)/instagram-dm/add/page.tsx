@@ -45,6 +45,14 @@ interface MySite {
   status: string
 }
 
+interface SellerTree {
+  id: string
+  slug: string
+  title: string | null
+  profile_image_url: string | null
+  is_active: boolean
+}
+
 export default function InstagramDmAddPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -95,7 +103,9 @@ export default function InstagramDmAddPage() {
 
   // 내 사이트 목록
   const [mySites, setMySites] = useState<MySite[]>([])
+  const [sellerTrees, setSellerTrees] = useState<SellerTree[]>([])
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null) // null = "사이트 선택 없음"
+  const [selectedSiteType, setSelectedSiteType] = useState<'site' | 'sellertree' | null>(null) // 선택된 타입
 
   // 상품 목록
   const [products, setProducts] = useState<Product[]>([])
@@ -188,6 +198,7 @@ export default function InstagramDmAddPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
+      // 내 사이트 불러오기
       const { data: sites } = await supabase
         .from('my_sites')
         .select('id, site_type, site_name, store_id, status')
@@ -196,6 +207,17 @@ export default function InstagramDmAddPage() {
 
       if (sites) {
         setMySites(sites)
+      }
+
+      // 셀러트리 불러오기
+      const { data: trees } = await supabase
+        .from('seller_trees')
+        .select('id, slug, title, profile_image_url, is_active')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+
+      if (trees) {
+        setSellerTrees(trees)
       }
     } catch (error) {
       console.error('Failed to fetch my sites:', error)
@@ -753,19 +775,47 @@ export default function InstagramDmAddPage() {
               >
                 {selectedSiteId ? (
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 bg-slate-600 flex items-center justify-center">
-                      <img
-                        src={`/site_logo/${getSiteLogoName(mySites.find(s => s.id === selectedSiteId)?.site_type || '')}.png`}
-                        alt=""
-                        className="w-full h-full object-cover"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">
-                        {mySites.find(s => s.id === selectedSiteId)?.site_name}
-                      </p>
-                    </div>
+                    {selectedSiteType === 'sellertree' ? (
+                      // 셀러트리 선택됨
+                      <>
+                        <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                          {sellerTrees.find(t => t.id === selectedSiteId)?.profile_image_url ? (
+                            <img
+                              src={sellerTrees.find(t => t.id === selectedSiteId)?.profile_image_url || ''}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-white truncate">
+                            {sellerTrees.find(t => t.id === selectedSiteId)?.title || sellerTrees.find(t => t.id === selectedSiteId)?.slug}
+                          </p>
+                          <p className="text-xs text-purple-400">셀러트리</p>
+                        </div>
+                      </>
+                    ) : (
+                      // 사이트 선택됨
+                      <>
+                        <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 bg-slate-600 flex items-center justify-center">
+                          <img
+                            src={`/site_logo/${getSiteLogoName(mySites.find(s => s.id === selectedSiteId)?.site_type || '')}.png`}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-white truncate">
+                            {mySites.find(s => s.id === selectedSiteId)?.site_name}
+                          </p>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <span className="text-slate-400">사이트 선택 없음 (직접 입력)</span>
@@ -783,6 +833,7 @@ export default function InstagramDmAddPage() {
                       type="button"
                       onClick={() => {
                         setSelectedSiteId(null)
+                        setSelectedSiteType(null)
                         setIsSiteDropdownOpen(false)
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-600/50 border-b border-slate-600 text-left ${
@@ -806,42 +857,93 @@ export default function InstagramDmAddPage() {
                     </button>
 
                     {/* 사이트 목록 */}
-                    {mySites.length === 0 ? (
+                    {mySites.length > 0 && (
+                      <>
+                        <div className="px-3 py-1.5 text-xs text-slate-500 bg-slate-800/50">내 사이트</div>
+                        {mySites.map((site) => (
+                          <button
+                            key={site.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedSiteId(site.id)
+                              setSelectedSiteType('site')
+                              setIsSiteDropdownOpen(false)
+                            }}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-600/50 border-b border-slate-600 text-left ${
+                              selectedSiteId === site.id && selectedSiteType === 'site' ? 'bg-blue-500/10' : ''
+                            }`}
+                          >
+                            <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-slate-600 flex items-center justify-center">
+                              <img
+                                src={`/site_logo/${getSiteLogoName(site.site_type)}.png`}
+                                alt={site.site_name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-white truncate">{site.site_name}</p>
+                              <p className="text-xs text-slate-400">{getSiteDisplayName(site.site_type)}</p>
+                            </div>
+                            {selectedSiteId === site.id && selectedSiteType === 'site' && (
+                              <svg className="w-5 h-5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </button>
+                        ))}
+                      </>
+                    )}
+
+                    {/* 셀러트리 목록 */}
+                    {sellerTrees.length > 0 && (
+                      <>
+                        <div className="px-3 py-1.5 text-xs text-slate-500 bg-slate-800/50">셀러트리</div>
+                        {sellerTrees.map((tree) => (
+                          <button
+                            key={tree.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedSiteId(tree.id)
+                              setSelectedSiteType('sellertree')
+                              setIsSiteDropdownOpen(false)
+                            }}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-600/50 border-b border-slate-600 last:border-b-0 text-left ${
+                              selectedSiteId === tree.id && selectedSiteType === 'sellertree' ? 'bg-purple-500/10' : ''
+                            }`}
+                          >
+                            <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                              {tree.profile_image_url ? (
+                                <img
+                                  src={tree.profile_image_url}
+                                  alt={tree.title || tree.slug}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                </svg>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-white truncate">{tree.title || tree.slug}</p>
+                              <p className="text-xs text-purple-400">sp-trk.link/{tree.slug}</p>
+                            </div>
+                            {selectedSiteId === tree.id && selectedSiteType === 'sellertree' && (
+                              <svg className="w-5 h-5 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </button>
+                        ))}
+                      </>
+                    )}
+
+                    {/* 사이트와 셀러트리 모두 없는 경우 */}
+                    {mySites.length === 0 && sellerTrees.length === 0 && (
                       <div className="p-4 text-center text-sm text-slate-400">
                         연결된 사이트가 없습니다
                       </div>
-                    ) : (
-                      mySites.map((site) => (
-                        <button
-                          key={site.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedSiteId(site.id)
-                            setIsSiteDropdownOpen(false)
-                          }}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-600/50 border-b border-slate-600 last:border-b-0 text-left ${
-                            selectedSiteId === site.id ? 'bg-blue-500/10' : ''
-                          }`}
-                        >
-                          <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-slate-600 flex items-center justify-center">
-                            <img
-                              src={`/site_logo/${getSiteLogoName(site.site_type)}.png`}
-                              alt={site.site_name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-white truncate">{site.site_name}</p>
-                            <p className="text-xs text-slate-400">{getSiteDisplayName(site.site_type)}</p>
-                          </div>
-                          {selectedSiteId === site.id && (
-                            <svg className="w-5 h-5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </button>
-                      ))
                     )}
                   </div>
                 </div>
