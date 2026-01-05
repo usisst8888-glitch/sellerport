@@ -14,6 +14,19 @@ interface MenuItem {
   adminOnly?: boolean
 }
 
+interface SubMenuItem {
+  title: string
+  href: string
+  badge?: string
+  badgeColor?: 'blue' | 'green' | 'yellow' | 'red'
+}
+
+interface UtilityMenu {
+  title: string
+  icon: React.ReactNode
+  items: SubMenuItem[]
+}
+
 const menuItems: MenuItem[] = [
   {
     title: '대시보드',
@@ -42,17 +55,6 @@ const menuItems: MenuItem[] = [
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-      </svg>
-    ),
-    badge: '등록',
-    badgeColor: 'blue',
-  },
-  {
-    title: '수동추적링크',
-    href: '/tracking-links',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
       </svg>
     ),
     badge: '등록',
@@ -110,17 +112,6 @@ const menuItems: MenuItem[] = [
   //     </svg>
   //   ),
   // },
-  {
-    title: '상품명 생성',
-    href: '/product-name',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
-    ),
-    badge: 'AI',
-    badgeColor: 'blue',
-  },
   {
     title: '알림 관리',
     href: '/alerts',
@@ -190,9 +181,23 @@ const menuItems: MenuItem[] = [
   },
 ]
 
+const utilityMenu: UtilityMenu = {
+  title: '유틸리티',
+  icon: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+    </svg>
+  ),
+  items: [
+    { title: '상품명 생성', href: '/product-name', badge: 'AI', badgeColor: 'blue' },
+    { title: 'GIF 생성', href: '/gif-generator', badge: 'AI', badgeColor: 'blue' },
+  ]
+}
+
 export function Sidebar() {
   const pathname = usePathname()
   const [userType, setUserType] = useState<string | null>(null)
+  const [utilityOpen, setUtilityOpen] = useState(false)
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -274,6 +279,72 @@ export function Sidebar() {
               </Link>
             )
           })}
+
+          {/* 유틸리티 드롭다운 */}
+          <div>
+            <button
+              onClick={() => setUtilityOpen(!utilityOpen)}
+              className={cn(
+                'w-full group flex items-center px-3 py-2.5 text-[15px] font-medium rounded-xl transition-all duration-200',
+                utilityMenu.items.some(item => pathname === item.href || pathname.startsWith(item.href + '/'))
+                  ? 'text-white bg-white/5'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              )}
+            >
+              <span className={cn(
+                'mr-3 transition-all duration-200',
+                utilityMenu.items.some(item => pathname === item.href || pathname.startsWith(item.href + '/'))
+                  ? 'text-slate-300'
+                  : 'text-slate-500 group-hover:text-slate-300'
+              )}>
+                {utilityMenu.icon}
+              </span>
+              {utilityMenu.title}
+              <svg
+                className={cn(
+                  'ml-auto w-4 h-4 transition-transform duration-200',
+                  utilityOpen ? 'rotate-180' : ''
+                )}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {utilityOpen && (
+              <div className="mt-1 ml-6 space-y-1">
+                {utilityMenu.items.map((subItem) => {
+                  const isSubActive = pathname === subItem.href || pathname.startsWith(subItem.href + '/')
+                  return (
+                    <Link
+                      key={subItem.href}
+                      href={subItem.href}
+                      className={cn(
+                        'group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200',
+                        isSubActive
+                          ? 'bg-blue-500/20 text-blue-400'
+                          : 'text-slate-400 hover:text-white hover:bg-white/5'
+                      )}
+                    >
+                      {subItem.title}
+                      {subItem.badge && (
+                        <span className={cn(
+                          "ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                          subItem.badgeColor === 'blue'
+                            ? 'bg-blue-700 text-blue-100'
+                            : 'bg-slate-600 text-slate-200'
+                        )}>
+                          {subItem.badge}
+                        </span>
+                      )}
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* 현재 플랜 */}

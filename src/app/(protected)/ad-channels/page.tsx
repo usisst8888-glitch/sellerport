@@ -15,13 +15,9 @@ interface AdChannel {
 }
 
 const CHANNEL_TYPES = [
-  { value: 'meta', label: 'Meta', icon: '/channel_logo/meta.png', isApi: true },
-  { value: 'naver_blog', label: '네이버 블로그', icon: '/channel_logo/naver_blog.png', isApi: false },
-  { value: 'tiktok', label: 'TikTok', icon: '/channel_logo/tiktok.png', isApi: false },
-  { value: 'youtube', label: 'YouTube', icon: '/channel_logo/youtube.png', isApi: false },
+  { value: 'meta', label: 'Meta (유료광고)', icon: '/channel_logo/meta.png', isApi: true },
   { value: 'instagram', label: 'Instagram', icon: '/channel_logo/insta.png', isApi: false },
-  { value: 'thread', label: 'Threads', icon: '/channel_logo/thread.png', isApi: false },
-  { value: 'influencer', label: '인플루언서/체험단', icon: '/channel_logo/influencer.png', isApi: false },
+  { value: 'youtube', label: 'YouTube', icon: '/channel_logo/youtube.png', isApi: false },
 ]
 
 export default function AdChannelsPage() {
@@ -391,26 +387,26 @@ export default function AdChannelsPage() {
             {/* 채널 선택 그리드 */}
                 <div className="p-5 border-b border-slate-700">
                   <label className="block text-sm text-slate-400 mb-3">채널 선택</label>
-                  <div className="grid grid-cols-4 gap-3">
+                  <div className="grid grid-cols-3 gap-4">
                     {CHANNEL_TYPES.map((type) => (
                       <button
                         key={type.value}
                         type="button"
                         onClick={() => setAddForm({ ...addForm, channel_type: type.value, channel_name: '', account_id: '' })}
-                        className={`relative p-4 rounded-lg border transition-colors ${
+                        className={`relative p-5 rounded-xl border-2 transition-all ${
                           addForm.channel_type === type.value
-                            ? 'border-blue-500 bg-blue-500/10'
-                            : 'border-slate-600 hover:border-slate-500'
+                            ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20'
+                            : 'border-slate-600 hover:border-slate-500 hover:bg-slate-700/50'
                         }`}
                       >
                         {type.isApi && (
-                          <div className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 text-[9px] font-medium bg-blue-500 text-white rounded">
+                          <div className="absolute -top-2 -right-2 px-2 py-0.5 text-[10px] font-bold bg-blue-500 text-white rounded-full">
                             API
                           </div>
                         )}
                         <div className="flex flex-col items-center gap-3">
-                          <img src={type.icon} alt={type.label} className="w-10 h-10 object-contain rounded-lg" />
-                          <span className="text-xs text-white text-center font-medium">{type.label}</span>
+                          <img src={type.icon} alt={type.label} className="w-12 h-12 object-contain rounded-xl" />
+                          <span className="text-sm text-white text-center font-medium">{type.label}</span>
                         </div>
                       </button>
                     ))}
