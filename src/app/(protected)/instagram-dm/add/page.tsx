@@ -358,7 +358,14 @@ export default function InstagramDmAddPage() {
     let targetUrl = ''
     let carouselProductIds: string[] = []
 
-    if (sendMode === 'carousel') {
+    if (selectedSiteType === 'sellertree') {
+      // 셀러트리 선택 시: 자동 설정된 URL 사용
+      if (!form.targetUrl) {
+        setMessage({ type: 'error', text: '셀러트리 URL이 설정되지 않았습니다' })
+        return
+      }
+      targetUrl = form.targetUrl
+    } else if (sendMode === 'carousel') {
       // 캐러셀 모드
       if (form.selectedProductIds.length < 2) {
         setMessage({ type: 'error', text: '캐러셀은 최소 2개 이상 상품을 선택해주세요' })
@@ -778,7 +785,7 @@ export default function InstagramDmAddPage() {
                     {selectedSiteType === 'sellertree' ? (
                       // 셀러트리 선택됨
                       <>
-                        <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 bg-slate-600 flex items-center justify-center">
                           {sellerTrees.find(t => t.id === selectedSiteId)?.profile_image_url ? (
                             <img
                               src={sellerTrees.find(t => t.id === selectedSiteId)?.profile_image_url || ''}
@@ -786,7 +793,7 @@ export default function InstagramDmAddPage() {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                             </svg>
                           )}
@@ -795,7 +802,6 @@ export default function InstagramDmAddPage() {
                           <p className="text-sm font-medium text-white truncate">
                             {sellerTrees.find(t => t.id === selectedSiteId)?.title || sellerTrees.find(t => t.id === selectedSiteId)?.slug}
                           </p>
-                          <p className="text-xs text-purple-400">셀러트리</p>
                         </div>
                       </>
                     ) : (
@@ -826,7 +832,7 @@ export default function InstagramDmAddPage() {
               </button>
 
               {isSiteDropdownOpen && (
-                <div className="absolute z-50 w-full mt-2 rounded-xl bg-slate-700 border border-slate-600 shadow-xl">
+                <div className="absolute z-50 w-full bottom-full mb-2 rounded-xl bg-slate-700 border border-slate-600 shadow-xl">
                   <div className="max-h-64 overflow-y-auto">
                     {/* 사이트 선택 없음 옵션 */}
                     <button
@@ -907,12 +913,16 @@ export default function InstagramDmAddPage() {
                               setSelectedSiteId(tree.id)
                               setSelectedSiteType('sellertree')
                               setIsSiteDropdownOpen(false)
+                              // 셀러트리 선택 시 목적지 URL 자동 설정
+                              setForm(prev => ({ ...prev, targetUrl: `https://sp-trk.link/${tree.slug}` }))
+                              setSendMode('single')
+                              setUrlInputMode('manual')
                             }}
                             className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-600/50 border-b border-slate-600 last:border-b-0 text-left ${
-                              selectedSiteId === tree.id && selectedSiteType === 'sellertree' ? 'bg-purple-500/10' : ''
+                              selectedSiteId === tree.id && selectedSiteType === 'sellertree' ? 'bg-blue-500/10' : ''
                             }`}
                           >
-                            <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-slate-600 flex items-center justify-center">
                               {tree.profile_image_url ? (
                                 <img
                                   src={tree.profile_image_url}
@@ -920,17 +930,16 @@ export default function InstagramDmAddPage() {
                                   className="w-full h-full object-cover"
                                 />
                               ) : (
-                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                                 </svg>
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm text-white truncate">{tree.title || tree.slug}</p>
-                              <p className="text-xs text-purple-400">sp-trk.link/{tree.slug}</p>
                             </div>
                             {selectedSiteId === tree.id && selectedSiteType === 'sellertree' && (
-                              <svg className="w-5 h-5 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-5 h-5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                               </svg>
                             )}
@@ -966,8 +975,15 @@ export default function InstagramDmAddPage() {
             {isEditMode && <span className="ml-2 text-xs text-slate-500">(변경 불가)</span>}
           </label>
 
-          {/* 수정 모드가 아닐 때 */}
-          {!isEditMode && (
+          {/* 셀러트리 선택 시: 자동 URL 표시 */}
+          {!isEditMode && selectedSiteType === 'sellertree' && (
+            <div className="h-12 px-4 rounded-xl bg-slate-700/50 border border-slate-600 flex items-center">
+              <span className="text-white">{form.targetUrl}</span>
+            </div>
+          )}
+
+          {/* 수정 모드가 아니고 셀러트리가 아닐 때 */}
+          {!isEditMode && selectedSiteType !== 'sellertree' && (
             <>
               {/* 발송 모드 선택: 단일 상품 / 캐러셀 */}
               <div className="flex gap-2 mb-3">
@@ -1313,9 +1329,10 @@ export default function InstagramDmAddPage() {
             !form.dmMessage ||
             !form.triggerKeywords ||
             (requireFollow && !form.followMessage) ||
-            (!isEditMode && sendMode === 'single' && urlInputMode === 'product' && !form.selectedProductId) ||
-            (!isEditMode && sendMode === 'single' && urlInputMode === 'manual' && !form.targetUrl) ||
-            (!isEditMode && sendMode === 'carousel' && form.selectedProductIds.length < 2)
+            (!isEditMode && selectedSiteType !== 'sellertree' && sendMode === 'single' && urlInputMode === 'product' && !form.selectedProductId) ||
+            (!isEditMode && selectedSiteType !== 'sellertree' && sendMode === 'single' && urlInputMode === 'manual' && !form.targetUrl) ||
+            (!isEditMode && selectedSiteType !== 'sellertree' && sendMode === 'carousel' && form.selectedProductIds.length < 2) ||
+            (!isEditMode && selectedSiteType === 'sellertree' && !form.targetUrl)
           }
           className="flex-1 h-12 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >

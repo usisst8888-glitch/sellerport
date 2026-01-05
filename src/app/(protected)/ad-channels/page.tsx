@@ -15,8 +15,7 @@ interface AdChannel {
 }
 
 const CHANNEL_TYPES = [
-  { value: 'meta', label: 'Meta (API 연동)', icon: '/channel_logo/meta.png', isApi: true },
-  { value: 'meta_paid', label: 'Meta 유료광고', icon: '/channel_logo/meta.png', isApi: false },
+  { value: 'meta', label: 'Meta', icon: '/channel_logo/meta.png', isApi: true },
   { value: 'naver_blog', label: '네이버 블로그', icon: '/channel_logo/naver_blog.png', isApi: false },
   { value: 'tiktok', label: 'TikTok', icon: '/channel_logo/tiktok.png', isApi: false },
   { value: 'youtube', label: 'YouTube', icon: '/channel_logo/youtube.png', isApi: false },

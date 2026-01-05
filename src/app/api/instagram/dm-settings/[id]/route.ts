@@ -154,10 +154,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 해당 설정이 사용자의 것인지 확인
+    // 해당 설정이 사용자의 것인지 확인 + tracking_link_id 가져오기
     const { data: existing } = await supabase
       .from('instagram_dm_settings')
-      .select('id, user_id')
+      .select('id, user_id, tracking_link_id')
       .eq('id', id)
       .eq('user_id', user.id)
       .single()
@@ -166,6 +166,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'DM 설정을 찾을 수 없습니다' }, { status: 404 })
     }
 
+    // DM 설정 삭제
     const { error } = await supabase
       .from('instagram_dm_settings')
       .delete()
@@ -174,6 +175,20 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (error) {
       console.error('Failed to delete DM setting:', error)
       return NextResponse.json({ error: 'Failed to delete setting' }, { status: 500 })
+    }
+
+    // 연결된 tracking_link도 삭제
+    if (existing.tracking_link_id) {
+      const { error: trackingError } = await supabase
+        .from('tracking_links')
+        .delete()
+        .eq('id', existing.tracking_link_id)
+        .eq('user_id', user.id)
+
+      if (trackingError) {
+        console.error('Failed to delete tracking link:', trackingError)
+        // tracking_link 삭제 실패해도 DM 설정은 이미 삭제됨
+      }
     }
 
     return NextResponse.json({ success: true })
