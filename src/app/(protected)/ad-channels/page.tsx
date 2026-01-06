@@ -17,7 +17,6 @@ interface AdChannel {
 const CHANNEL_TYPES = [
   { value: 'meta', label: 'Meta (유료광고)', icon: '/channel_logo/meta.png', isApi: true },
   { value: 'instagram', label: 'Instagram', icon: '/channel_logo/insta.png', isApi: false },
-  { value: 'youtube', label: 'YouTube', icon: '/channel_logo/youtube.png', isApi: false },
 ]
 
 export default function AdChannelsPage() {
@@ -387,7 +386,7 @@ export default function AdChannelsPage() {
             {/* 채널 선택 그리드 */}
                 <div className="p-5 border-b border-slate-700">
                   <label className="block text-sm text-slate-400 mb-3">채널 선택</label>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     {CHANNEL_TYPES.map((type) => (
                       <button
                         key={type.value}
