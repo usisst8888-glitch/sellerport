@@ -13,14 +13,6 @@ interface GifSettings {
 
 type ConversionMode = 'images' | 'video'
 
-const SIZE_PRESETS = [
-  { label: '스마트스토어 (860px)', width: 860, height: 860 },
-  { label: '카페24 (1000px)', width: 1000, height: 1000 },
-  { label: '아임웹 (1200px)', width: 1200, height: 1200 },
-  { label: '정사각형 (500px)', width: 500, height: 500 },
-  { label: '직접 입력', width: 0, height: 0 },
-]
-
 export default function GifGeneratorPage() {
   const [mode, setMode] = useState<ConversionMode>('images')
   const [images, setImages] = useState<File[]>([])
@@ -32,13 +24,12 @@ export default function GifGeneratorPage() {
   const [generatedGif, setGeneratedGif] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [settings, setSettings] = useState<GifSettings>({
-    width: 860,
-    height: 860,
+    width: 500,
+    height: 500,
     fps: 10,
     quality: 80,
     loop: true,
   })
-  const [selectedPreset, setSelectedPreset] = useState(0)
   const [delay, setDelay] = useState(500) // 이미지 간 딜레이 (ms)
 
   const imageInputRef = useRef<HTMLInputElement>(null)
@@ -107,18 +98,6 @@ export default function GifGeneratorPage() {
     setImages(newImages)
     setImagePreviews(newPreviews)
   }, [images, imagePreviews])
-
-  // 사이즈 프리셋 선택
-  const handlePresetChange = (index: number) => {
-    setSelectedPreset(index)
-    if (index < SIZE_PRESETS.length - 1) {
-      setSettings(prev => ({
-        ...prev,
-        width: SIZE_PRESETS[index].width,
-        height: SIZE_PRESETS[index].height,
-      }))
-    }
-  }
 
   // 이미지를 GIF로 변환 (Canvas 기반)
   const generateGifFromImages = async () => {
@@ -518,54 +497,30 @@ export default function GifGeneratorPage() {
       <div className="bg-slate-800/50 border border-white/5 rounded-2xl p-6">
         <h3 className="text-sm font-medium text-slate-300 mb-4">GIF 설정</h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* 크기 프리셋 */}
-          <div>
-            <label className="block text-xs text-slate-400 mb-2">크기 프리셋</label>
-            <div className="space-y-2">
-              {SIZE_PRESETS.map((preset, index) => (
-                <button
-                  key={index}
-                  onClick={() => handlePresetChange(index)}
-                  className={`w-full px-3 py-2 rounded-lg text-sm text-left transition-all ${
-                    selectedPreset === index
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700'
-                  }`}
-                >
-                  {preset.label}
-                </button>
-              ))}
+        <div className="space-y-4">
+          {/* 크기 입력 */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">너비 (px)</label>
+              <input
+                type="number"
+                value={settings.width}
+                onChange={(e) => setSettings(prev => ({ ...prev, width: Number(e.target.value) }))}
+                className="w-full px-3 py-2 bg-slate-700/50 border border-white/10 rounded-lg text-white text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">높이 (px)</label>
+              <input
+                type="number"
+                value={settings.height}
+                onChange={(e) => setSettings(prev => ({ ...prev, height: Number(e.target.value) }))}
+                className="w-full px-3 py-2 bg-slate-700/50 border border-white/10 rounded-lg text-white text-sm"
+              />
             </div>
           </div>
 
-          {/* 상세 설정 */}
-          <div className="space-y-4">
-            {/* 직접 입력 크기 */}
-            {selectedPreset === SIZE_PRESETS.length - 1 && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1">너비 (px)</label>
-                  <input
-                    type="number"
-                    value={settings.width}
-                    onChange={(e) => setSettings(prev => ({ ...prev, width: Number(e.target.value) }))}
-                    className="w-full px-3 py-2 bg-slate-700/50 border border-white/10 rounded-lg text-white text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1">높이 (px)</label>
-                  <input
-                    type="number"
-                    value={settings.height}
-                    onChange={(e) => setSettings(prev => ({ ...prev, height: Number(e.target.value) }))}
-                    className="w-full px-3 py-2 bg-slate-700/50 border border-white/10 rounded-lg text-white text-sm"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* 이미지 모드 딜레이 */}
+          {/* 이미지 모드 딜레이 */}
             {mode === 'images' && (
               <div>
                 <label className="block text-xs text-slate-400 mb-1">
@@ -643,7 +598,6 @@ export default function GifGeneratorPage() {
                 }`} />
               </button>
             </div>
-          </div>
         </div>
       </div>
 
