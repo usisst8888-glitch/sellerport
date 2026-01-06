@@ -16,7 +16,8 @@ interface AdChannel {
 
 const CHANNEL_TYPES = [
   { value: 'meta', label: 'Meta (유료광고)', icon: '/channel_logo/meta.png', isApi: true },
-  { value: 'instagram', label: 'Instagram', icon: '/channel_logo/insta.png', isApi: false },
+  { value: 'instagram', label: 'Instagram', icon: '/channel_logo/insta.png', isApi: true },
+  { value: 'youtube', label: 'YouTube', icon: '/channel_logo/youtube.png', isApi: false },
 ]
 
 export default function AdChannelsPage() {
@@ -44,6 +45,9 @@ export default function AdChannelsPage() {
       setMessage({ type: 'success', text: 'Meta 광고 계정이 연동되었습니다' })
       // URL에서 파라미터 제거
       window.history.replaceState({}, '', '/ad-channels')
+    } else if (success === 'instagram_connected') {
+      setMessage({ type: 'success', text: 'Instagram 계정이 연동되었습니다' })
+      window.history.replaceState({}, '', '/ad-channels')
     } else if (error) {
       const errorMessages: Record<string, string> = {
         'no_ad_accounts': 'Meta 광고 계정을 찾을 수 없습니다',
@@ -51,6 +55,10 @@ export default function AdChannelsPage() {
         'save_failed': '저장에 실패했습니다',
         'state_expired': '인증 시간이 만료되었습니다. 다시 시도해주세요',
         'configuration_error': '서버 설정 오류입니다',
+        'not_professional_account': 'Instagram 프로페셔널 계정(비즈니스/크리에이터)만 연동 가능합니다',
+        'not_authenticated': '로그인이 필요합니다',
+        'no_code': '인증 코드를 받지 못했습니다. 다시 시도해주세요',
+        'invalid_token_response': '토큰 응답이 올바르지 않습니다',
       }
       setMessage({ type: 'error', text: errorMessages[error] || error })
       window.history.replaceState({}, '', '/ad-channels')
@@ -60,6 +68,11 @@ export default function AdChannelsPage() {
   // Meta OAuth 연동 시작
   const handleMetaOAuth = () => {
     window.location.href = '/api/auth/meta'
+  }
+
+  // Instagram OAuth 연동 시작
+  const handleInstagramOAuth = () => {
+    window.location.href = '/api/auth/instagram?from=ad-channels'
   }
 
   // 모달 초기화
@@ -386,7 +399,7 @@ export default function AdChannelsPage() {
             {/* 채널 선택 그리드 */}
                 <div className="p-5 border-b border-slate-700">
                   <label className="block text-sm text-slate-400 mb-3">채널 선택</label>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     {CHANNEL_TYPES.map((type) => (
                       <button
                         key={type.value}
@@ -430,8 +443,24 @@ export default function AdChannelsPage() {
                     </div>
                   )}
 
-                  {/* 기타 채널 선택 시 */}
-                  {addForm.channel_type !== 'meta' && (
+                  {/* Instagram 선택 시 */}
+                  {addForm.channel_type === 'instagram' && (
+                    <div className="space-y-4">
+                      <div className="text-xs text-slate-400 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                        Instagram 프로페셔널 계정 연동 (DM 자동발송 지원)
+                      </div>
+                      <button
+                        onClick={handleInstagramOAuth}
+                        className="w-full h-10 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium transition-colors"
+                      >
+                        Instagram 계정 연동하기
+                      </button>
+                    </div>
+                  )}
+
+                  {/* 기타 채널 선택 시 (YouTube 등) */}
+                  {addForm.channel_type !== 'meta' && addForm.channel_type !== 'instagram' && (
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm text-slate-400 mb-1.5">채널 이름</label>
@@ -467,7 +496,7 @@ export default function AdChannelsPage() {
                   >
                     취소
                   </button>
-                  {addForm.channel_type !== 'meta' && (
+                  {addForm.channel_type !== 'meta' && addForm.channel_type !== 'instagram' && (
                     <button
                       onClick={handleAddChannel}
                       disabled={saving || !addForm.channel_name.trim()}
