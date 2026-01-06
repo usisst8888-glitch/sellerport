@@ -212,6 +212,42 @@ export async function GET(request: NextRequest) {
       accountType: userInfo?.account_type,
     })
 
+    // 4-1. ad_channels 테이블에도 저장 (광고 채널 목록에 표시되도록)
+    const { data: existingAdChannel } = await adminSupabase
+      .from('ad_channels')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('channel_type', 'instagram')
+      .eq('account_id', instagramUserId.toString())
+      .single()
+
+    const adChannelData = {
+      user_id: userId,
+      channel_type: 'instagram',
+      channel_name: userInfo?.username || `Instagram ${instagramUserId}`,
+      account_id: instagramUserId.toString(),
+      account_name: userInfo?.name || userInfo?.username || null,
+      access_token: accessToken,
+      token_expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
+      status: 'connected',
+      metadata: {
+        instagram_user_id: instagramUserId.toString(),
+        profile_picture_url: userInfo?.profile_picture_url || null,
+        account_type: userInfo?.account_type || null,
+      },
+    }
+
+    if (existingAdChannel) {
+      await adminSupabase
+        .from('ad_channels')
+        .update(adChannelData)
+        .eq('id', existingAdChannel.id)
+    } else {
+      await adminSupabase
+        .from('ad_channels')
+        .insert(adChannelData)
+    }
+
     // 5. Webhook 구독 (유저별로 필수!)
     // 참고: https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/webhooks
     // POST /{INSTAGRAM_ACCOUNT_ID}/subscribed_apps?subscribed_fields=comments,messages
