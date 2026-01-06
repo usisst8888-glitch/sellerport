@@ -29,11 +29,11 @@ interface Product {
   } | null
 }
 
-interface InstagramAccount {
+interface InstagramChannel {
   id: string
-  instagram_username: string | null
-  instagram_name: string | null
-  instagram_user_id: string
+  channel_name: string
+  account_id: string | null
+  account_name: string | null
   status: string
 }
 
@@ -57,7 +57,7 @@ export default function InstagramDmAddPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const editingTrackingLinkId = searchParams.get('edit')
-  const accountIdFromUrl = searchParams.get('account')
+  const channelIdFromUrl = searchParams.get('channel')
 
   // 버튼 텍스트 옵션들
   const buttonTextOptions = [
@@ -89,9 +89,9 @@ export default function InstagramDmAddPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Instagram 계정
-  const [instagramAccounts, setInstagramAccounts] = useState<InstagramAccount[]>([])
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
+  // Instagram 채널 (ad_channels에서 가져옴)
+  const [instagramChannels, setInstagramChannels] = useState<InstagramChannel[]>([])
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null)
 
   // 게시물 선택
   const [media, setMedia] = useState<InstagramMedia[]>([])
@@ -158,8 +158,8 @@ export default function InstagramDmAddPage() {
     p.name.toLowerCase().includes(productSearch.toLowerCase())
   )
 
-  // Instagram 계정 불러오기
-  const fetchInstagramAccounts = useCallback(async () => {
+  // Instagram 채널 불러오기 (ad_channels에서)
+  const fetchInstagramChannels = useCallback(async () => {
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
@@ -168,28 +168,29 @@ export default function InstagramDmAddPage() {
         return
       }
 
-      const { data: accounts } = await supabase
-        .from('instagram_accounts')
-        .select('id, instagram_username, instagram_name, instagram_user_id, status')
+      const { data: channels } = await supabase
+        .from('ad_channels')
+        .select('id, channel_name, account_id, account_name, status')
         .eq('user_id', user.id)
+        .eq('channel_type', 'instagram')
         .eq('status', 'connected')
 
-      if (accounts && accounts.length > 0) {
-        setInstagramAccounts(accounts)
-        // URL에서 account 파라미터가 있으면 해당 계정 선택, 없으면 첫 번째 계정
-        if (accountIdFromUrl && accounts.find(a => a.id === accountIdFromUrl)) {
-          setSelectedAccountId(accountIdFromUrl)
+      if (channels && channels.length > 0) {
+        setInstagramChannels(channels)
+        // URL에서 channel 파라미터가 있으면 해당 채널 선택, 없으면 첫 번째 채널
+        if (channelIdFromUrl && channels.find(c => c.id === channelIdFromUrl)) {
+          setSelectedChannelId(channelIdFromUrl)
         } else {
-          setSelectedAccountId(accounts[0].id)
+          setSelectedChannelId(channels[0].id)
         }
       } else {
         // Instagram 연결이 없으면 목록 페이지로 이동
         router.push('/instagram-dm')
       }
     } catch (error) {
-      console.error('Failed to fetch Instagram accounts:', error)
+      console.error('Failed to fetch Instagram channels:', error)
     }
-  }, [router, accountIdFromUrl])
+  }, [router, channelIdFromUrl])
 
   // 내 사이트 목록 불러오기
   const fetchMySites = useCallback(async () => {
@@ -283,7 +284,7 @@ export default function InstagramDmAddPage() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true)
-      await fetchInstagramAccounts()
+      await fetchInstagramChannels()
       await fetchMySites()
       if (editingTrackingLinkId) {
         await fetchExistingDmSettings()
@@ -291,7 +292,7 @@ export default function InstagramDmAddPage() {
       setLoading(false)
     }
     loadData()
-  }, [fetchInstagramAccounts, fetchMySites, editingTrackingLinkId, fetchExistingDmSettings])
+  }, [fetchInstagramChannels, fetchMySites, editingTrackingLinkId, fetchExistingDmSettings])
 
   // 사이트 선택 변경 시 상품 목록 다시 불러오기
   useEffect(() => {
@@ -320,10 +321,10 @@ export default function InstagramDmAddPage() {
 
   // 게시물 목록 불러오기
   const fetchMedia = async () => {
-    if (!selectedAccountId) return
+    if (!selectedChannelId) return
     setLoadingMedia(true)
     try {
-      const response = await fetch(`/api/instagram/media?instagramAccountId=${selectedAccountId}`)
+      const response = await fetch(`/api/instagram/media?adChannelId=${selectedChannelId}`)
       const result = await response.json()
       if (result.success) {
         setMedia(result.data || [])
@@ -438,7 +439,7 @@ export default function InstagramDmAddPage() {
             requireFollow: requireFollow,
             followMessage: form.followMessage,
             followButtonText: form.followButtonText,
-            instagramAccountId: selectedAccountId,
+            adChannelId: selectedChannelId,
             instagramMediaId: selectedMediaId,
             instagramMediaUrl: selectedMedia?.permalink,
             instagramMediaType: selectedMedia?.media_type,

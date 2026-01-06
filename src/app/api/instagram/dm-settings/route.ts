@@ -26,11 +26,11 @@ export async function GET(request: NextRequest) {
         .from('instagram_dm_settings')
         .select(`
           *,
-          instagram_accounts (
+          ad_channels (
             id,
-            instagram_username,
-            instagram_name,
-            profile_picture_url
+            channel_name,
+            account_id,
+            account_name
           ),
           tracking_links (
             id,
@@ -59,11 +59,11 @@ export async function GET(request: NextRequest) {
       .from('instagram_dm_settings')
       .select(`
         *,
-        instagram_accounts (
+        ad_channels (
           id,
-          instagram_username,
-          instagram_name,
-          profile_picture_url,
+          channel_name,
+          account_id,
+          account_name,
           access_token
         ),
         tracking_links (
@@ -86,11 +86,11 @@ export async function GET(request: NextRequest) {
 
     // 썸네일이 없는 설정들에 대해 Instagram API에서 가져와서 업데이트
     if (settings && settings.length > 0) {
-      const settingsToUpdate = settings.filter(s => !s.instagram_thumbnail_url && s.instagram_media_id && s.instagram_accounts?.access_token)
+      const settingsToUpdate = settings.filter(s => !s.instagram_thumbnail_url && s.instagram_media_id && s.ad_channels?.access_token)
 
       for (const setting of settingsToUpdate) {
         try {
-          const accessToken = setting.instagram_accounts?.access_token
+          const accessToken = setting.ad_channels?.access_token
           if (!accessToken) continue
 
           // Instagram API에서 미디어 정보 가져오기
@@ -122,11 +122,11 @@ export async function GET(request: NextRequest) {
     // access_token 제거 후 반환
     const sanitizedSettings = settings?.map(s => ({
       ...s,
-      instagram_accounts: s.instagram_accounts ? {
-        id: s.instagram_accounts.id,
-        instagram_username: s.instagram_accounts.instagram_username,
-        instagram_name: s.instagram_accounts.instagram_name,
-        profile_picture_url: s.instagram_accounts.profile_picture_url
+      ad_channels: s.ad_channels ? {
+        id: s.ad_channels.id,
+        channel_name: s.ad_channels.channel_name,
+        account_id: s.ad_channels.account_id,
+        account_name: s.ad_channels.account_name
       } : null
     }))
 
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const {
-      instagramAccountId,
+      adChannelId,
       trackingLinkId,
       instagramMediaId,
       instagramMediaUrl,
@@ -162,22 +162,23 @@ export async function POST(request: NextRequest) {
       followCtaMessage,
     } = body
 
-    if (!instagramAccountId || !instagramMediaId || !dmMessage) {
+    if (!adChannelId || !instagramMediaId || !dmMessage) {
       return NextResponse.json({
-        error: '필수 항목이 누락되었습니다 (Instagram 계정, 게시물 ID, DM 메시지)'
+        error: '필수 항목이 누락되었습니다 (Instagram 채널, 게시물 ID, DM 메시지)'
       }, { status: 400 })
     }
 
-    // 해당 Instagram 계정이 사용자의 것인지 확인
-    const { data: account } = await supabase
-      .from('instagram_accounts')
+    // 해당 Instagram 채널이 사용자의 것인지 확인
+    const { data: channel } = await supabase
+      .from('ad_channels')
       .select('id, user_id')
-      .eq('id', instagramAccountId)
+      .eq('id', adChannelId)
       .eq('user_id', user.id)
+      .eq('channel_type', 'instagram')
       .single()
 
-    if (!account) {
-      return NextResponse.json({ error: 'Instagram 계정을 찾을 수 없습니다' }, { status: 404 })
+    if (!channel) {
+      return NextResponse.json({ error: 'Instagram 채널을 찾을 수 없습니다' }, { status: 404 })
     }
 
     // 동일 게시물에 대한 설정이 있는지 확인
@@ -199,7 +200,7 @@ export async function POST(request: NextRequest) {
       .from('instagram_dm_settings')
       .insert({
         user_id: user.id,
-        instagram_account_id: instagramAccountId,
+        ad_channel_id: adChannelId,
         tracking_link_id: trackingLinkId || null,
         instagram_media_id: instagramMediaId,
         instagram_media_url: instagramMediaUrl,

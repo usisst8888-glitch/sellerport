@@ -19,10 +19,12 @@ interface DmSetting {
   created_at: string
   updated_at: string
   tracking_link_id: string | null
-  instagram_accounts: {
+  ad_channel_id: string | null
+  ad_channels: {
     id: string
-    instagram_username: string | null
-    instagram_name: string | null
+    channel_name: string
+    account_id: string | null
+    account_name: string | null
   } | null
   tracking_links: {
     id: string
@@ -35,22 +37,22 @@ interface DmSetting {
   } | null
 }
 
-interface InstagramAccount {
+interface InstagramChannel {
   id: string
-  instagram_username: string | null
-  instagram_name: string | null
-  instagram_user_id: string
+  channel_name: string
+  account_id: string | null
+  account_name: string | null
   status: string
 }
 
 export default function InstagramDmPage() {
   const [loading, setLoading] = useState(true)
   const [dmSettings, setDmSettings] = useState<DmSetting[]>([])
-  const [instagramAccounts, setInstagramAccounts] = useState<InstagramAccount[]>([])
+  const [instagramChannels, setInstagramChannels] = useState<InstagramChannel[]>([])
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null)
   const [accountsExpanded, setAccountsExpanded] = useState(false)
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -62,17 +64,18 @@ export default function InstagramDmPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Instagram 계정 가져오기 (새로운 instagram_accounts 테이블에서)
-      const { data: accounts } = await supabase
-        .from('instagram_accounts')
-        .select('id, instagram_username, instagram_name, instagram_user_id, status')
+      // Instagram 채널 가져오기 (ad_channels 테이블에서)
+      const { data: channels } = await supabase
+        .from('ad_channels')
+        .select('id, channel_name, account_id, account_name, status')
         .eq('user_id', user.id)
+        .eq('channel_type', 'instagram')
         .eq('status', 'connected')
 
-      if (accounts && accounts.length > 0) {
-        setInstagramAccounts(accounts)
-        // 첫 번째 계정을 기본 선택
-        setSelectedAccountId(accounts[0].id)
+      if (channels && channels.length > 0) {
+        setInstagramChannels(channels)
+        // 첫 번째 채널을 기본 선택
+        setSelectedChannelId(channels[0].id)
       }
 
       // DM 설정 가져오기
@@ -107,29 +110,30 @@ export default function InstagramDmPage() {
     }
   }
 
-  const handleDisconnect = async (accountId: string, username: string) => {
-    if (!confirm(`@${username} 계정의 연결을 해제하시겠습니까?\n\n연결 해제 시 해당 계정의 모든 DM 자동발송 설정도 함께 삭제됩니다.`)) return
+  const handleDisconnect = async (channelId: string, channelName: string) => {
+    if (!confirm(`@${channelName} 계정의 연결을 해제하시겠습니까?\n\n연결 해제 시 해당 계정의 모든 DM 자동발송 설정도 함께 삭제됩니다.`)) return
 
-    setDisconnectingId(accountId)
+    setDisconnectingId(channelId)
     try {
-      const response = await fetch(`/api/instagram/accounts/${accountId}`, {
-        method: 'DELETE'
-      })
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('ad_channels')
+        .delete()
+        .eq('id', channelId)
 
-      if (response.ok) {
-        // 계정 목록에서 제거
-        setInstagramAccounts(prev => prev.filter(a => a.id !== accountId))
+      if (!error) {
+        // 채널 목록에서 제거
+        setInstagramChannels(prev => prev.filter(c => c.id !== channelId))
         // 관련 DM 설정도 제거
-        setDmSettings(prev => prev.filter(s => s.instagram_accounts?.id !== accountId))
-        // 선택된 계정이면 다른 계정 선택
-        if (selectedAccountId === accountId) {
-          const remaining = instagramAccounts.filter(a => a.id !== accountId)
-          setSelectedAccountId(remaining.length > 0 ? remaining[0].id : null)
+        setDmSettings(prev => prev.filter(s => s.ad_channel_id !== channelId))
+        // 선택된 채널이면 다른 채널 선택
+        if (selectedChannelId === channelId) {
+          const remaining = instagramChannels.filter(c => c.id !== channelId)
+          setSelectedChannelId(remaining.length > 0 ? remaining[0].id : null)
         }
         setAccountsExpanded(false)
       } else {
-        const result = await response.json()
-        alert(result.error || '연결 해제에 실패했습니다')
+        alert('연결 해제에 실패했습니다')
       }
     } catch (error) {
       console.error('Failed to disconnect:', error)
@@ -191,16 +195,16 @@ export default function InstagramDmPage() {
         >
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold text-white">연결된 Instagram 계정</span>
-            {instagramAccounts.length > 0 && (
+            {instagramChannels.length > 0 && (
               <>
                 <div className="flex items-center gap-2 px-2 py-1 bg-slate-700/50 rounded-md">
                   <div className="w-2 h-2 rounded-full bg-green-500" />
                   <span className="text-sm text-white">
-                    @{instagramAccounts.find(a => a.id === selectedAccountId)?.instagram_username || instagramAccounts[0].instagram_username || 'Instagram'}
+                    @{instagramChannels.find(c => c.id === selectedChannelId)?.channel_name || instagramChannels[0].channel_name || 'Instagram'}
                   </span>
                 </div>
-                {instagramAccounts.length > 1 && (
-                  <span className="text-xs text-slate-500">외 {instagramAccounts.length - 1}개</span>
+                {instagramChannels.length > 1 && (
+                  <span className="text-xs text-slate-500">외 {instagramChannels.length - 1}개</span>
                 )}
               </>
             )}
@@ -220,28 +224,28 @@ export default function InstagramDmPage() {
         {/* 확장된 계정 목록 */}
         {accountsExpanded && (
           <div className="border-t border-slate-700">
-            {instagramAccounts.map(account => (
+            {instagramChannels.map(channel => (
               <div
-                key={account.id}
+                key={channel.id}
                 className={`flex items-center gap-3 px-4 py-3 border-b border-slate-700/50 last:border-b-0 ${
-                  selectedAccountId === account.id ? 'bg-slate-700/50' : ''
+                  selectedChannelId === channel.id ? 'bg-slate-700/50' : ''
                 }`}
               >
                 <button
                   onClick={() => {
-                    setSelectedAccountId(account.id)
+                    setSelectedChannelId(channel.id)
                     setAccountsExpanded(false)
                   }}
                   className="flex items-center gap-3 flex-1 hover:bg-slate-700/30 -ml-4 -my-3 pl-4 py-3 transition-colors"
                 >
-                  <div className={`w-2.5 h-2.5 rounded-full ${account.status === 'connected' ? 'bg-green-500' : 'bg-slate-500'}`} />
+                  <div className={`w-2.5 h-2.5 rounded-full ${channel.status === 'connected' ? 'bg-green-500' : 'bg-slate-500'}`} />
                   <div className="flex-1 text-left">
-                    <span className="text-sm text-white">@{account.instagram_username || account.instagram_name || 'Instagram'}</span>
+                    <span className="text-sm text-white">@{channel.channel_name || 'Instagram'}</span>
                     <span className="ml-2 text-xs text-slate-500">
-                      {account.status === 'connected' ? '연결됨' : '연결 해제'}
+                      {channel.status === 'connected' ? '연결됨' : '연결 해제'}
                     </span>
                   </div>
-                  {selectedAccountId === account.id && (
+                  {selectedChannelId === channel.id && (
                     <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
@@ -251,13 +255,13 @@ export default function InstagramDmPage() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    handleDisconnect(account.id, account.instagram_username || account.instagram_name || 'Instagram')
+                    handleDisconnect(channel.id, channel.channel_name || 'Instagram')
                   }}
-                  disabled={disconnectingId === account.id}
+                  disabled={disconnectingId === channel.id}
                   className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
                   title="연결 해제"
                 >
-                  {disconnectingId === account.id ? (
+                  {disconnectingId === channel.id ? (
                     <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -282,7 +286,7 @@ export default function InstagramDmPage() {
         )}
 
         {/* 계정 없을 때 연결 버튼 */}
-        {instagramAccounts.length === 0 && !accountsExpanded && (
+        {instagramChannels.length === 0 && !accountsExpanded && (
           <div className="px-4 pb-4">
             <a
               href="/api/auth/instagram?from=instagram-dm"
@@ -298,7 +302,7 @@ export default function InstagramDmPage() {
       </div>
 
       {/* 안내 배너 */}
-      {instagramAccounts.length > 0 && dmSettings.length === 0 && (
+      {instagramChannels.length > 0 && dmSettings.length === 0 && (
         <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 rounded-xl p-4">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center flex-shrink-0">
@@ -319,17 +323,17 @@ export default function InstagramDmPage() {
       )}
 
       {/* DM 설정 목록 */}
-      {instagramAccounts.length > 0 && (
+      {instagramChannels.length > 0 && (
         <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-white">
               DM 자동발송 설정
-              {dmSettings.filter(s => s.instagram_accounts?.id === selectedAccountId).length > 0 &&
-                ` (${dmSettings.filter(s => s.instagram_accounts?.id === selectedAccountId).length}개)`
+              {dmSettings.filter(s => s.ad_channel_id === selectedChannelId).length > 0 &&
+                ` (${dmSettings.filter(s => s.ad_channel_id === selectedChannelId).length}개)`
               }
             </h2>
             <Link
-              href={`/instagram-dm/add${selectedAccountId ? `?account=${selectedAccountId}` : ''}`}
+              href={`/instagram-dm/add${selectedChannelId ? `?channel=${selectedChannelId}` : ''}`}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -338,9 +342,9 @@ export default function InstagramDmPage() {
               추가
             </Link>
           </div>
-          {dmSettings.filter(s => s.instagram_accounts?.id === selectedAccountId).length > 0 ? (
+          {dmSettings.filter(s => s.ad_channel_id === selectedChannelId).length > 0 ? (
             <div className="space-y-3">
-              {dmSettings.filter(s => s.instagram_accounts?.id === selectedAccountId).map(setting => (
+              {dmSettings.filter(s => s.ad_channel_id === selectedChannelId).map(setting => (
                 <div
                   key={setting.id}
                   className="bg-slate-700/30 border border-slate-600 rounded-xl p-4"

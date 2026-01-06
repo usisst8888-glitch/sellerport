@@ -702,15 +702,16 @@ async function handleCommentEvent(
 
     const dmSettings = dmSettingsList[0]
 
-    // 2. Instagram 계정 정보 조회
-    const { data: instagramAccount } = await supabase
-      .from('instagram_accounts')
-      .select('id,user_id,access_token,instagram_user_id')
-      .eq('id', dmSettings.instagram_account_id)
+    // 2. Instagram 채널 정보 조회 (ad_channels)
+    const { data: instagramChannel } = await supabase
+      .from('ad_channels')
+      .select('id,user_id,access_token,account_id,metadata')
+      .eq('id', dmSettings.ad_channel_id)
+      .eq('channel_type', 'instagram')
       .single()
 
-    if (!instagramAccount) {
-      console.error('Instagram account not found:', dmSettings.instagram_account_id)
+    if (!instagramChannel) {
+      console.error('Instagram channel not found:', dmSettings.ad_channel_id)
       return
     }
 
@@ -722,12 +723,12 @@ async function handleCommentEvent(
       .single()
 
     // dmSettings에 관련 데이터 첨부
-    dmSettings.instagram_accounts = instagramAccount
+    dmSettings.ad_channels = instagramChannel
     dmSettings.tracking_links = trackingLink
 
     console.log('Found DM settings:', {
       id: dmSettings.id,
-      instagram_account_id: dmSettings.instagram_accounts?.instagram_user_id,
+      instagram_user_id: dmSettings.ad_channels?.account_id,
       has_tracking_link: !!dmSettings.tracking_links
     })
 
@@ -760,8 +761,8 @@ async function handleCommentEvent(
     }
 
     // DM 발송 준비
-    const accessToken = dmSettings.instagram_accounts.access_token
-    const myInstagramUserId = dmSettings.instagram_accounts.instagram_user_id
+    const accessToken = dmSettings.ad_channels.access_token
+    const myInstagramUserId = dmSettings.ad_channels.account_id
     const trackingUrl = dmSettings.tracking_links?.go_url || dmSettings.tracking_links?.tracking_url
 
     console.log('🔍 DM 발송 준비:', {
@@ -982,7 +983,7 @@ async function handleMessagingEvent(event: any) {
           instagram_dm_settings!inner (
             id,
             dm_message,
-            instagram_accounts!inner (
+            ad_channels!inner (
               access_token
             ),
             tracking_links (
@@ -1480,9 +1481,9 @@ async function handleFollowConfirmed(
       .from('instagram_dm_settings')
       .select(`
         *,
-        instagram_accounts!inner (
+        ad_channels!inner (
           access_token,
-          instagram_user_id
+          account_id
         )
       `)
       .eq('id', dmSettingId)
@@ -1493,7 +1494,7 @@ async function handleFollowConfirmed(
       return
     }
 
-    const accessToken = dmSettings.instagram_accounts.access_token
+    const accessToken = dmSettings.ad_channels.access_token
     const dmMessageText = dmSettings.dm_message || '감사합니다! 요청하신 링크입니다 👇'
 
     // ⭐ 핵심: Instagram API로 팔로워 여부 확인

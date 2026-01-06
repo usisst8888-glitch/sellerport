@@ -66,8 +66,8 @@ export async function POST(request: NextRequest) {
       channelType, postName, enableDmAutoSend, dmTriggerKeywords, dmMessage,
       requireFollow, followMessage, followButtonText,
       // Instagram 게시물 정보 (DM 자동발송용)
-      instagramAccountId, instagramMediaId, instagramMediaUrl, instagramMediaType, instagramCaption, instagramThumbnailUrl,
-      // 광고 채널 연결
+      instagramMediaId, instagramMediaUrl, instagramMediaType, instagramCaption, instagramThumbnailUrl,
+      // 광고 채널 연결 (Instagram 포함)
       adChannelId,
       // 캐러셀 관련
       sendMode, carouselProductIds, selectedProductId
@@ -182,17 +182,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Instagram DM 자동발송 설정 (Instagram 채널 + 옵션 활성화 시)
-    if (channelType === 'instagram' && enableDmAutoSend && dmMessage && instagramAccountId) {
-      // 지정된 Instagram 계정 확인 (본인 계정인지 검증)
-      const { data: instagramAccount } = await supabase
-        .from('instagram_accounts')
+    if (channelType === 'instagram' && enableDmAutoSend && dmMessage && adChannelId) {
+      // 지정된 Instagram 채널 확인 (본인 채널인지 검증)
+      const { data: instagramChannel } = await supabase
+        .from('ad_channels')
         .select('id')
-        .eq('id', instagramAccountId)
+        .eq('id', adChannelId)
         .eq('user_id', user.id)
+        .eq('channel_type', 'instagram')
         .eq('status', 'connected')
         .single()
 
-      if (instagramAccount) {
+      if (instagramChannel) {
         // 키워드 파싱 (쉼표로 구분된 문자열 → 배열)
         const keywords = dmTriggerKeywords
           ? dmTriggerKeywords.split(',').map((k: string) => k.trim()).filter((k: string) => k)
@@ -201,12 +202,12 @@ export async function POST(request: NextRequest) {
         // 게시물 정보가 있으면 바로 활성화, 없으면 비활성화
         const hasMediaInfo = instagramMediaId && instagramMediaId !== 'pending_selection'
 
-        // DM 설정 생성
+        // DM 설정 생성 (ad_channel_id 사용)
         const { error: dmSettingsError } = await supabase
           .from('instagram_dm_settings')
           .insert({
             user_id: user.id,
-            instagram_account_id: instagramAccount.id,
+            ad_channel_id: instagramChannel.id,
             tracking_link_id: trackingLinkId,
             instagram_media_id: instagramMediaId || 'pending_selection',
             instagram_media_url: instagramMediaUrl || null,

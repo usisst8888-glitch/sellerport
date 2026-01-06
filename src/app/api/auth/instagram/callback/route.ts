@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 4. Supabase에 저장 (instagram_accounts 테이블 사용)
+    // 4. Supabase에 저장 (ad_channels 테이블 사용)
     // Admin 클라이언트 사용 (RLS 우회) - OAuth 콜백에서는 세션 쿠키가 없을 수 있음
     const adminSupabase = createAdminClient()
     const supabase = await createClient()
@@ -159,60 +159,7 @@ export async function GET(request: NextRequest) {
       userId = user.id
     }
 
-    // 기존 Instagram 계정 확인 (Admin 클라이언트 사용)
-    const { data: existingAccount } = await adminSupabase
-      .from('instagram_accounts')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('instagram_user_id', instagramUserId.toString())
-      .single()
-
-    const accountData = {
-      user_id: userId,
-      instagram_user_id: instagramUserId.toString(),
-      instagram_username: userInfo?.username || null,
-      instagram_name: userInfo?.name || null,
-      profile_picture_url: userInfo?.profile_picture_url || null,
-      access_token: accessToken,
-      token_expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
-      status: 'connected',
-      last_sync_at: new Date().toISOString(),
-      followers_count: userInfo?.followers_count || null,
-    }
-
-    if (existingAccount) {
-      const { error: updateError } = await adminSupabase
-        .from('instagram_accounts')
-        .update(accountData)
-        .eq('id', existingAccount.id)
-
-      if (updateError) {
-        console.error('Failed to update Instagram account:', updateError)
-        return NextResponse.redirect(
-          `${process.env.NEXT_PUBLIC_APP_URL}/${redirectPath}?error=save_failed`
-        )
-      }
-    } else {
-      const { error: insertError } = await adminSupabase
-        .from('instagram_accounts')
-        .insert(accountData)
-
-      if (insertError) {
-        console.error('Failed to save Instagram account:', insertError)
-        return NextResponse.redirect(
-          `${process.env.NEXT_PUBLIC_APP_URL}/${redirectPath}?error=save_failed`
-        )
-      }
-    }
-
-    console.log('Instagram account connected successfully:', {
-      userId,
-      instagramUserId,
-      username: userInfo?.username,
-      accountType: userInfo?.account_type,
-    })
-
-    // 4-1. ad_channels 테이블에도 저장 (광고 채널 목록에 표시되도록)
+    // 기존 Instagram 채널 확인 (ad_channels)
     const { data: existingAdChannel } = await adminSupabase
       .from('ad_channels')
       .select('id')
@@ -238,15 +185,36 @@ export async function GET(request: NextRequest) {
     }
 
     if (existingAdChannel) {
-      await adminSupabase
+      const { error: updateError } = await adminSupabase
         .from('ad_channels')
         .update(adChannelData)
         .eq('id', existingAdChannel.id)
+
+      if (updateError) {
+        console.error('Failed to update Instagram channel:', updateError)
+        return NextResponse.redirect(
+          `${process.env.NEXT_PUBLIC_APP_URL}/${redirectPath}?error=save_failed`
+        )
+      }
     } else {
-      await adminSupabase
+      const { error: insertError } = await adminSupabase
         .from('ad_channels')
         .insert(adChannelData)
+
+      if (insertError) {
+        console.error('Failed to save Instagram channel:', insertError)
+        return NextResponse.redirect(
+          `${process.env.NEXT_PUBLIC_APP_URL}/${redirectPath}?error=save_failed`
+        )
+      }
     }
+
+    console.log('Instagram channel connected successfully:', {
+      userId,
+      instagramUserId,
+      username: userInfo?.username,
+      accountType: userInfo?.account_type,
+    })
 
     // 5. Webhook 구독 (유저별로 필수!)
     // 참고: https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/webhooks
