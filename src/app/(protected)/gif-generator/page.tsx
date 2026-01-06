@@ -292,7 +292,7 @@ export default function GifGeneratorPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-3xl mx-auto">
       {/* 헤더 */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white mb-2">
@@ -313,7 +313,7 @@ export default function GifGeneratorPage() {
             onClick={() => { setMode('images'); handleReset() }}
             className={`flex-1 px-4 py-3 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 ${
               mode === 'images'
-                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/25'
+                ? 'bg-blue-600 text-white'
                 : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700'
             }`}
           >
@@ -326,7 +326,7 @@ export default function GifGeneratorPage() {
             onClick={() => { setMode('video'); handleReset() }}
             className={`flex-1 px-4 py-3 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 ${
               mode === 'video'
-                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/25'
+                ? 'bg-blue-600 text-white'
                 : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700'
             }`}
           >
@@ -363,7 +363,7 @@ export default function GifGeneratorPage() {
             {images.length === 0 ? (
               <button
                 onClick={() => imageInputRef.current?.click()}
-                className="w-full h-48 border-2 border-dashed border-slate-600 hover:border-purple-500 rounded-xl flex flex-col items-center justify-center gap-3 transition-colors"
+                className="w-full h-48 border-2 border-dashed border-slate-600 hover:border-blue-500 rounded-xl flex flex-col items-center justify-center gap-3 transition-colors"
               >
                 <div className="w-12 h-12 rounded-full bg-slate-700/50 flex items-center justify-center">
                   <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -414,7 +414,7 @@ export default function GifGeneratorPage() {
                           </svg>
                         </button>
                       </div>
-                      <div className="absolute top-1 left-1 w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center text-[10px] font-bold text-white">
+                      <div className="absolute top-1 left-1 w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-bold text-white">
                         {index + 1}
                       </div>
                     </div>
@@ -423,7 +423,7 @@ export default function GifGeneratorPage() {
                   {images.length < 20 && (
                     <button
                       onClick={() => imageInputRef.current?.click()}
-                      className="aspect-square rounded-lg border-2 border-dashed border-slate-600 hover:border-purple-500 flex items-center justify-center transition-colors"
+                      className="aspect-square rounded-lg border-2 border-dashed border-slate-600 hover:border-blue-500 flex items-center justify-center transition-colors"
                     >
                       <svg className="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -455,7 +455,7 @@ export default function GifGeneratorPage() {
             {!video ? (
               <button
                 onClick={() => videoInputRef.current?.click()}
-                className="w-full h-48 border-2 border-dashed border-slate-600 hover:border-purple-500 rounded-xl flex flex-col items-center justify-center gap-3 transition-colors"
+                className="w-full h-48 border-2 border-dashed border-slate-600 hover:border-blue-500 rounded-xl flex flex-col items-center justify-center gap-3 transition-colors"
               >
                 <div className="w-12 h-12 rounded-full bg-slate-700/50 flex items-center justify-center">
                   <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -590,7 +590,7 @@ export default function GifGeneratorPage() {
               <button
                 onClick={() => setSettings(prev => ({ ...prev, loop: !prev.loop }))}
                 className={`w-10 h-6 rounded-full transition-colors ${
-                  settings.loop ? 'bg-purple-600' : 'bg-slate-600'
+                  settings.loop ? 'bg-blue-600' : 'bg-slate-600'
                 }`}
               >
                 <div className={`w-4 h-4 rounded-full bg-white transition-transform ${
@@ -613,7 +613,7 @@ export default function GifGeneratorPage() {
         <button
           onClick={handleGenerate}
           disabled={isGenerating || (mode === 'images' ? images.length < 2 : !video)}
-          className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-slate-600 disabled:to-slate-600 text-white font-medium rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-600/25"
+          className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white font-medium rounded-xl transition-all flex items-center justify-center gap-2"
         >
           {isGenerating ? (
             <>
@@ -648,7 +648,7 @@ export default function GifGeneratorPage() {
       {isGenerating && (
         <div className="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-purple-600 to-blue-600 transition-all duration-300"
+            className="h-full bg-blue-600 transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -656,9 +656,9 @@ export default function GifGeneratorPage() {
 
       {/* 생성된 GIF */}
       {generatedGif && (
-        <div className="bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-white/10 rounded-2xl p-6">
+        <div className="bg-slate-800/50 border border-white/5 rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
