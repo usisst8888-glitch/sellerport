@@ -39,11 +39,11 @@ export async function GET(request: NextRequest) {
 
     // Instagram Login API 권한 목록 (Facebook Page 불필요)
     // https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/business-login
-    // 주의: Advanced Access 승인된 권한만 요청! (content_publish, insights는 승인 대기 중)
     const scopes = [
       'instagram_business_basic',            // Instagram 프로필 및 미디어 읽기
       'instagram_business_manage_messages',  // DM 관리 (핵심!)
       'instagram_business_manage_comments',  // 댓글 관리 (Webhook용)
+      'instagram_business_content_publish',  // 콘텐츠 업로드 (릴스, 이미지, 동영상)
     ].join(',')
 
     // state에 user_id, from, siteId 저장
