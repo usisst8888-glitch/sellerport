@@ -19,9 +19,9 @@ export async function GET(request: NextRequest) {
     }
 
     // YouTube Data API 접근에 필요한 scope
+    // 참고: yt-analytics.readonly는 민감한 범위라 Google 인증 필요 - 제거함
     const scopes = [
       'https://www.googleapis.com/auth/youtube.readonly',           // YouTube 채널 읽기
-      'https://www.googleapis.com/auth/yt-analytics.readonly',      // YouTube Analytics 읽기
       'https://www.googleapis.com/auth/userinfo.email',             // 이메일 정보
       'https://www.googleapis.com/auth/userinfo.profile',           // 프로필 정보
     ].join(' ')
