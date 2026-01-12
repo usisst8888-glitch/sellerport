@@ -8,6 +8,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 
+// FormData 처리를 위한 설정
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 // Cloudflare R2 클라이언트 설정
 const r2Client = new S3Client({
   region: 'auto',
