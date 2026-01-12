@@ -176,11 +176,23 @@ export async function POST(request: NextRequest) {
       )
       const containerData = await containerResponse.json()
 
+      console.log('Container API response (reels):', JSON.stringify(containerData))
+
       if (containerData.error) {
         console.error('Container creation error:', containerData.error)
         return NextResponse.json({
           success: false,
-          error: containerData.error.message || '미디어 컨테이너 생성 실패'
+          error: containerData.error.message || '미디어 컨테이너 생성 실패',
+          details: containerData.error
+        }, { status: 400 })
+      }
+
+      if (!containerData.id) {
+        console.error('Container created but no ID returned (reels):', containerData)
+        return NextResponse.json({
+          success: false,
+          error: '컨테이너 생성 후 ID를 받지 못했습니다',
+          details: containerData
         }, { status: 400 })
       }
 
@@ -222,11 +234,23 @@ export async function POST(request: NextRequest) {
       )
       const publishData = await publishResponse.json()
 
+      console.log('Publish API response (reels):', JSON.stringify(publishData))
+
       if (publishData.error) {
         console.error('Publish error:', publishData.error)
         return NextResponse.json({
           success: false,
-          error: publishData.error.message || '발행 실패'
+          error: publishData.error.message || '발행 실패',
+          details: publishData.error
+        }, { status: 400 })
+      }
+
+      if (!publishData.id) {
+        console.error('Publish succeeded but no media ID returned (reels):', publishData)
+        return NextResponse.json({
+          success: false,
+          error: '발행 후 미디어 ID를 받지 못했습니다',
+          details: publishData
         }, { status: 400 })
       }
 
@@ -250,11 +274,23 @@ export async function POST(request: NextRequest) {
       )
       const containerData = await containerResponse.json()
 
+      console.log('Container API response (story):', JSON.stringify(containerData))
+
       if (containerData.error) {
         console.error('Container creation error:', containerData.error)
         return NextResponse.json({
           success: false,
-          error: containerData.error.message || '미디어 컨테이너 생성 실패'
+          error: containerData.error.message || '미디어 컨테이너 생성 실패',
+          details: containerData.error
+        }, { status: 400 })
+      }
+
+      if (!containerData.id) {
+        console.error('Container created but no ID returned (story):', containerData)
+        return NextResponse.json({
+          success: false,
+          error: '컨테이너 생성 후 ID를 받지 못했습니다',
+          details: containerData
         }, { status: 400 })
       }
 
@@ -272,11 +308,23 @@ export async function POST(request: NextRequest) {
       )
       const publishData = await publishResponse.json()
 
+      console.log('Publish API response (story):', JSON.stringify(publishData))
+
       if (publishData.error) {
         console.error('Publish error:', publishData.error)
         return NextResponse.json({
           success: false,
-          error: publishData.error.message || '발행 실패'
+          error: publishData.error.message || '발행 실패',
+          details: publishData.error
+        }, { status: 400 })
+      }
+
+      if (!publishData.id) {
+        console.error('Publish succeeded but no media ID returned (story):', publishData)
+        return NextResponse.json({
+          success: false,
+          error: '발행 후 미디어 ID를 받지 못했습니다',
+          details: publishData
         }, { status: 400 })
       }
 
@@ -300,11 +348,23 @@ export async function POST(request: NextRequest) {
         )
         const containerData = await containerResponse.json()
 
+        console.log('Container API response (feed):', JSON.stringify(containerData))
+
         if (containerData.error) {
           console.error('Container creation error:', containerData.error)
           return NextResponse.json({
             success: false,
-            error: containerData.error.message || '미디어 컨테이너 생성 실패'
+            error: containerData.error.message || '미디어 컨테이너 생성 실패',
+            details: containerData.error
+          }, { status: 400 })
+        }
+
+        if (!containerData.id) {
+          console.error('Container created but no ID returned:', containerData)
+          return NextResponse.json({
+            success: false,
+            error: '컨테이너 생성 후 ID를 받지 못했습니다',
+            details: containerData
           }, { status: 400 })
         }
 
@@ -322,11 +382,23 @@ export async function POST(request: NextRequest) {
         )
         const publishData = await publishResponse.json()
 
+        console.log('Publish API response (feed):', JSON.stringify(publishData))
+
         if (publishData.error) {
           console.error('Publish error:', publishData.error)
           return NextResponse.json({
             success: false,
-            error: publishData.error.message || '발행 실패'
+            error: publishData.error.message || '발행 실패',
+            details: publishData.error
+          }, { status: 400 })
+        }
+
+        if (!publishData.id) {
+          console.error('Publish succeeded but no media ID returned:', publishData)
+          return NextResponse.json({
+            success: false,
+            error: '발행 후 미디어 ID를 받지 못했습니다',
+            details: publishData
           }, { status: 400 })
         }
 
