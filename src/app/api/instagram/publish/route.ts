@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     const accessToken = channel.access_token
-    const igUserId = channel.account_id
+    let igUserId = channel.account_id
 
     console.log('Instagram publish request:', {
       igUserId,
@@ -72,6 +72,59 @@ export async function POST(request: NextRequest) {
       filesCount: files.length,
       hasCaption: !!caption
     })
+
+    // account_id가 올바른지 /me 엔드포인트로 확인
+    try {
+      const meResponse = await fetch(
+        `https://graph.instagram.com/v24.0/me?fields=user_id,username&access_token=${accessToken}`
+      )
+      const meData = await meResponse.json()
+
+      if (meData.error) {
+        console.error('Instagram /me error:', meData.error)
+        return NextResponse.json({
+          success: false,
+          error: '인스타그램 토큰이 유효하지 않습니다. 계정을 다시 연동해주세요.'
+        }, { status: 400 })
+      }
+
+      const actualUserId = meData.user_id?.toString()
+      if (actualUserId && actualUserId !== igUserId) {
+        console.log('Instagram account_id mismatch detected, auto-fixing...', {
+          stored_account_id: igUserId,
+          actual_user_id: actualUserId
+        })
+
+        // 자동으로 올바른 account_id로 업데이트
+        const { error: updateError } = await supabase
+          .from('ad_channels')
+          .update({
+            account_id: actualUserId,
+            metadata: {
+              ...((channel.metadata as Record<string, unknown>) || {}),
+              instagram_user_id: actualUserId,
+              previous_account_id: igUserId, // 디버깅용 기존 ID 보존
+              auto_fixed_at: new Date().toISOString()
+            }
+          })
+          .eq('id', adChannelId)
+
+        if (updateError) {
+          console.error('Failed to auto-fix account_id:', updateError)
+          return NextResponse.json({
+            success: false,
+            error: '인스타그램 계정 정보가 일치하지 않습니다. 광고 채널에서 인스타그램 연동을 삭제하고 다시 연동해주세요.'
+          }, { status: 400 })
+        }
+
+        console.log('Successfully auto-fixed Instagram account_id')
+        // 수정된 ID로 계속 진행
+        igUserId = actualUserId
+      }
+    } catch (verifyError) {
+      console.error('Failed to verify Instagram account:', verifyError)
+      // 검증 실패해도 일단 진행 (기존 동작 유지)
+    }
 
     // 1. 파일들을 R2에 업로드
     const uploadedUrls: string[] = []
