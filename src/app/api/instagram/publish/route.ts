@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 
 // Cloudflare R2 클라이언트 설정
 const r2Client = new S3Client({
@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
 
     // 1. 파일들을 R2에 업로드
     const uploadedUrls: string[] = []
+    const uploadedKeys: string[] = [] // 삭제를 위해 키도 저장
     const bucketName = process.env.CLOUDFLARE_R2_BUCKET_NAME || 'sellerport'
     const publicUrl = process.env.CLOUDFLARE_R2_PUBLIC_URL || ''
 
@@ -85,6 +86,7 @@ export async function POST(request: NextRequest) {
       }))
 
       uploadedUrls.push(`${publicUrl}/${fileName}`)
+      uploadedKeys.push(fileName)
     }
 
     // 2. Instagram Graph API로 발행
@@ -354,6 +356,20 @@ export async function POST(request: NextRequest) {
       permalink = mediaInfo.permalink || ''
     } catch {
       // permalink 가져오기 실패해도 발행은 성공
+    }
+
+    // 4. 발행 완료 후 R2에서 파일 삭제
+    try {
+      for (const key of uploadedKeys) {
+        await r2Client.send(new DeleteObjectCommand({
+          Bucket: bucketName,
+          Key: key,
+        }))
+      }
+      console.log(`Deleted ${uploadedKeys.length} files from R2 after successful publish`)
+    } catch (deleteError) {
+      // 삭제 실패해도 발행은 성공이므로 에러만 로깅
+      console.error('Failed to delete files from R2:', deleteError)
     }
 
     return NextResponse.json({
