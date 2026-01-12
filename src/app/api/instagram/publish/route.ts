@@ -66,6 +66,13 @@ export async function POST(request: NextRequest) {
     const accessToken = channel.access_token
     const igUserId = channel.account_id
 
+    console.log('Instagram publish request:', {
+      igUserId,
+      contentType,
+      filesCount: files.length,
+      hasCaption: !!caption
+    })
+
     // 1. 파일들을 R2에 업로드
     const uploadedUrls: string[] = []
     const uploadedKeys: string[] = [] // 삭제를 위해 키도 저장
@@ -93,6 +100,8 @@ export async function POST(request: NextRequest) {
       uploadedKeys.push(fileName)
     }
 
+    console.log('R2 upload completed:', { uploadedUrls })
+
     // 2. Instagram Graph API로 발행
     let mediaId: string
     let permalink: string = ''
@@ -100,7 +109,7 @@ export async function POST(request: NextRequest) {
     if (contentType === 'reels') {
       // 릴스 발행 (동영상)
       const containerResponse = await fetch(
-        `https://graph.instagram.com/v18.0/${igUserId}/media`,
+        `https://graph.instagram.com/v24.0/${igUserId}/media`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -132,7 +141,7 @@ export async function POST(request: NextRequest) {
         await new Promise(resolve => setTimeout(resolve, 2000)) // 2초 대기
 
         const statusResponse = await fetch(
-          `https://graph.instagram.com/v18.0/${containerId}?fields=status_code&access_token=${accessToken}`
+          `https://graph.instagram.com/v24.0/${containerId}?fields=status_code&access_token=${accessToken}`
         )
         const statusData = await statusResponse.json()
         status = statusData.status_code || 'FINISHED'
@@ -148,7 +157,7 @@ export async function POST(request: NextRequest) {
 
       // 발행
       const publishResponse = await fetch(
-        `https://graph.instagram.com/v18.0/${igUserId}/media_publish`,
+        `https://graph.instagram.com/v24.0/${igUserId}/media_publish`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -175,7 +184,7 @@ export async function POST(request: NextRequest) {
       const isVideo = files[0].type.startsWith('video/')
 
       const containerResponse = await fetch(
-        `https://graph.instagram.com/v18.0/${igUserId}/media`,
+        `https://graph.instagram.com/v24.0/${igUserId}/media`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -198,7 +207,7 @@ export async function POST(request: NextRequest) {
 
       // 발행
       const publishResponse = await fetch(
-        `https://graph.instagram.com/v18.0/${igUserId}/media_publish`,
+        `https://graph.instagram.com/v24.0/${igUserId}/media_publish`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -225,7 +234,7 @@ export async function POST(request: NextRequest) {
       if (uploadedUrls.length === 1) {
         // 단일 이미지
         const containerResponse = await fetch(
-          `https://graph.instagram.com/v18.0/${igUserId}/media`,
+          `https://graph.instagram.com/v24.0/${igUserId}/media`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -248,7 +257,7 @@ export async function POST(request: NextRequest) {
 
         // 발행
         const publishResponse = await fetch(
-          `https://graph.instagram.com/v18.0/${igUserId}/media_publish`,
+          `https://graph.instagram.com/v24.0/${igUserId}/media_publish`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -277,7 +286,7 @@ export async function POST(request: NextRequest) {
         // 각 이미지에 대해 자식 컨테이너 생성
         for (const url of uploadedUrls) {
           const childResponse = await fetch(
-            `https://graph.instagram.com/v18.0/${igUserId}/media`,
+            `https://graph.instagram.com/v24.0/${igUserId}/media`,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -303,7 +312,7 @@ export async function POST(request: NextRequest) {
 
         // 캐러셀 컨테이너 생성
         const carouselResponse = await fetch(
-          `https://graph.instagram.com/v18.0/${igUserId}/media`,
+          `https://graph.instagram.com/v24.0/${igUserId}/media`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -327,7 +336,7 @@ export async function POST(request: NextRequest) {
 
         // 발행
         const publishResponse = await fetch(
-          `https://graph.instagram.com/v18.0/${igUserId}/media_publish`,
+          `https://graph.instagram.com/v24.0/${igUserId}/media_publish`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -354,7 +363,7 @@ export async function POST(request: NextRequest) {
     // 3. 발행된 미디어 정보 가져오기
     try {
       const mediaInfoResponse = await fetch(
-        `https://graph.instagram.com/v18.0/${mediaId}?fields=id,permalink,timestamp&access_token=${accessToken}`
+        `https://graph.instagram.com/v24.0/${mediaId}?fields=id,permalink,timestamp&access_token=${accessToken}`
       )
       const mediaInfo = await mediaInfoResponse.json()
       permalink = mediaInfo.permalink || ''
