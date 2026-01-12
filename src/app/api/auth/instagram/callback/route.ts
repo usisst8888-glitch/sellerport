@@ -159,26 +159,31 @@ export async function GET(request: NextRequest) {
       userId = user.id
     }
 
+    // /me 응답의 user_id를 사용 (API 호출에 필요한 실제 Instagram User ID)
+    // 토큰 교환 시 받은 user_id와 /me의 user_id가 다를 수 있음
+    const actualInstagramUserId = userInfo?.user_id || instagramUserId
+
     // 기존 Instagram 채널 확인 (ad_channels)
     const { data: existingAdChannel } = await adminSupabase
       .from('ad_channels')
       .select('id')
       .eq('user_id', userId)
       .eq('channel_type', 'instagram')
-      .eq('account_id', instagramUserId.toString())
+      .eq('account_id', actualInstagramUserId.toString())
       .single()
 
     const adChannelData = {
       user_id: userId,
       channel_type: 'instagram',
-      channel_name: userInfo?.username || `Instagram ${instagramUserId}`,
-      account_id: instagramUserId.toString(),
+      channel_name: userInfo?.username || `Instagram ${actualInstagramUserId}`,
+      account_id: actualInstagramUserId.toString(),
       account_name: userInfo?.name || userInfo?.username || null,
       access_token: accessToken,
       token_expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
       status: 'connected',
       metadata: {
-        instagram_user_id: instagramUserId.toString(),
+        instagram_user_id: actualInstagramUserId.toString(),
+        token_user_id: instagramUserId.toString(), // 토큰 교환 시 받은 ID도 저장 (디버깅용)
         profile_picture_url: userInfo?.profile_picture_url || null,
         account_type: userInfo?.account_type || null,
       },
