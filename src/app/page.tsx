@@ -253,7 +253,7 @@ export default function Home() {
 
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6 animate-fade-in-up">
               <span className="bg-gradient-to-r from-blue-400 via-violet-400 to-purple-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
-                광고 전환 추적
+                광고 성과 관리
               </span>
               부터
               <br />
@@ -287,7 +287,7 @@ export default function Home() {
               <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 text-sm sm:text-base">
                 <span className="px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-300">광고 집행</span>
                 <span className="text-slate-500">→</span>
-                <span className="px-3 py-1.5 rounded-lg bg-violet-500/20 text-violet-300">전환 추적</span>
+                <span className="px-3 py-1.5 rounded-lg bg-violet-500/20 text-violet-300">성과 추적</span>
                 <span className="text-slate-500">→</span>
                 <span className="px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-300">데이터 수집</span>
                 <span className="text-slate-500">→</span>
@@ -766,7 +766,7 @@ export default function Home() {
                   </thead>
                   <tbody>
                     <tr className="border-b border-slate-700/30">
-                      <td className="px-6 py-4 font-medium text-slate-300">메타 전환 추적</td>
+                      <td className="px-6 py-4 font-medium text-slate-300">메타 광고 성과 추적</td>
                       <td className="px-4 py-4 text-center text-green-400">O</td>
                       <td className="px-4 py-4 text-center text-slate-500">X</td>
                       <td className="px-4 py-4 text-center text-green-400">O</td>
@@ -845,22 +845,22 @@ export default function Home() {
                 모든 온라인 비즈니스를 위한 <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">올인원 솔루션</span>
               </h3>
               <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-                쇼핑몰부터 서비스 사이트까지, 광고 전환 추적과 성과 분석을 셀러포트 하나로 해결하세요
+                쇼핑몰부터 서비스 사이트까지, 광고 성과 추적과 분석을 셀러포트 하나로 해결하세요
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* 전환 추적 */}
+              {/* 광고 성과 추적 */}
               <div className="group p-6 rounded-2xl bg-gradient-to-b from-blue-600/20 to-slate-800/50 border border-blue-500/30 hover:border-blue-400 transition-all duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-blue-500/20">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                 </div>
-                <h4 className="text-lg font-bold mb-2 text-blue-400">광고 전환 추적</h4>
+                <h4 className="text-lg font-bold mb-2 text-blue-400">광고 성과 추적</h4>
                 <p className="text-slate-400 text-sm leading-relaxed">
                   메타, 구글, 네이버, 카카오<br/>
-                  모든 광고 채널 전환 추적
+                  모든 광고 채널 성과 추적
                 </p>
               </div>
 
@@ -1149,7 +1149,7 @@ export default function Home() {
                   <p className="text-xs text-slate-500 mt-1">알림톡 미포함</p>
                 </div>
                 <ul className="space-y-2 mb-6">
-                  {['추적 링크 3개', '기본 전환 추적', '신호등 시스템', '실시간 대시보드'].map((feature, i) => (
+                  {['추적 링크 3개', '광고 성과 추적', '신호등 시스템', '실시간 대시보드'].map((feature, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm">
                       <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -1182,7 +1182,7 @@ export default function Home() {
                   <p className="text-xs text-emerald-400 mt-1">알림톡 300건 포함</p>
                 </div>
                 <ul className="space-y-2 mb-6">
-                  {['무제한 추적 링크', '모든 채널 전환 추적', '🟢🟡🔴 신호등 시스템', '광고 성과 분석', '카톡 알림', '디자이너 연결'].map((feature, i) => (
+                  {['무제한 추적 링크', '모든 채널 성과 추적', '🟢🟡🔴 신호등 시스템', '광고 성과 분석', '카톡 알림', '디자이너 연결'].map((feature, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm">
                       <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -1302,7 +1302,7 @@ export default function Home() {
               쇼핑몰, 서비스 사이트, 자체 제작 사이트 모두 <span className="text-blue-400 font-semibold">무료</span>로 시작하세요
             </p>
             <p className="text-slate-500 mb-10">
-              광고 전환 추적 · 성과 분석 · 신호등 알림 · 카톡 알림 · 디자이너 연결 모두 무료!
+              광고 성과 추적 · 성과 분석 · 신호등 알림 · 카톡 알림 · 디자이너 연결 모두 무료!
             </p>
             <Link href="/signup">
               <Button size="lg" className="bg-blue-600 text-white hover:bg-blue-500 text-lg px-12 h-14 transition-all duration-200">
@@ -1325,7 +1325,7 @@ export default function Home() {
                 </div>
                 <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
                   모든 온라인 비즈니스를 위한 광고 성과 분석 플랫폼.
-                  광고 전환 추적부터 성과 분석, 디자이너 연결까지.
+                  광고 성과 추적부터 분석, 디자이너 연결까지.
                 </p>
               </div>
               <div>

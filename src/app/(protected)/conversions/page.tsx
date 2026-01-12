@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { YoutubeVideoCodeModal } from '@/components/modals/youtube-video-code-modal'
 import { TiktokVideoCodeModal } from '@/components/modals/tiktok-video-code-modal'
+import { AdAnalysisButton } from '@/components/conversions/AdAnalysisButton'
 
 interface TrackingLink {
   id: string
@@ -126,6 +127,7 @@ interface CampaignSummary {
   campaign_id: string
   campaign_name: string
   channel_type: string
+  channel_id: string  // 광고 채널 ID (Meta API 호출용)
   total_spend: number
   total_impressions: number
   total_clicks: number
@@ -134,6 +136,9 @@ interface CampaignSummary {
   ctr: number
   cpc: number
   roas: number
+  // 크리에이티브 정보
+  thumbnail_url?: string | null
+  creative_type?: 'image' | 'video' | 'carousel' | null
 }
 
 // ROAS 기준 신호등 색상 반환 (개별 기준 지원)
@@ -317,6 +322,7 @@ export default function ConversionsPage() {
             campaign_id: record.campaign_id,
             campaign_name: record.campaign_name,
             channel_type: channel?.channel_type || 'unknown',
+            channel_id: record.ad_channel_id,
             total_spend: 0,
             total_impressions: 0,
             total_clicks: 0,
@@ -342,10 +348,54 @@ export default function ConversionsPage() {
         ctr: s.total_impressions > 0 ? (s.total_clicks / s.total_impressions) * 100 : 0,
         cpc: s.total_clicks > 0 ? Math.round(s.total_spend / s.total_clicks) : 0,
         roas: s.total_spend > 0 ? Math.round((s.total_conversion_value / s.total_spend) * 100) : 0,
+        thumbnail_url: null as string | null,
+        creative_type: null as 'image' | 'video' | 'carousel' | null,
       }))
 
       // 광고비 높은 순으로 정렬
       summaries.sort((a, b) => b.total_spend - a.total_spend)
+
+      // Meta 캠페인의 크리에이티브 썸네일 가져오기
+      const metaSummaries = summaries.filter(s => s.channel_type === 'meta')
+      if (metaSummaries.length > 0) {
+        // 각 Meta 채널별로 크리에이티브 조회
+        const metaChannelIds = [...new Set(metaSummaries.map(s => s.channel_id))]
+
+        for (const channelId of metaChannelIds) {
+          try {
+            const channelSummaries = metaSummaries.filter(s => s.channel_id === channelId)
+
+            // 캠페인별로 크리에이티브 조회
+            for (const summary of channelSummaries) {
+              try {
+                const response = await fetch(
+                  `/api/ad-channels/meta/creative?channelId=${channelId}&campaignId=${summary.campaign_id}`
+                )
+                const result = await response.json()
+
+                if (result.success && result.creatives && result.creatives.length > 0) {
+                  // 첫 번째 크리에이티브의 썸네일 사용
+                  const creative = result.creatives[0]
+                  summary.creative_type = creative.type
+
+                  if (creative.type === 'video' && creative.thumbnailUrl) {
+                    summary.thumbnail_url = creative.thumbnailUrl
+                  } else if (creative.type === 'carousel' && creative.imageUrls?.length > 0) {
+                    summary.thumbnail_url = creative.imageUrls[0]
+                  } else if (creative.imageUrls?.length > 0) {
+                    summary.thumbnail_url = creative.imageUrls[0]
+                  }
+                }
+              } catch (e) {
+                console.error('Failed to fetch creative for campaign:', summary.campaign_id, e)
+              }
+            }
+          } catch (e) {
+            console.error('Failed to fetch creatives for channel:', channelId, e)
+          }
+        }
+      }
+
       setAdStats(summaries)
     } catch (error) {
       console.error('Failed to fetch ad stats:', error)
@@ -1085,19 +1135,40 @@ export default function ConversionsPage() {
                           <tr key={campaignKey} className="hover:bg-white/5">
                             <td className="py-4">
                               <div className="flex items-center gap-3">
-                                {/* 채널 로고 (광고 캠페인은 API 썸네일 없으므로 채널 로고 사용) */}
-                                <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0">
+                                {/* 썸네일 이미지 (크리에이티브 있으면 표시, 없으면 채널 로고) */}
+                                <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative">
                                   <img
-                                    src={getChannelLogoPath(campaign.channel_type)}
+                                    src={campaign.thumbnail_url || getChannelLogoPath(campaign.channel_type)}
                                     alt=""
-                                    className="w-full h-full object-contain"
+                                    className={`w-full h-full ${campaign.thumbnail_url ? 'object-cover' : 'object-contain'}`}
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = getChannelLogoPath(campaign.channel_type)
+                                    }}
                                   />
+                                  {/* 크리에이티브 타입 표시 (릴스/캐러셀 등) */}
+                                  {campaign.creative_type && campaign.thumbnail_url && (
+                                    <div className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/70 rounded text-[10px] text-white">
+                                      {campaign.creative_type === 'video' ? '릴스' : campaign.creative_type === 'carousel' ? '캐러셀' : '피드'}
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="flex flex-col gap-1.5 flex-1 min-w-0">
                                   <div className="flex items-center gap-2">
                                     <span className={`px-2 py-0.5 text-xs rounded ${badge.bg} ${badge.text}`}>
                                       {badge.label}
                                     </span>
+                                    {/* 크리에이티브 타입 뱃지 */}
+                                    {campaign.creative_type && (
+                                      <span className={`px-2 py-0.5 text-xs rounded ${
+                                        campaign.creative_type === 'video'
+                                          ? 'bg-pink-500/20 text-pink-400'
+                                          : campaign.creative_type === 'carousel'
+                                            ? 'bg-purple-500/20 text-purple-400'
+                                            : 'bg-blue-500/20 text-blue-400'
+                                      }`}>
+                                        {campaign.creative_type === 'video' ? '릴스/영상' : campaign.creative_type === 'carousel' ? '캐러셀' : '이미지'}
+                                      </span>
+                                    )}
                                     <span className="text-base text-white truncate max-w-[400px]" title={campaign.campaign_name}>
                                       {campaign.campaign_name}
                                     </span>
@@ -1135,8 +1206,28 @@ export default function ConversionsPage() {
                                 <span className="text-slate-600">--</span>
                               )}
                             </td>
-                            <td className="py-4 text-center px-4">
-                              <span className="text-xs text-slate-500">광고 플랫폼</span>
+                            <td className="py-4 px-4">
+                              <div className="flex justify-center">
+                              {/* Meta/Google 광고 AI 분석 버튼 */}
+                              {(campaign.channel_type === 'meta' || campaign.channel_type === 'google_ads') && (
+                                <AdAnalysisButton
+                                  platform={campaign.channel_type === 'meta' ? 'meta' : 'youtube'}
+                                  contentType="image"
+                                  metaChannelId={campaign.channel_type === 'meta' ? campaign.channel_id : undefined}
+                                  metaCampaignId={campaign.channel_type === 'meta' ? campaign.campaign_id : undefined}
+                                  metrics={{
+                                    impressions: campaign.total_impressions,
+                                    clicks: campaign.total_clicks,
+                                    ctr: campaign.ctr,
+                                    conversions: campaign.total_conversions,
+                                    revenue: campaign.total_conversion_value,
+                                    adSpend: campaign.total_spend,
+                                    roas: campaignRoas,
+                                  }}
+                                  campaignName={campaign.campaign_name}
+                                />
+                              )}
+                              </div>
                             </td>
                           </tr>
                         )
@@ -1336,6 +1427,31 @@ export default function ConversionsPage() {
                             </td>
                             <td className="py-4 px-4">
                               <div className="flex items-center justify-center gap-1">
+                                {/* AI 분석 버튼 - 인스타그램, 유튜브, Meta 광고 */}
+                                {(effectiveChannelType === 'instagram' || effectiveChannelType === 'youtube' || effectiveChannelType === 'meta') && (
+                                  <AdAnalysisButton
+                                    platform={effectiveChannelType as 'instagram' | 'youtube' | 'meta'}
+                                    contentType={
+                                      effectiveChannelType === 'youtube' ? 'video' :
+                                      effectiveChannelType === 'meta' ? 'image' :
+                                      link.thumbnail_url?.includes('carousel') ? 'carousel' :
+                                      link.thumbnail_url?.includes('video') || link.thumbnail_url?.includes('reel') ? 'reels' : 'image'
+                                    }
+                                    imageUrls={link.thumbnail_url ? [link.thumbnail_url] : undefined}
+                                    youtubeUrl={effectiveChannelType === 'youtube' && link.video_code ? `https://www.youtube.com/watch?v=${link.video_code}` : undefined}
+                                    metrics={{
+                                      impressions: 0,
+                                      clicks: link.clicks || 0,
+                                      ctr: link.clicks > 0 ? (link.conversions / link.clicks) * 100 : 0,
+                                      conversions: link.conversions || 0,
+                                      revenue: link.revenue || 0,
+                                      adSpend: link.ad_spend || 0,
+                                      roas: linkRoas,
+                                    }}
+                                    campaignName={link.utm_campaign}
+                                    postName={link.post_name || undefined}
+                                  />
+                                )}
                                 {/* 수정 버튼 */}
                                 {effectiveChannelType === 'instagram' ? (
                                   <Link
@@ -1405,7 +1521,7 @@ export default function ConversionsPage() {
             </div>
             <div className="flex-1">
               <p className="font-medium text-white">쇼핑몰 연동이 필요합니다</p>
-              <p className="text-sm text-slate-300">전환 추적을 시작하려면 먼저 쇼핑몰을 연동해주세요</p>
+              <p className="text-sm text-slate-300">광고 성과 관리를 시작하려면 먼저 쇼핑몰을 연동해주세요</p>
             </div>
             <Link
               href="/quick-start"

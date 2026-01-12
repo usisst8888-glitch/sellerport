@@ -692,7 +692,7 @@ export default function ProfitPage() {
         </div>
       </div>
 
-      {/* 추적 링크별 ROAS 현황 - 전환추적과 연동 */}
+      {/* 추적 링크별 ROAS 현황 - 광고 성과 관리와 연동 */}
       {trackingLinks.length > 0 && (
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-900/30 to-slate-800/40 border border-blue-500/20">
           <div className="p-6 border-b border-white/5">
@@ -704,7 +704,7 @@ export default function ProfitPage() {
                   </svg>
                   추적 링크별 광고 성과
                 </h2>
-                <p className="text-sm text-slate-400 mt-0.5">전환 추적에서 연동된 추적 링크별 ROAS</p>
+                <p className="text-sm text-slate-400 mt-0.5">광고 성과 관리에서 연동된 추적 링크별 ROAS</p>
               </div>
               <div className="flex items-center gap-4">
                 <div className="text-right">
@@ -784,7 +784,7 @@ export default function ProfitPage() {
             {trackingLinks.filter(s => s.ad_spend > 0).length === 0 && (
               <div className="p-8 text-center">
                 <p className="text-slate-400">광고비가 입력된 추적 링크가 없습니다</p>
-                <p className="text-xs text-slate-500 mt-1">전환 추적에서 추적 링크의 광고비를 입력하세요</p>
+                <p className="text-xs text-slate-500 mt-1">광고 성과 관리에서 추적 링크의 광고비를 입력하세요</p>
               </div>
             )}
           </div>

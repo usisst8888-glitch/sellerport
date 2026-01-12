@@ -198,7 +198,7 @@ async function handleMemberCreated(
   }
 
   const { error: conversionError } = await supabaseAdmin
-    .from('conversions')
+    .from('ad_performance')
     .insert(conversionData)
 
   if (conversionError) {

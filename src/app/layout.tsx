@@ -95,7 +95,7 @@ export default function RootLayout({
                 "인플루언서 협찬 관리",
                 "Meta/Instagram 광고 연동",
                 "유튜브 광고 분석",
-                "전환 추적 자동화"
+                "광고 성과 추적 자동화"
               ]
             })
           }}

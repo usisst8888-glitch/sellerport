@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
     // 전환 기록에 Meta 전송 결과 업데이트
     if (conversionId) {
       await supabase
-        .from('conversions')
+        .from('ad_performance')
         .update({
           meta_sent: true,
           meta_sent_at: new Date().toISOString(),

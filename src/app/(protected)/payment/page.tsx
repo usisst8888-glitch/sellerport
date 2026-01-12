@@ -285,7 +285,7 @@ export default function PaymentPage() {
           <div className="rounded-xl bg-slate-800/50 border border-white/5 p-4">
             <h3 className="text-sm font-medium text-white mb-2">슬롯이란?</h3>
             <p className="text-sm text-slate-400">
-              슬롯은 전환 추적 링크를 생성하는 데 사용됩니다. 1개의 슬롯으로 1개의 추적 링크를 만들 수 있습니다.
+              슬롯은 광고 성과 추적 링크를 생성하는 데 사용됩니다. 1개의 슬롯으로 1개의 추적 링크를 만들 수 있습니다.
             </p>
           </div>
 

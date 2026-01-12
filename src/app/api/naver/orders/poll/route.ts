@@ -258,7 +258,7 @@ async function tryTrackingLinkMatchingWithCAPI(
     // 5. 전환 기록 저장
     const conversionId = `CV-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
-    await supabase.from('conversions').insert({
+    await supabase.from('ad_performance').insert({
       id: conversionId,
       tracking_link_id: matchedLink.id,
       user_id: userId,
@@ -329,7 +329,7 @@ async function tryTrackingLinkMatchingWithCAPI(
 
         // 전환 테이블에 CAPI 전송 표시
         await supabase
-          .from('conversions')
+          .from('ad_performance')
           .update({
             meta_sent: true,
             meta_sent_at: new Date().toISOString(),

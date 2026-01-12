@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
 
     // 중복 전환 체크 (같은 주문 번호)
     const { data: existingConversion } = await supabase
-      .from('conversions')
+      .from('ad_performance')
       .select('id')
       .eq('order_id', orderId)
       .single()
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     // 전환 기록 저장
     const conversionId = `CV-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
-    const { error: insertError } = await supabase.from('conversions').insert({
+    const { error: insertError } = await supabase.from('ad_performance').insert({
       id: conversionId,
       tracking_link_id: finalTrackingLinkId,
       user_id: trackingLink.user_id,
@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
 
         // 전환 기록에 Meta 전송 결과 업데이트
         await supabase
-          .from('conversions')
+          .from('ad_performance')
           .update({
             meta_sent: true,
             meta_sent_at: new Date().toISOString(),

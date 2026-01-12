@@ -12,7 +12,7 @@ const SUBSCRIPTION_TIERS = [
     description: '셀러포트를 처음 사용하는 분께 추천',
     features: [
       '무제한 추적 링크',
-      '기본 전환 추적',
+      '광고 성과 추적',
       '셀러트리',
       '인스타그램 자동 DM',
       '디자이너 연결',
@@ -31,7 +31,7 @@ const SUBSCRIPTION_TIERS = [
     description: '본격적으로 광고 효율을 관리하는 셀러',
     features: [
       '무제한 추적 링크',
-      '기본 전환 추적',
+      '광고 성과 추적',
       '셀러트리',
       '인스타그램 자동 DM',
       '디자이너 연결',

@@ -99,7 +99,7 @@ export async function GET() {
     today.setHours(0, 0, 0, 0)
 
     const { data: todayConversions } = await supabase
-      .from('conversions')
+      .from('ad_performance')
       .select('order_amount')
       .eq('user_id', user.id)
       .gte('converted_at', today.toISOString())

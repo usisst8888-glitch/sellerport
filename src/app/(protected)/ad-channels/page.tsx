@@ -17,7 +17,7 @@ interface AdChannel {
 const CHANNEL_TYPES = [
   { value: 'meta', label: 'Meta (유료광고)', icon: '/channel_logo/meta.png', isApi: true },
   { value: 'instagram', label: 'Instagram', icon: '/channel_logo/insta.png', isApi: true },
-  { value: 'youtube', label: 'YouTube', icon: '/channel_logo/youtube.png', isApi: false },
+  { value: 'youtube', label: 'YouTube', icon: '/channel_logo/youtube.png', isApi: true },
 ]
 
 export default function AdChannelsPage() {
@@ -48,6 +48,9 @@ export default function AdChannelsPage() {
     } else if (success === 'instagram_connected') {
       setMessage({ type: 'success', text: 'Instagram 계정이 연동되었습니다' })
       window.history.replaceState({}, '', '/ad-channels')
+    } else if (success === 'youtube_connected') {
+      setMessage({ type: 'success', text: 'YouTube 채널이 연동되었습니다' })
+      window.history.replaceState({}, '', '/ad-channels')
     } else if (error) {
       const errorMessages: Record<string, string> = {
         'no_ad_accounts': 'Meta 광고 계정을 찾을 수 없습니다',
@@ -59,6 +62,8 @@ export default function AdChannelsPage() {
         'not_authenticated': '로그인이 필요합니다',
         'no_code': '인증 코드를 받지 못했습니다. 다시 시도해주세요',
         'invalid_token_response': '토큰 응답이 올바르지 않습니다',
+        'no_youtube_channel': 'YouTube 채널을 찾을 수 없습니다',
+        'invalid_state': '잘못된 요청입니다. 다시 시도해주세요',
       }
       setMessage({ type: 'error', text: errorMessages[error] || error })
       window.history.replaceState({}, '', '/ad-channels')
@@ -73,6 +78,11 @@ export default function AdChannelsPage() {
   // Instagram OAuth 연동 시작
   const handleInstagramOAuth = () => {
     window.location.href = '/api/auth/instagram?from=ad-channels'
+  }
+
+  // YouTube OAuth 연동 시작
+  const handleYoutubeOAuth = () => {
+    window.location.href = '/api/auth/youtube'
   }
 
   // 모달 초기화
@@ -239,6 +249,92 @@ export default function AdChannelsPage() {
     }
   }
 
+  // Instagram 프로필 동기화
+  const handleSyncInstagram = async (channelId: string) => {
+    setSyncing(channelId)
+    setMessage(null)
+
+    try {
+      const response = await fetch('/api/ad-channels/instagram/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelId })
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        const synced = result.synced
+        setMessage({
+          type: 'success',
+          text: `동기화 완료! (프로필${synced?.media_count > 0 ? `, 미디어 ${synced.media_count}개` : ''}${synced?.insights ? ', 인사이트' : ''})`
+        })
+        // 채널 목록 새로고침
+        fetchChannels()
+      } else {
+        if (result.needsReconnect) {
+          setMessage({
+            type: 'error',
+            text: '토큰이 만료되었습니다. 다시 연동해주세요.'
+          })
+          fetchChannels()
+        } else {
+          setMessage({
+            type: 'error',
+            text: result.error || '동기화에 실패했습니다'
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Instagram sync error:', error)
+      setMessage({ type: 'error', text: '동기화 중 오류가 발생했습니다' })
+    } finally {
+      setSyncing(null)
+    }
+  }
+
+  // YouTube 동기화
+  const handleSyncYoutube = async (channelId: string) => {
+    setSyncing(channelId)
+    setMessage(null)
+
+    try {
+      const response = await fetch('/api/ad-channels/youtube/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelId })
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        setMessage({
+          type: 'success',
+          text: `동기화 완료! (구독자 ${result.data?.subscriber_count?.toLocaleString() || 0}명, 동영상 ${result.data?.video_count || 0}개)`
+        })
+        fetchChannels()
+      } else {
+        if (result.needsReconnect) {
+          setMessage({
+            type: 'error',
+            text: '토큰이 만료되었습니다. 다시 연동해주세요.'
+          })
+          fetchChannels()
+        } else {
+          setMessage({
+            type: 'error',
+            text: result.error || '동기화에 실패했습니다'
+          })
+        }
+      }
+    } catch (error) {
+      console.error('YouTube sync error:', error)
+      setMessage({ type: 'error', text: '동기화 중 오류가 발생했습니다' })
+    } finally {
+      setSyncing(null)
+    }
+  }
+
   const getChannelTypeInfo = (type: string) => {
     return CHANNEL_TYPES.find(t => t.value === type) || { value: type, label: type, icon: '/channel_logo/custom.png' }
   }
@@ -349,7 +445,7 @@ export default function AdChannelsPage() {
                         <button
                           onClick={() => handleSyncMeta(channel.id)}
                           disabled={syncing === channel.id}
-                          className="px-3 py-1.5 text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-lg transition-colors disabled:opacity-50"
+                          className="px-3 py-1.5 text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                         >
                           {syncing === channel.id ? (
                             <span className="flex items-center gap-1.5">
@@ -359,7 +455,65 @@ export default function AdChannelsPage() {
                               </svg>
                               동기화 중...
                             </span>
-                          ) : '광고비 동기화'}
+                          ) : '동기화'}
+                        </button>
+                      )}
+                    </>
+                  )}
+                  {/* Instagram 채널인 경우 */}
+                  {channel.channel_type === 'instagram' && (
+                    <>
+                      {channel.status === 'token_expired' ? (
+                        <button
+                          onClick={handleInstagramOAuth}
+                          className="px-3 py-1.5 text-xs font-medium bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 rounded-lg transition-colors"
+                        >
+                          다시 연동
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleSyncInstagram(channel.id)}
+                          disabled={syncing === channel.id}
+                          className="px-3 py-1.5 text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          {syncing === channel.id ? (
+                            <span className="flex items-center gap-1.5">
+                              <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                              </svg>
+                              동기화 중...
+                            </span>
+                          ) : '동기화'}
+                        </button>
+                      )}
+                    </>
+                  )}
+                  {/* YouTube 채널인 경우 */}
+                  {channel.channel_type === 'youtube' && (
+                    <>
+                      {channel.status === 'token_expired' ? (
+                        <button
+                          onClick={handleYoutubeOAuth}
+                          className="px-3 py-1.5 text-xs font-medium bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 rounded-lg transition-colors cursor-pointer"
+                        >
+                          다시 연동
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleSyncYoutube(channel.id)}
+                          disabled={syncing === channel.id}
+                          className="px-3 py-1.5 text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          {syncing === channel.id ? (
+                            <span className="flex items-center gap-1.5">
+                              <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                              </svg>
+                              동기화 중...
+                            </span>
+                          ) : '동기화'}
                         </button>
                       )}
                     </>
@@ -459,31 +613,19 @@ export default function AdChannelsPage() {
                     </div>
                   )}
 
-                  {/* 기타 채널 선택 시 (YouTube 등) */}
-                  {addForm.channel_type !== 'meta' && addForm.channel_type !== 'instagram' && (
+                  {/* YouTube 선택 시 */}
+                  {addForm.channel_type === 'youtube' && (
                     <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm text-slate-400 mb-1.5">채널 이름</label>
-                        <input
-                          type="text"
-                          placeholder="예: 공식 블로그, 메인 계정"
-                          value={addForm.channel_name}
-                          onChange={(e) => setAddForm({ ...addForm, channel_name: e.target.value })}
-                          className="w-full h-10 px-3 rounded-lg bg-slate-900 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none"
-                        />
+                      <div className="text-xs text-slate-400 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                        YouTube 채널 자동 연동 (콘텐츠 업로드 지원)
                       </div>
-                      <div>
-                        <label className="block text-sm text-slate-400 mb-1.5">
-                          계정 ID <span className="text-slate-500">(선택)</span>
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="예: @myaccount"
-                          value={addForm.account_id}
-                          onChange={(e) => setAddForm({ ...addForm, account_id: e.target.value })}
-                          className="w-full h-10 px-3 rounded-lg bg-slate-900 border border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none"
-                        />
-                      </div>
+                      <button
+                        onClick={handleYoutubeOAuth}
+                        className="w-full h-10 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium transition-colors"
+                      >
+                        YouTube 계정 연동하기
+                      </button>
                     </div>
                   )}
                 </div>
@@ -496,15 +638,6 @@ export default function AdChannelsPage() {
                   >
                     취소
                   </button>
-                  {addForm.channel_type !== 'meta' && addForm.channel_type !== 'instagram' && (
-                    <button
-                      onClick={handleAddChannel}
-                      disabled={saving || !addForm.channel_name.trim()}
-                      className="flex-1 h-10 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {saving ? '추가 중...' : '채널 추가'}
-                    </button>
-                  )}
                 </div>
 
           </div>

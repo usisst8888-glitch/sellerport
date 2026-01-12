@@ -304,7 +304,7 @@ function MySitesContent() {
             <p className="text-sm text-slate-400">네, 플랜에 따라 여러 사이트를 연동할 수 있습니다. 무료 플랜은 1개, 유료 플랜은 무제한 사이트를 연동할 수 있습니다.</p>
           </div>
           <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700">
-            <h4 className="font-medium text-white mb-2">Q. 스크립트 설치 없이도 전환 추적이 가능한가요?</h4>
+            <h4 className="font-medium text-white mb-2">Q. 스크립트 설치 없이도 광고 성과 추적이 가능한가요?</h4>
             <p className="text-sm text-slate-400">네, 네이버 스마트스토어, 카페24, 아임웹은 API 연동으로 스크립트 설치 없이 주문을 자동 수집합니다.</p>
           </div>
           <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700">
@@ -430,7 +430,7 @@ function OverviewContent() {
           <StepCard
             step={2}
             title="추적 링크 생성"
-            description="전환 추적 메뉴에서 새 추적 링크를 만들고 광고 채널과 상품을 연결하세요."
+            description="광고 성과 관리 메뉴에서 새 추적 링크를 만들고 광고 채널과 상품을 연결하세요."
           />
           <StepCard
             step={3}
@@ -471,8 +471,8 @@ function TrackingContent() {
         <div className="space-y-4">
           <StepCard
             step={1}
-            title="전환 추적 메뉴 접속"
-            description="좌측 사이드바에서 '전환 추적'을 클릭하세요."
+            title="광고 성과 관리 메뉴 접속"
+            description="좌측 사이드바에서 '광고 성과 관리'를 클릭하세요."
           />
           <StepCard
             step={2}
@@ -573,7 +573,7 @@ function TrackingContent() {
       </section>
 
       <section>
-        <h2 className="text-xl font-bold text-white mb-4">전환 추적 정확도 안내</h2>
+        <h2 className="text-xl font-bold text-white mb-4">광고 성과 추적 정확도 안내</h2>
         <p className="text-slate-300 leading-relaxed mb-4">
           셀러포트는 업계 최고 수준의 추적 정확도를 제공하지만, 다음과 같은 경우는
           <span className="text-amber-400 font-semibold"> 기술적 한계</span>로 추적이 어려울 수 있습니다.
@@ -1699,7 +1699,7 @@ function FAQContent() {
     },
     {
       question: '클릭은 되는데 전환이 안 잡혀요',
-      answer: '전환 추적은 네이버 스마트스토어 연동이 필요합니다. 빠른 시작에서 스토어를 연결하면 주문 데이터가 자동으로 연동됩니다.',
+      answer: '광고 성과 추적은 네이버 스마트스토어 연동이 필요합니다. 빠른 시작에서 스토어를 연결하면 주문 데이터가 자동으로 연동됩니다.',
     },
     {
       question: 'ROAS가 정확한가요?',

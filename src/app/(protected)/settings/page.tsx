@@ -20,7 +20,7 @@ interface Profile {
 // 플랜 정보 매핑
 const PLAN_INFO: Record<string, { label: string; description: string }> = {
   free: { label: '무료', description: '무제한 추적 링크' },
-  basic: { label: '베이직', description: '전환 추적 + 신호등' },
+  basic: { label: '베이직', description: '광고 성과 관리 + 신호등' },
   pro: { label: '프로', description: '인플루언서 매칭' },
   enterprise: { label: '엔터프라이즈', description: '전용 지원' },
 }

@@ -270,7 +270,7 @@ export default function DashboardPage() {
           href="/conversions"
           className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
         >
-          전환 추적 설정
+          광고 성과 관리
         </Link>
       </div>
 
