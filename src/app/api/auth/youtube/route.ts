@@ -20,8 +20,10 @@ export async function GET(request: NextRequest) {
 
     // YouTube Data API 접근에 필요한 scope
     const scopes = [
+      'https://www.googleapis.com/auth/youtube',                    // YouTube 채널 관리 (업로드 포함)
       'https://www.googleapis.com/auth/youtube.readonly',           // YouTube 채널 읽기
-      'https://www.googleapis.com/auth/yt-analytics.readonly',      // YouTube Analytics 읽기
+      'https://www.googleapis.com/auth/youtube.upload',             // YouTube 영상 업로드
+      'https://www.googleapis.com/auth/yt-analytics.readonly',      // YouTube Analytics 읽기 (조회수, 도달 등)
       'https://www.googleapis.com/auth/userinfo.email',             // 이메일 정보
       'https://www.googleapis.com/auth/userinfo.profile',           // 프로필 정보
     ].join(' ')

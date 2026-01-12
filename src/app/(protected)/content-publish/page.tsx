@@ -1084,6 +1084,119 @@ function InstagramTab({ channels }: { channels: AdChannel[] }) {
 function YoutubeTab({ channels }: { channels: AdChannel[] }) {
   const [contentType, setContentType] = useState<'video' | 'shorts'>('video')
   const [selectedChannel, setSelectedChannel] = useState(channels[0]?.id || '')
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [tags, setTags] = useState('')
+  const [privacyStatus, setPrivacyStatus] = useState<'public' | 'unlisted' | 'private'>('public')
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // 파일 업로드 핸들러
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('video/')) {
+      setMessage({ type: 'error', text: '동영상 파일만 업로드할 수 있습니다' })
+      return
+    }
+
+    // 기존 preview URL 해제
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+    }
+
+    setUploadedFile(file)
+    setPreviewUrl(URL.createObjectURL(file))
+    setMessage(null)
+    e.target.value = ''
+  }
+
+  // 파일 삭제 핸들러
+  const handleRemoveFile = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+    }
+    setUploadedFile(null)
+    setPreviewUrl(null)
+  }
+
+  // 발행하기 핸들러
+  const handlePublish = async () => {
+    if (!selectedChannel) {
+      setMessage({ type: 'error', text: '발행할 채널을 선택해주세요' })
+      return
+    }
+
+    if (!uploadedFile) {
+      setMessage({ type: 'error', text: '업로드할 영상을 선택해주세요' })
+      return
+    }
+
+    if (!title.trim()) {
+      setMessage({ type: 'error', text: '영상 제목을 입력해주세요' })
+      return
+    }
+
+    setUploading(true)
+    setUploadProgress(0)
+    setMessage(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('adChannelId', selectedChannel)
+      formData.append('title', title)
+      formData.append('description', description)
+      formData.append('tags', tags)
+      formData.append('privacyStatus', privacyStatus)
+      formData.append('file', uploadedFile)
+
+      // 쇼츠인 경우 제목에 #Shorts 추가
+      if (contentType === 'shorts' && !title.includes('#Shorts')) {
+        formData.set('title', `${title} #Shorts`)
+      }
+
+      // 업로드 진행률 시뮬레이션 (실제 XMLHttpRequest 사용 시 실제 진행률 가능)
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 10, 90))
+      }, 500)
+
+      const response = await fetch('/api/youtube/upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      clearInterval(progressInterval)
+      setUploadProgress(100)
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || '업로드에 실패했습니다')
+      }
+
+      setMessage({
+        type: 'success',
+        text: `영상이 업로드되었습니다! (${result.videoUrl})`
+      })
+
+      // 상태 초기화
+      setTitle('')
+      setDescription('')
+      setTags('')
+      handleRemoveFile()
+
+    } catch (error) {
+      console.error('YouTube 업로드 오류:', error)
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : '업로드 중 오류가 발생했습니다' })
+    } finally {
+      setUploading(false)
+      setUploadProgress(0)
+    }
+  }
 
   if (channels.length === 0) {
     return (
@@ -1151,28 +1264,93 @@ function YoutubeTab({ channels }: { channels: AdChannel[] }) {
             />
           </div>
         </div>
+
+        {/* 공개 설정 */}
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-slate-400">공개 설정</span>
+          <div className="flex gap-2">
+            {[
+              { id: 'public', label: '공개' },
+              { id: 'unlisted', label: '일부 공개' },
+              { id: 'private', label: '비공개' },
+            ].map((status) => (
+              <button
+                key={status.id}
+                onClick={() => setPrivacyStatus(status.id as typeof privacyStatus)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  privacyStatus === status.id
+                    ? 'bg-slate-600 text-white'
+                    : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700'
+                }`}
+              >
+                {status.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* 영상 업로드 영역 */}
-      <div className="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center hover:border-red-500/50 transition-colors cursor-pointer">
-        <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
+      {!previewUrl ? (
+        <label className="block border-2 border-dashed border-slate-600 rounded-xl p-8 text-center hover:border-red-500/50 transition-colors cursor-pointer">
+          <input
+            type="file"
+            accept="video/*"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <p className="text-white font-medium mb-1">
+            {contentType === 'shorts' ? '쇼츠 영상을 업로드하세요' : '영상을 업로드하세요'}
+          </p>
+          <p className="text-sm text-slate-400">
+            {contentType === 'shorts' ? 'MP4 (세로형, 최대 60초)' : 'MP4, MOV (최대 12시간)'}
+          </p>
+        </label>
+      ) : (
+        <div className="relative rounded-xl overflow-hidden bg-slate-900 aspect-video group">
+          <video src={previewUrl} className="w-full h-full object-contain" controls />
+          <button
+            onClick={handleRemoveFile}
+            className="absolute top-4 right-4 w-10 h-10 bg-black/60 hover:bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+          >
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <div className="absolute bottom-4 left-4 px-3 py-1.5 bg-black/60 rounded-lg text-sm text-white">
+            {uploadedFile?.name} ({(uploadedFile?.size || 0 / 1024 / 1024).toFixed(1)}MB)
+          </div>
         </div>
-        <p className="text-white font-medium mb-1">
-          {contentType === 'shorts' ? '쇼츠 영상을 업로드하세요' : '영상을 업로드하세요'}
-        </p>
-        <p className="text-sm text-slate-400">
-          {contentType === 'shorts' ? 'MP4 (세로형, 최대 60초)' : 'MP4, MOV (최대 12시간)'}
-        </p>
-      </div>
+      )}
+
+      {/* 업로드 진행률 */}
+      {uploading && (
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-slate-400">업로드 중...</span>
+            <span className="text-sm text-white">{uploadProgress}%</span>
+          </div>
+          <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-red-500 transition-all duration-300"
+              style={{ width: `${uploadProgress}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* 제목 입력 */}
       <div className="mt-6">
-        <label className="block text-sm font-medium text-slate-300 mb-2">제목</label>
+        <label className="block text-sm font-medium text-slate-300 mb-2">제목 *</label>
         <input
           type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
           placeholder="영상 제목을 입력하세요"
           className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-red-500 focus:border-transparent"
         />
@@ -1183,8 +1361,22 @@ function YoutubeTab({ channels }: { channels: AdChannel[] }) {
         <label className="block text-sm font-medium text-slate-300 mb-2">설명</label>
         <textarea
           rows={4}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
           placeholder="영상 설명을 입력하세요..."
           className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+        />
+      </div>
+
+      {/* 태그 입력 */}
+      <div className="mt-4">
+        <label className="block text-sm font-medium text-slate-300 mb-2">태그</label>
+        <input
+          type="text"
+          value={tags}
+          onChange={(e) => setTags(e.target.value)}
+          placeholder="태그를 쉼표로 구분하여 입력하세요 (예: 쇼핑, 리뷰, 추천)"
+          className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-red-500 focus:border-transparent"
         />
       </div>
 
@@ -1197,22 +1389,51 @@ function YoutubeTab({ channels }: { channels: AdChannel[] }) {
             </svg>
           </div>
           <div>
-            <p className="text-sm font-medium text-red-300">영상번호 자동 생성</p>
+            <p className="text-sm font-medium text-red-300">YouTube Analytics 연동</p>
             <p className="text-xs text-red-300/70 mt-1">
-              발행 시 영상번호(예: A001)가 자동으로 생성됩니다.
-              시청자가 영상번호를 입력하면 해당 영상을 통한 전환이 추적됩니다.
+              업로드된 영상의 조회수, 시청시간, 좋아요 등 성과 데이터가 자동으로 수집됩니다.
+              광고 성과 관리 페이지에서 확인할 수 있습니다.
             </p>
           </div>
         </div>
       </div>
+
+      {/* 메시지 표시 */}
+      {message && (
+        <div className={`mt-6 p-4 rounded-xl flex items-center gap-3 ${
+          message.type === 'success'
+            ? 'bg-green-500/10 border border-green-500/30'
+            : 'bg-red-500/10 border border-red-500/30'
+        }`}>
+          {message.type === 'success' ? (
+            <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          )}
+          <span className={message.type === 'success' ? 'text-green-300' : 'text-red-300'}>
+            {message.text}
+          </span>
+        </div>
+      )}
 
       {/* 발행 버튼 */}
       <div className="mt-6 flex justify-end gap-3">
         <button className="px-6 py-3 bg-slate-700 text-white font-medium rounded-xl hover:bg-slate-600 transition-colors">
           임시저장
         </button>
-        <button className="px-6 py-3 bg-red-500 text-white font-medium rounded-xl hover:bg-red-600 transition-colors">
-          발행하기
+        <button
+          onClick={handlePublish}
+          disabled={uploading}
+          className="px-6 py-3 bg-red-500 text-white font-medium rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+        >
+          {uploading && (
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          )}
+          {uploading ? '업로드 중...' : '발행하기'}
         </button>
       </div>
     </div>
