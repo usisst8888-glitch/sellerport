@@ -89,37 +89,56 @@ export async function POST(request: NextRequest) {
       }
 
       const actualUserId = meData.user_id?.toString()
-      if (actualUserId && actualUserId !== igUserId) {
-        console.log('Instagram account_id mismatch detected, auto-fixing...', {
+      const actualUsername = meData.username
+
+      // account_id 또는 channel_name이 잘못된 경우 자동 수정
+      const needsAccountIdFix = actualUserId && actualUserId !== igUserId
+      const needsChannelNameFix = actualUsername && channel.channel_name !== actualUsername
+
+      if (needsAccountIdFix || needsChannelNameFix) {
+        console.log('Instagram channel info mismatch detected, auto-fixing...', {
           stored_account_id: igUserId,
-          actual_user_id: actualUserId
+          actual_user_id: actualUserId,
+          stored_channel_name: channel.channel_name,
+          actual_username: actualUsername
         })
 
-        // 자동으로 올바른 account_id로 업데이트
+        // 자동으로 올바른 정보로 업데이트
+        const updateData: Record<string, unknown> = {
+          metadata: {
+            ...((channel.metadata as Record<string, unknown>) || {}),
+            instagram_user_id: actualUserId || igUserId,
+            auto_fixed_at: new Date().toISOString()
+          }
+        }
+
+        if (needsAccountIdFix) {
+          updateData.account_id = actualUserId
+          ;(updateData.metadata as Record<string, unknown>).previous_account_id = igUserId
+        }
+
+        if (needsChannelNameFix) {
+          updateData.channel_name = actualUsername
+        }
+
         const { error: updateError } = await supabase
           .from('ad_channels')
-          .update({
-            account_id: actualUserId,
-            metadata: {
-              ...((channel.metadata as Record<string, unknown>) || {}),
-              instagram_user_id: actualUserId,
-              previous_account_id: igUserId, // 디버깅용 기존 ID 보존
-              auto_fixed_at: new Date().toISOString()
-            }
-          })
+          .update(updateData)
           .eq('id', adChannelId)
 
         if (updateError) {
-          console.error('Failed to auto-fix account_id:', updateError)
+          console.error('Failed to auto-fix channel info:', updateError)
           return NextResponse.json({
             success: false,
             error: '인스타그램 계정 정보가 일치하지 않습니다. 광고 채널에서 인스타그램 연동을 삭제하고 다시 연동해주세요.'
           }, { status: 400 })
         }
 
-        console.log('Successfully auto-fixed Instagram account_id')
+        console.log('Successfully auto-fixed Instagram channel info')
         // 수정된 ID로 계속 진행
-        igUserId = actualUserId
+        if (needsAccountIdFix && actualUserId) {
+          igUserId = actualUserId
+        }
       }
     } catch (verifyError) {
       console.error('Failed to verify Instagram account:', verifyError)
