@@ -294,6 +294,31 @@ export async function POST(request: NextRequest) {
         }, { status: 400 })
       }
 
+      // 스토리도 처리 시간이 필요할 수 있음 - 상태 확인
+      const storyContainerId = containerData.id
+      let storyStatus = 'IN_PROGRESS'
+      let storyAttempts = 0
+      const maxStoryAttempts = 15
+
+      while (storyStatus === 'IN_PROGRESS' && storyAttempts < maxStoryAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 2000))
+
+        const statusResponse = await fetch(
+          `https://graph.instagram.com/v24.0/${storyContainerId}?fields=status_code&access_token=${accessToken}`
+        )
+        const statusData = await statusResponse.json()
+        console.log(`Story container status check ${storyAttempts + 1}:`, JSON.stringify(statusData))
+        storyStatus = statusData.status_code || 'FINISHED'
+        storyAttempts++
+      }
+
+      if (storyStatus !== 'FINISHED') {
+        return NextResponse.json({
+          success: false,
+          error: '스토리 처리 중입니다. 잠시 후 다시 시도해주세요.'
+        }, { status: 400 })
+      }
+
       // 발행
       const publishResponse = await fetch(
         `https://graph.instagram.com/v24.0/${igUserId}/media_publish`,
@@ -301,7 +326,7 @@ export async function POST(request: NextRequest) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            creation_id: containerData.id,
+            creation_id: storyContainerId,
             access_token: accessToken
           })
         }
@@ -368,6 +393,31 @@ export async function POST(request: NextRequest) {
           }, { status: 400 })
         }
 
+        // 피드도 처리 시간이 필요할 수 있음 - 상태 확인
+        const containerId = containerData.id
+        let feedStatus = 'IN_PROGRESS'
+        let feedAttempts = 0
+        const maxFeedAttempts = 15 // 최대 15번 확인 (약 30초)
+
+        while (feedStatus === 'IN_PROGRESS' && feedAttempts < maxFeedAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 2000)) // 2초 대기
+
+          const statusResponse = await fetch(
+            `https://graph.instagram.com/v24.0/${containerId}?fields=status_code&access_token=${accessToken}`
+          )
+          const statusData = await statusResponse.json()
+          console.log(`Feed container status check ${feedAttempts + 1}:`, JSON.stringify(statusData))
+          feedStatus = statusData.status_code || 'FINISHED'
+          feedAttempts++
+        }
+
+        if (feedStatus !== 'FINISHED') {
+          return NextResponse.json({
+            success: false,
+            error: '이미지 처리 중입니다. 잠시 후 다시 시도해주세요.'
+          }, { status: 400 })
+        }
+
         // 발행
         const publishResponse = await fetch(
           `https://graph.instagram.com/v24.0/${igUserId}/media_publish`,
@@ -375,7 +425,7 @@ export async function POST(request: NextRequest) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              creation_id: containerData.id,
+              creation_id: containerId,
               access_token: accessToken
             })
           }
