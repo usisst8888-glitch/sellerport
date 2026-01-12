@@ -48,7 +48,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Claude API 호출
-    const anthropic = new Anthropic()
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) {
+      return NextResponse.json({
+        error: 'Anthropic API 키가 설정되지 않았습니다'
+      }, { status: 500 })
+    }
+    const anthropic = new Anthropic({ apiKey })
 
     const contentTypeKorean = contentType === 'feed' ? '피드' : contentType === 'reels' ? '릴스' : '스토리'
 
