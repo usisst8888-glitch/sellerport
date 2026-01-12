@@ -655,21 +655,29 @@ function InstagramTab({ channels }: { channels: AdChannel[] }) {
       return
     }
 
+    if (uploadedFiles.length === 0) {
+      setMessage({ type: 'error', text: '업로드할 파일을 선택해주세요' })
+      return
+    }
+
     setPublishing(true)
     setMessage(null)
 
     try {
-      // 1. Instagram에 미디어 발행 (TODO: 실제 파일 업로드 구현 필요)
-      // 현재는 발행 로직의 구조만 구현
+      // 1. Instagram에 미디어 발행 (FormData로 파일 전송)
+      const formData = new FormData()
+      formData.append('adChannelId', selectedChannel)
+      formData.append('contentType', contentType)
+      formData.append('caption', caption)
+
+      // 파일들 추가
+      for (const file of uploadedFiles) {
+        formData.append('files', file)
+      }
+
       const publishResponse = await fetch('/api/instagram/publish', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          adChannelId: selectedChannel,
-          contentType,
-          caption,
-          // mediaUrl: uploadedMediaUrl, // TODO: 실제 업로드된 미디어 URL
-        })
+        body: formData
       })
 
       const publishResult = await publishResponse.json()
@@ -719,6 +727,10 @@ function InstagramTab({ channels }: { channels: AdChannel[] }) {
       setCaption('')
       setDmSettings(null)
       setAutoDmEnabled(false)
+      // 업로드된 파일 초기화
+      previewUrls.forEach(url => URL.revokeObjectURL(url))
+      setUploadedFiles([])
+      setPreviewUrls([])
 
     } catch (error) {
       console.error('발행 오류:', error)
