@@ -780,43 +780,6 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
             </div>
           </ChannelGuideCard>
 
-          {/* YouTube */}
-          <ChannelGuideCard
-            id="youtube"
-            icon={
-              <svg viewBox="0 0 24 24" className="w-6 h-6">
-                <path fill="#FF0000" d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-              </svg>
-            }
-            title="유튜브"
-            description="Google 계정 OAuth 연동으로 간편하게 연결"
-            isExpanded={expandedChannel === 'youtube'}
-            onToggle={() => toggleChannel('youtube')}
-            onConnect={() => handleConnect('youtube')}
-          >
-            <div className="space-y-4">
-              <div className="bg-emerald-500/10 rounded-lg p-4 border border-emerald-500/30">
-                <p className="text-emerald-400 font-medium mb-2">OAuth 연동 방식</p>
-                <p className="text-slate-300 text-sm">Google 계정으로 로그인하면 자동으로 연동됩니다.</p>
-              </div>
-              <div className="space-y-3">
-                <StepCard step={1} title="빠른 시작 메뉴 접속" description="좌측 사이드바에서 '빠른 시작'을 클릭하세요." />
-                <StepCard step={2} title="유튜브 선택" description="광고/브랜드 채널 추가에서 '유튜브'를 선택하세요." />
-                <StepCard step={3} title="Google 계정 로그인" description="팝업 창에서 YouTube 채널에 연결된 Google 계정으로 로그인하세요." />
-                <StepCard step={4} title="권한 승인" description="셀러포트가 YouTube 채널 데이터를 읽을 수 있도록 권한을 승인하세요." />
-                <StepCard step={5} title="연동 완료" description="조회수, 구독자, 시청시간 등 채널 데이터가 자동으로 수집됩니다." />
-              </div>
-              <div className="bg-blue-500/10 rounded-lg p-4 border border-blue-500/30">
-                <p className="text-blue-400 font-medium mb-2">수집되는 데이터</p>
-                <ul className="text-slate-300 text-sm space-y-1">
-                  <li>• 조회수, 구독자 수</li>
-                  <li>• 시청시간 분석</li>
-                  <li>• 참여율 데이터</li>
-                </ul>
-              </div>
-            </div>
-          </ChannelGuideCard>
-
           {/* 네이버 블로그 */}
           <ChannelGuideCard
             id="naver-blog"
