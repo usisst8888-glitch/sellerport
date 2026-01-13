@@ -6,6 +6,13 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
+import { createClient } from '@/lib/supabase/client'
+
+interface SubscriptionInfo {
+  status: 'trial' | 'active' | 'expired' | 'none'
+  trialDaysLeft?: number
+  planName: string
+}
 
 interface MenuItem {
   title: string
@@ -194,6 +201,10 @@ export function MobileSidebar() {
   const pathname = usePathname()
   const [userType, setUserType] = useState<string | null>(null)
   const [utilityOpen, setUtilityOpen] = useState(false)
+  const [subscription, setSubscription] = useState<SubscriptionInfo>({
+    status: 'none',
+    planName: '무료 체험'
+  })
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -208,6 +219,63 @@ export function MobileSidebar() {
       }
     }
     fetchProfile()
+  }, [])
+
+  // 구독 정보 가져오기
+  useEffect(() => {
+    const fetchSubscription = async () => {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        // 구독 정보 확인
+        const { data: sub } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .single()
+
+        if (sub) {
+          setSubscription({
+            status: 'active',
+            planName: '프리미엄'
+          })
+        } else {
+          // 무료 체험 기간 계산
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('created_at')
+            .eq('id', user.id)
+            .single()
+
+          if (profile) {
+            const createdAt = new Date(profile.created_at)
+            const now = new Date()
+            const diffTime = now.getTime() - createdAt.getTime()
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+            const trialDaysLeft = Math.max(0, 30 - diffDays)
+
+            if (trialDaysLeft > 0) {
+              setSubscription({
+                status: 'trial',
+                trialDaysLeft,
+                planName: '무료 체험'
+              })
+            } else {
+              setSubscription({
+                status: 'expired',
+                planName: '체험 만료'
+              })
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch subscription:', error)
+      }
+    }
+    fetchSubscription()
   }, [])
 
   // 관리자/매니저가 아니면 adminOnly 메뉴 필터링
@@ -356,25 +424,59 @@ export function MobileSidebar() {
           {/* 현재 플랜 */}
           <div className="flex-shrink-0 px-3 py-4 border-t border-white/5">
             <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-white/5 p-4">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+              <div className={cn(
+                "absolute top-0 right-0 w-20 h-20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2",
+                subscription.status === 'active' ? 'bg-green-500/10' :
+                subscription.status === 'trial' ? 'bg-blue-500/10' : 'bg-red-500/10'
+              )} />
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs text-slate-500">현재 플랜</p>
-                <p className="text-sm font-semibold text-white">무료</p>
+                <p className={cn(
+                  "text-sm font-semibold",
+                  subscription.status === 'active' ? 'text-green-400' :
+                  subscription.status === 'trial' ? 'text-blue-400' : 'text-slate-400'
+                )}>
+                  {subscription.status === 'active' ? '프리미엄' :
+                   subscription.status === 'trial' ? '무료 체험' : '체험 만료'}
+                </p>
               </div>
               <div className="flex items-center justify-between">
-                <p className="text-xs text-slate-500">알림톡 잔여</p>
-                <p className="text-sm font-semibold text-white">0건</p>
+                <p className="text-xs text-slate-500">
+                  {subscription.status === 'active' ? '구독 상태' : '남은 기간'}
+                </p>
+                <p className={cn(
+                  "text-sm font-semibold",
+                  subscription.status === 'active' ? 'text-green-400' :
+                  subscription.status === 'trial' ? 'text-white' : 'text-red-400'
+                )}>
+                  {subscription.status === 'active' ? '활성' :
+                   subscription.status === 'trial' ? `${subscription.trialDaysLeft}일` : '만료됨'}
+                </p>
               </div>
-              <Link
-                href="/billing"
-                onClick={() => setOpen(false)}
-                className="mt-3 inline-flex items-center text-xs text-blue-400 hover:text-blue-300 transition-colors group"
-              >
-                플랜 업그레이드
-                <svg className="w-3 h-3 ml-1 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
+              {subscription.status !== 'active' && (
+                <Link
+                  href="/billing"
+                  onClick={() => setOpen(false)}
+                  className="mt-3 inline-flex items-center text-xs text-blue-400 hover:text-blue-300 transition-colors group"
+                >
+                  {subscription.status === 'trial' ? '프리미엄 구독하기' : '구독 시작하기'}
+                  <svg className="w-3 h-3 ml-1 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              )}
+              {subscription.status === 'active' && (
+                <Link
+                  href="/billing"
+                  onClick={() => setOpen(false)}
+                  className="mt-3 inline-flex items-center text-xs text-slate-400 hover:text-slate-300 transition-colors group"
+                >
+                  구독 관리
+                  <svg className="w-3 h-3 ml-1 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              )}
             </div>
           </div>
         </div>
