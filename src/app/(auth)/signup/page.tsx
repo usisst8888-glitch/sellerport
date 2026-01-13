@@ -274,6 +274,16 @@ export default function SignupPage() {
           <CardDescription className="text-slate-400">
             온라인 광고 성과 측정을 시작하세요
           </CardDescription>
+          {/* 무료 체험 안내 배너 */}
+          <div className="mt-4 p-3 rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20">
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-2xl">🎉</span>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-white">30일 무료 체험</p>
+                <p className="text-xs text-slate-400">가입 즉시 모든 기능을 무료로 이용하세요</p>
+              </div>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignup} className="space-y-4">
@@ -607,11 +617,14 @@ export default function SignupPage() {
 
             <Button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold py-3"
               disabled={loading || !isPhoneVerified || !agreeTerms || !agreePrivacy}
             >
-              {loading ? '처리 중...' : '회원가입'}
+              {loading ? '처리 중...' : '30일 무료 체험 시작'}
             </Button>
+            <p className="text-center text-xs text-slate-500 mt-2">
+              체험 기간 종료 후 월 22,900원으로 계속 이용하세요
+            </p>
           </form>
 
           <div className="mt-6 text-center text-sm text-slate-400">
