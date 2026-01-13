@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
 
 interface Profile {
   id: string
@@ -13,16 +14,13 @@ interface Profile {
   businessNumber: string | null
   ownerName: string | null
   phone: string | null
-  plan: string | null
   createdAt?: string
 }
 
-// 플랜 정보 매핑
-const PLAN_INFO: Record<string, { label: string; description: string }> = {
-  free: { label: '무료', description: '무제한 추적 링크' },
-  basic: { label: '베이직', description: '광고 성과 관리 + 신호등' },
-  pro: { label: '프로', description: '인플루언서 매칭' },
-  enterprise: { label: '엔터프라이즈', description: '전용 지원' },
+interface SubscriptionInfo {
+  status: 'trial' | 'active' | 'expired' | 'none'
+  trialDaysLeft?: number
+  planName: string
 }
 
 interface Balance {
@@ -47,6 +45,10 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [savingAlerts, setSavingAlerts] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [subscription, setSubscription] = useState<SubscriptionInfo>({
+    status: 'none',
+    planName: '무료 체험'
+  })
 
   const [formData, setFormData] = useState({
     businessName: '',
@@ -66,7 +68,62 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetchData()
+    fetchSubscription()
   }, [])
+
+  // 구독 정보 가져오기
+  const fetchSubscription = async () => {
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // 구독 정보 확인
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single()
+
+      if (sub) {
+        setSubscription({
+          status: 'active',
+          planName: '프리미엄'
+        })
+      } else {
+        // 무료 체험 기간 계산
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('created_at')
+          .eq('id', user.id)
+          .single()
+
+        if (profileData) {
+          const createdAt = new Date(profileData.created_at)
+          const now = new Date()
+          const diffTime = now.getTime() - createdAt.getTime()
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+          const trialDaysLeft = Math.max(0, 30 - diffDays)
+
+          if (trialDaysLeft > 0) {
+            setSubscription({
+              status: 'trial',
+              trialDaysLeft,
+              planName: '무료 체험'
+            })
+          } else {
+            setSubscription({
+              status: 'expired',
+              planName: '체험 만료'
+            })
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch subscription:', error)
+    }
+  }
 
   // 메시지 3초 후 자동 제거
   useEffect(() => {
@@ -213,9 +270,16 @@ export default function SettingsPage() {
       {/* 상단 2열: 잔액 + 계정 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 현재 플랜 */}
-        <div className="bg-gradient-to-br from-blue-900/30 to-slate-800/40 border border-blue-500/20 rounded-xl p-5">
+        <div className={`bg-gradient-to-br ${
+          subscription.status === 'active' ? 'from-green-900/30 to-slate-800/40 border-green-500/20' :
+          subscription.status === 'trial' ? 'from-blue-900/30 to-slate-800/40 border-blue-500/20' :
+          'from-red-900/30 to-slate-800/40 border-red-500/20'
+        } border rounded-xl p-5`}>
           <h2 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
-            <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className={`w-5 h-5 ${
+              subscription.status === 'active' ? 'text-green-400' :
+              subscription.status === 'trial' ? 'text-blue-400' : 'text-red-400'
+            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
             </svg>
             현재 플랜
@@ -224,23 +288,47 @@ export default function SettingsPage() {
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="flex items-center justify-between py-7 px-5 bg-slate-800/50 rounded-lg">
               <div>
-                <p className="text-lg text-slate-300">구독 플랜</p>
-                <p className="text-sm text-slate-500 mt-1">{PLAN_INFO[profile?.plan || 'free']?.description || '추적 링크 3개'}</p>
+                <p className="text-lg text-slate-300">구독 상태</p>
+                <p className="text-sm text-slate-500 mt-1">
+                  {subscription.status === 'active' ? '월 22,900원' :
+                   subscription.status === 'trial' ? '30일 무료 체험' : '체험 기간 종료'}
+                </p>
               </div>
-              <p className="text-2xl font-bold text-white">{PLAN_INFO[profile?.plan || 'free']?.label || '무료'}</p>
+              <p className={`text-2xl font-bold ${
+                subscription.status === 'active' ? 'text-green-400' :
+                subscription.status === 'trial' ? 'text-blue-400' : 'text-red-400'
+              }`}>
+                {subscription.status === 'active' ? '프리미엄' :
+                 subscription.status === 'trial' ? '무료 체험' : '만료'}
+              </p>
             </div>
             <div className="flex items-center justify-between py-7 px-5 bg-slate-800/50 rounded-lg">
               <div>
-                <p className="text-lg text-slate-300">알림톡 잔여</p>
-                <p className="text-sm text-slate-500 mt-1">추가 15원/건</p>
+                <p className="text-lg text-slate-300">
+                  {subscription.status === 'active' ? '알림톡 잔여' : '남은 기간'}
+                </p>
+                <p className="text-sm text-slate-500 mt-1">
+                  {subscription.status === 'active' ? '추가 15원/건' : '무료 체험 기간'}
+                </p>
               </div>
-              <p className="text-4xl font-bold text-white">{balance.alertBalance}<span className="text-xl font-normal text-slate-400 ml-1">건</span></p>
+              {subscription.status === 'active' ? (
+                <p className="text-4xl font-bold text-white">{balance.alertBalance}<span className="text-xl font-normal text-slate-400 ml-1">건</span></p>
+              ) : (
+                <p className={`text-4xl font-bold ${subscription.status === 'trial' ? 'text-white' : 'text-red-400'}`}>
+                  {subscription.status === 'trial' ? subscription.trialDaysLeft : 0}
+                  <span className="text-xl font-normal text-slate-400 ml-1">일</span>
+                </p>
+              )}
             </div>
           </div>
 
           <Link href="/billing">
-            <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm">
-              플랜 업그레이드
+            <Button size="sm" className={`w-full text-white text-sm ${
+              subscription.status === 'active' ? 'bg-slate-600 hover:bg-slate-500' :
+              'bg-blue-600 hover:bg-blue-500'
+            }`}>
+              {subscription.status === 'active' ? '구독 관리' :
+               subscription.status === 'trial' ? '프리미엄 구독하기' : '구독 시작하기'}
             </Button>
           </Link>
         </div>
