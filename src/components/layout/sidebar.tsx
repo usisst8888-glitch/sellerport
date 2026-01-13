@@ -60,17 +60,18 @@ const menuItems: MenuItem[] = [
     badge: '등록',
     badgeColor: 'blue',
   },
-  {
-    title: '셀러트리',
-    href: '/seller-tree',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-      </svg>
-    ),
-    badge: '무료',
-    badgeColor: 'green',
-  },
+  // 셀러트리 - 현재 숨김 처리
+  // {
+  //   title: '셀러트리',
+  //   href: '/seller-tree',
+  //   icon: (
+  //     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  //       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+  //     </svg>
+  //   ),
+  //   badge: '무료',
+  //   badgeColor: 'green',
+  // },
   {
     title: '인스타그램 자동 DM',
     href: '/instagram-dm',
