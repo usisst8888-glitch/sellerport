@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { useSubscription } from '@/hooks/useSubscription'
 
 type TabType = 'instagram' | 'meta'
 
@@ -31,6 +32,7 @@ interface DmSettings {
 }
 
 export default function ContentPublishPage() {
+  const { status: subscriptionStatus, trialDaysLeft, isLoading: subscriptionLoading, hasAccess } = useSubscription()
   const [activeTab, setActiveTab] = useState<TabType>('instagram')
   const [adChannels, setAdChannels] = useState<AdChannel[]>([])
   const [loading, setLoading] = useState(true)
@@ -90,6 +92,47 @@ export default function ContentPublishPage() {
 
   return (
     <div className="space-y-6">
+      {/* 구독 상태 배너 */}
+      {!subscriptionLoading && subscriptionStatus === 'expired' && (
+        <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-red-400">무료 체험이 만료되었습니다</h3>
+                <p className="text-xs text-slate-400 mt-0.5">서비스를 계속 이용하려면 구독을 시작해주세요</p>
+              </div>
+            </div>
+            <Link
+              href="/billing"
+              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              구독하기
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {!subscriptionLoading && subscriptionStatus === 'trial' && (
+        <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-blue-400">무료 체험 중</h3>
+              <p className="text-xs text-slate-400 mt-0.5">무료 체험 기간이 {trialDaysLeft}일 남았습니다</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div>
@@ -143,8 +186,8 @@ export default function ContentPublishPage() {
           </div>
         ) : (
           <>
-            {activeTab === 'instagram' && <InstagramTab channels={getChannelsByType('instagram')} />}
-            {activeTab === 'meta' && <MetaTab channels={getChannelsByType('meta')} />}
+            {activeTab === 'instagram' && <InstagramTab channels={getChannelsByType('instagram')} hasAccess={hasAccess} />}
+            {activeTab === 'meta' && <MetaTab channels={getChannelsByType('meta')} hasAccess={hasAccess} />}
           </>
         )}
       </div>
@@ -509,7 +552,7 @@ function DmSettingsModal({
 }
 
 // 인스타그램 탭
-function InstagramTab({ channels }: { channels: AdChannel[] }) {
+function InstagramTab({ channels, hasAccess }: { channels: AdChannel[]; hasAccess: boolean }) {
   const [contentType, setContentType] = useState<'feed' | 'reels' | 'story'>('feed')
   const [selectedChannel, setSelectedChannel] = useState(channels[0]?.id || '')
   const [autoDmEnabled, setAutoDmEnabled] = useState(false)
@@ -1054,12 +1097,15 @@ function InstagramTab({ channels }: { channels: AdChannel[] }) {
 
       {/* 발행 버튼 */}
       <div className="mt-6 flex justify-end gap-3">
-        <button className="px-6 py-3 bg-slate-700 text-white font-medium rounded-xl hover:bg-slate-600 transition-colors">
+        <button
+          disabled={!hasAccess}
+          className="px-6 py-3 bg-slate-700 text-white font-medium rounded-xl hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           임시저장
         </button>
         <button
           onClick={handlePublish}
-          disabled={publishing}
+          disabled={publishing || !hasAccess}
           className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-medium rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {publishing && (
@@ -1073,7 +1119,7 @@ function InstagramTab({ channels }: { channels: AdChannel[] }) {
 }
 
 // Meta 광고 탭
-function MetaTab({ channels }: { channels: AdChannel[] }) {
+function MetaTab({ channels, hasAccess }: { channels: AdChannel[]; hasAccess: boolean }) {
   const [campaignObjective, setCampaignObjective] = useState<'conversions' | 'traffic' | 'awareness'>('conversions')
   const [selectedChannel, setSelectedChannel] = useState(channels[0]?.id || '')
 
@@ -1213,10 +1259,16 @@ function MetaTab({ channels }: { channels: AdChannel[] }) {
 
       {/* 발행 버튼 */}
       <div className="mt-6 flex justify-end gap-3">
-        <button className="px-6 py-3 bg-slate-700 text-white font-medium rounded-xl hover:bg-slate-600 transition-colors">
+        <button
+          disabled={!hasAccess}
+          className="px-6 py-3 bg-slate-700 text-white font-medium rounded-xl hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           임시저장
         </button>
-        <button className="px-6 py-3 bg-blue-500 text-white font-medium rounded-xl hover:bg-blue-600 transition-colors">
+        <button
+          disabled={!hasAccess}
+          className="px-6 py-3 bg-blue-500 text-white font-medium rounded-xl hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           캠페인 생성
         </button>
       </div>

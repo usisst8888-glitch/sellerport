@@ -38,13 +38,11 @@ const anthropic = new Anthropic({
 
 // 요청 타입
 interface AnalyzeRequest {
-  platform: 'instagram' | 'youtube' | 'meta'
-  contentType: 'image' | 'carousel' | 'reels' | 'video'
+  platform: 'instagram' | 'meta'
+  contentType: 'image' | 'carousel' | 'reels'
   // Instagram / Meta 유료 광고
   imageUrls?: string[]  // 피드/캐러셀 이미지 URL들
   videoUrl?: string     // 릴스/영상 광고 URL (Meta API에서 제공)
-  // YouTube
-  youtubeUrl?: string   // YouTube 영상 URL
   // 성과 지표
   metrics: {
     impressions: number
@@ -96,19 +94,6 @@ async function downloadFromR2(key: string): Promise<Buffer> {
     chunks.push(Buffer.from(chunk))
   }
   return Buffer.concat(chunks)
-}
-
-// YouTube 영상 다운로드 (yt-dlp)
-async function downloadYouTubeVideo(youtubeUrl: string, outputPath: string): Promise<void> {
-  // 720p 이하, mp4 형식으로 다운로드
-  const command = `yt-dlp -f "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best" -o "${outputPath}" "${youtubeUrl}"`
-
-  try {
-    await execAsync(command, { timeout: 300000 }) // 5분 타임아웃
-  } catch (error) {
-    console.error('yt-dlp error:', error)
-    throw new Error('YouTube 영상 다운로드 실패')
-  }
 }
 
 // Instagram 릴스 영상 다운로드
@@ -191,8 +176,8 @@ async function analyzeWithClaude(
   }
 
   // 플랫폼 라벨
-  const platformLabel = platform === 'instagram' ? '인스타그램' : platform === 'meta' ? 'Meta 유료 광고' : '유튜브'
-  const contentTypeLabel = contentType === 'carousel' ? '캐러셀' : contentType === 'reels' ? '릴스' : contentType === 'video' ? '영상' : '피드'
+  const platformLabel = platform === 'instagram' ? '인스타그램' : 'Meta 유료 광고'
+  const contentTypeLabel = contentType === 'carousel' ? '캐러셀' : contentType === 'reels' ? '릴스' : '피드'
 
   // 분석 프롬프트 추가
   const prompt = `당신은 디지털 마케팅 및 광고 크리에이티브 전문가입니다.
@@ -200,7 +185,7 @@ ${platformLabel} ${contentTypeLabel} 광고를 분석해주세요.
 
 ## 광고 정보
 - 플랫폼: ${platformLabel}
-- 형식: ${contentType === 'carousel' ? '캐러셀 (여러 이미지)' : contentType === 'reels' ? '릴스 (숏폼 영상)' : contentType === 'video' ? '영상 광고' : '피드 (단일 이미지)'}
+- 형식: ${contentType === 'carousel' ? '캐러셀 (여러 이미지)' : contentType === 'reels' ? '릴스 (숏폼 영상)' : '피드 (단일 이미지)'}
 ${additionalInfo.campaignName ? `- 캠페인명: ${additionalInfo.campaignName}` : ''}
 ${additionalInfo.postName ? `- 게시물명/광고명: ${additionalInfo.postName}` : ''}
 
@@ -214,7 +199,7 @@ ${additionalInfo.postName ? `- 게시물명/광고명: ${additionalInfo.postName
 - ROAS: ${metrics.roas.toFixed(0)}%
 
 ## 분석 요청
-위 이미지${images.length > 1 ? '들' : ''}은 광고 크리에이티브${contentType === 'reels' || contentType === 'video' ? '의 주요 장면들' : ''}입니다.
+위 이미지${images.length > 1 ? '들' : ''}은 광고 크리에이티브${contentType === 'reels' || contentType === 'reels' ? '의 주요 장면들' : ''}입니다.
 
 다음 항목들을 분석해주세요:
 
@@ -223,7 +208,7 @@ ${additionalInfo.postName ? `- 게시물명/광고명: ${additionalInfo.postName
 - 텍스트/카피 (가독성, 메시지 전달력)
 - 브랜딩 요소
 - 후킹 포인트 (관심을 끄는 요소)
-${contentType === 'reels' || contentType === 'video' ? '- 영상 흐름 (도입-전개-마무리)' : ''}
+${contentType === 'reels' || contentType === 'reels' ? '- 영상 흐름 (도입-전개-마무리)' : ''}
 ${contentType === 'carousel' ? '- 캐러셀 스토리텔링 (이미지 간 연결성)' : ''}
 
 ### 2. 성과 진단
@@ -274,7 +259,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: AnalyzeRequest = await request.json()
-    const { platform, contentType, imageUrls, videoUrl, youtubeUrl, metrics, campaignName, postName } = body
+    const { platform, contentType, imageUrls, videoUrl, metrics, campaignName, postName } = body
 
     // 분석할 이미지들
     const imagesToAnalyze: Array<{ base64: string; mediaType: string }> = []
@@ -329,7 +314,7 @@ export async function POST(request: NextRequest) {
           const { base64, mediaType } = await urlToBase64(url)
           imagesToAnalyze.push({ base64, mediaType })
         }
-      } else if (contentType === 'video') {
+      } else if (contentType === 'reels') {
         // 영상 광고: Meta에서 제공하는 source URL로 다운로드 → 프레임 추출
         if (!videoUrl) {
           return NextResponse.json({ error: '영상 URL이 필요합니다.' }, { status: 400 })
@@ -352,44 +337,6 @@ export async function POST(request: NextRequest) {
           const { base64, mediaType } = fileToBase64(framePath)
           imagesToAnalyze.push({ base64, mediaType })
         }
-      }
-    }
-
-    // === YouTube 처리 ===
-    if (platform === 'youtube') {
-      if (!youtubeUrl) {
-        return NextResponse.json({ error: 'YouTube URL이 필요합니다.' }, { status: 400 })
-      }
-
-      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ad-analyze-'))
-      const videoPath = path.join(tempDir, 'video.mp4')
-      localFilesToDelete.push(tempDir)
-
-      // YouTube 영상 다운로드
-      await downloadYouTubeVideo(youtubeUrl, videoPath)
-      localFilesToDelete.push(videoPath)
-
-      // R2에 임시 업로드 (백업용)
-      const videoBuffer = fs.readFileSync(videoPath)
-      const r2Key = `temp/ad-analyze/${user.id}/${Date.now()}_video.mp4`
-      await uploadToR2(videoBuffer, r2Key, 'video/mp4')
-      r2KeysToDelete.push(r2Key)
-
-      // 프레임 추출
-      const framePaths = await extractFrames(videoPath, tempDir, 5)
-      localFilesToDelete.push(...framePaths)
-
-      // 프레임을 R2에 업로드 및 base64 변환
-      for (let i = 0; i < framePaths.length; i++) {
-        const framePath = framePaths[i]
-        const { base64, mediaType } = fileToBase64(framePath)
-        imagesToAnalyze.push({ base64, mediaType })
-
-        // R2에도 백업 (선택적)
-        const frameBuffer = fs.readFileSync(framePath)
-        const frameKey = `temp/ad-analyze/${user.id}/${Date.now()}_frame_${i}.jpg`
-        await uploadToR2(frameBuffer, frameKey, 'image/jpeg')
-        r2KeysToDelete.push(frameKey)
       }
     }
 

@@ -19,8 +19,6 @@ const CHANNEL_TYPES: Record<string, { label: string; icon: string }> = {
   meta: { label: 'Meta (API 연동)', icon: '/channel_logo/meta.png' },
   meta_paid: { label: 'Meta 유료광고', icon: '/channel_logo/meta.png' },
   naver_blog: { label: '네이버 블로그', icon: '/channel_logo/naver_blog.png' },
-  tiktok: { label: 'TikTok', icon: '/channel_logo/tiktok.png' },
-  youtube: { label: 'YouTube', icon: '/channel_logo/youtube.png' },
   instagram: { label: 'Instagram', icon: '/channel_logo/insta.png' },
   thread: { label: 'Threads', icon: '/channel_logo/thread.png' },
   influencer: { label: '인플루언서/체험단', icon: '/channel_logo/influencer.png' },

@@ -84,4 +84,4 @@ COMMENT ON COLUMN subscriptions.amount IS '구독 금액 (원)';
 COMMENT ON COLUMN subscriptions.expires_at IS '만료일 (NULL이면 자동 갱신)';
 
 -- profiles 테이블의 plan 컬럼에 대한 설명 추가
-COMMENT ON COLUMN profiles.plan IS '[DEPRECATED] 기존 플랜 필드. 새로운 시스템에서는 subscriptions 테이블 + created_at 기반 30일 무료 체험 사용';
+COMMENT ON COLUMN profiles.plan IS '[DEPRECATED] 기존 플랜 필드. 새로운 시스템에서는 subscriptions 테이블 + created_at 기반 7일 무료 체험 사용';

@@ -82,17 +82,35 @@ export async function POST(request: NextRequest) {
     const finalUtmMedium = utmMedium || (channelType ? 'social' : 'referral')
     const finalUtmCampaign = utmCampaign || postName || `tracking_${Date.now()}`
 
-    // 사용자 플랜 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('plan')
-      .eq('id', user.id)
-      .single()
+    // 구독 상태 확인
+    const { data: sub } = await supabase
+      .from('subscriptions')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .maybeSingle()
 
-    const userPlan = profile?.plan || 'free'
+    let hasAccess = false
+    if (sub) {
+      hasAccess = true
+    } else {
+      // 무료 체험 기간 확인
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('created_at')
+        .eq('id', user.id)
+        .maybeSingle()
 
-    // 무료 플랜만 추적 링크 3개 제한 (basic 이상은 무제한)
-    if (userPlan === 'free') {
+      if (profile) {
+        const createdAt = new Date(profile.created_at)
+        const now = new Date()
+        const diffDays = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24))
+        hasAccess = diffDays < 30
+      }
+    }
+
+    // 체험 만료된 사용자는 추적 링크 3개 제한
+    if (!hasAccess) {
       const { count: currentCount } = await supabase
         .from('tracking_links')
         .select('id', { count: 'exact', head: true })
@@ -100,7 +118,7 @@ export async function POST(request: NextRequest) {
 
       if ((currentCount || 0) >= 3) {
         return NextResponse.json({
-          error: '무료 플랜은 최대 3개의 추적 링크만 사용할 수 있습니다. 플랜을 업그레이드해주세요.',
+          error: '체험 기간이 만료되었습니다. 구독하시면 무제한으로 추적 링크를 사용할 수 있습니다.',
           code: 'TRACKING_LINK_LIMIT_EXCEEDED',
           currentCount: currentCount,
           limit: 3

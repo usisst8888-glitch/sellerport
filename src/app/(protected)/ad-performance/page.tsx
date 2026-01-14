@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { YoutubeVideoCodeModal } from '@/components/modals/youtube-video-code-modal'
-import { TiktokVideoCodeModal } from '@/components/modals/tiktok-video-code-modal'
 import { AdAnalysisButton } from '@/components/conversions/AdAnalysisButton'
 
 interface TrackingLink {
@@ -27,7 +25,6 @@ interface TrackingLink {
   target_roas_yellow: number | null
   thumbnail_url: string | null
   channel_type: string | null
-  video_code: string | null
   post_name: string | null
   store_slug: string | null
   products?: {
@@ -59,7 +56,6 @@ interface Product {
 // 채널 타입 한글 라벨 매핑
 const channelTypeLabels: Record<string, string> = {
   instagram: '인스타그램',
-  youtube: '유튜브',
   naver_blog: '네이버 블로그',
   meta: 'Meta 광고',
   google: 'Google Ads',
@@ -67,8 +63,6 @@ const channelTypeLabels: Record<string, string> = {
   naver_search: '네이버 검색광고',
   naver_gfa: '네이버 GFA',
   kakao: '카카오모먼트',
-  tiktok: 'TikTok',
-  tiktok_ads: 'TikTok Ads',
   karrot: '당근 비즈니스',
   toss: '토스',
   dable: '데이블',
@@ -199,29 +193,12 @@ export default function ConversionsPage() {
   } | null>(null)
   const [syncingSmartstore, setSyncingSmartstore] = useState(false)
 
-  // 유튜브 영상번호 관련 상태
-  const [showYoutubeVideoCodeModal, setShowYoutubeVideoCodeModal] = useState(false)
-  const [videoCodes, setVideoCodes] = useState<{
-    id: string
-    video_code: string
-    video_title: string | null
-    target_url: string
-    clicks: number
-    conversions: number
-    revenue: number
-    status: string
-  }[]>([])
-  const [videoCodesStoreSlug, setVideoCodesStoreSlug] = useState<string | null>(null)
+  // 구독 상태
+  const [subscriptionStatus, setSubscriptionStatus] = useState<'trial' | 'active' | 'expired' | 'none'>('none')
+  const [trialDaysLeft, setTrialDaysLeft] = useState<number>(0)
 
-  // 틱톡 영상번호 관련 상태
-  const [showTiktokVideoCodeModal, setShowTiktokVideoCodeModal] = useState(false)
-  const [tiktokVideoCodesStoreSlug, setTiktokVideoCodesStoreSlug] = useState<string | null>(null)
-
-  // 사용자 플랜 상태
-  const [userPlan, setUserPlan] = useState<string>('free')
-
-  // 플랜 체크 (basic 이상인지)
-  const hasBasicPlan = ['basic', 'pro', 'enterprise'].includes(userPlan)
+  // 데이터 접근 가능 여부 (체험 중이거나 구독 중)
+  const hasAccess = subscriptionStatus === 'trial' || subscriptionStatus === 'active'
 
   // 플랫폼이 검색광고인지 확인
   const isSearchAdPlatform = (channelType: string) => {
@@ -230,7 +207,7 @@ export default function ConversionsPage() {
 
   // 플랫폼이 소셜광고인지 확인 (광고소재 기반)
   const isSocialAdPlatform = (channelType: string) => {
-    return ['meta', 'tiktok', 'naver_gfa'].includes(channelType)
+    return ['meta', 'naver_gfa'].includes(channelType)
   }
 
   const fetchConnectedData = async () => {
@@ -432,33 +409,6 @@ export default function ConversionsPage() {
     }
   }
 
-  // 유튜브 영상번호 목록 조회
-  const fetchVideoCodes = async () => {
-    try {
-      const response = await fetch('/api/youtube/video-codes')
-      const result = await response.json()
-      if (result.success) {
-        setVideoCodes(result.data || [])
-        setVideoCodesStoreSlug(result.storeSlug || null)
-      }
-    } catch (error) {
-      console.error('Failed to fetch video codes:', error)
-    }
-  }
-
-  // 틱톡 영상번호 storeSlug 조회
-  const fetchTiktokVideoCodes = async () => {
-    try {
-      const response = await fetch('/api/tiktok/video-codes')
-      const result = await response.json()
-      if (result.success) {
-        setTiktokVideoCodesStoreSlug(result.storeSlug || null)
-      }
-    } catch (error) {
-      console.error('Failed to fetch tiktok video codes:', error)
-    }
-  }
-
   // 스마트스토어 전환 데이터 수동 동기화
   const handleSyncSmartstore = async () => {
     setSyncingSmartstore(true)
@@ -518,9 +468,7 @@ export default function ConversionsPage() {
       'meta': { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Meta' },
       'google': { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Google' },
       'kakao': { bg: 'bg-yellow-500/20', text: 'text-yellow-400', label: 'Kakao' },
-      'tiktok': { bg: 'bg-pink-500/20', text: 'text-pink-400', label: 'TikTok' },
       'instagram': { bg: 'bg-pink-500/20', text: 'text-pink-400', label: 'Instagram' },
-      'youtube': { bg: 'bg-red-500/20', text: 'text-red-400', label: 'YouTube' },
       'naver_blog': { bg: 'bg-green-500/20', text: 'text-green-400', label: '블로그' },
     }
     return styles[channelType] || { bg: 'bg-slate-500/20', text: 'text-slate-400', label: channelType }
@@ -536,8 +484,6 @@ export default function ConversionsPage() {
       'naver_search': '/channel_logo/naver_search.png',
       'naver_gfa': '/channel_logo/naver_gfa.png',
       'naver_blog': '/channel_logo/naver_blog.png',
-      'youtube': '/channel_logo/youtube.png',
-      'tiktok': '/channel_logo/tiktok.png',
       'toss': '/channel_logo/toss.png',
       'influencer': '/channel_logo/influencer.png',
       'experience': '/channel_logo/experience.png',
@@ -549,6 +495,10 @@ export default function ConversionsPage() {
   const fetchTrackingLinks = async () => {
     try {
       const response = await fetch('/api/tracking-links')
+      if (!response.ok) {
+        console.error('Failed to fetch tracking links:', response.status)
+        return
+      }
       const result = await response.json()
       if (result.success) {
         setTrackingLinks(result.data || [])
@@ -560,16 +510,48 @@ export default function ConversionsPage() {
     }
   }
 
-  // 사용자 플랜 정보 조회
-  const fetchUserPlan = async () => {
+  // 구독 정보 조회
+  const fetchSubscription = async () => {
     try {
-      const response = await fetch('/api/profile')
-      const result = await response.json()
-      if (result.success && result.data?.plan) {
-        setUserPlan(result.data.plan)
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // 구독 정보 확인
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .maybeSingle()
+
+      if (sub) {
+        setSubscriptionStatus('active')
+      } else {
+        // 무료 체험 기간 계산
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('created_at')
+          .eq('id', user.id)
+          .maybeSingle()
+
+        if (profile) {
+          const createdAt = new Date(profile.created_at)
+          const now = new Date()
+          const diffTime = now.getTime() - createdAt.getTime()
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+          const daysLeft = Math.max(0, 7 - diffDays)
+
+          if (daysLeft > 0) {
+            setSubscriptionStatus('trial')
+            setTrialDaysLeft(daysLeft)
+          } else {
+            setSubscriptionStatus('expired')
+          }
+        }
       }
     } catch (error) {
-      console.error('Failed to fetch user plan:', error)
+      console.error('Failed to fetch subscription:', error)
     }
   }
 
@@ -705,9 +687,7 @@ export default function ConversionsPage() {
     fetchTrackingLinks()
     fetchConnectedData()
     fetchSmartstoreSyncStatus()
-    fetchVideoCodes()
-    fetchTiktokVideoCodes()
-    fetchUserPlan()
+    fetchSubscription()
   }, [])
 
   // 메시지 3초 후 자동 제거
@@ -1047,7 +1027,7 @@ export default function ConversionsPage() {
                       </div>
                       <div className="p-3 rounded-xl bg-slate-800/50 relative">
                         <p className="text-xs text-slate-500">총 전환</p>
-                        {hasBasicPlan ? (
+                        {hasAccess ? (
                           <p className="text-lg font-bold text-emerald-400">
                             {totalConversions.toLocaleString()}
                           </p>
@@ -1057,7 +1037,7 @@ export default function ConversionsPage() {
                       </div>
                       <div className="p-3 rounded-xl bg-slate-800/50 relative">
                         <p className="text-xs text-slate-500">총 매출</p>
-                        {hasBasicPlan ? (
+                        {hasAccess ? (
                           <p className="text-lg font-bold text-blue-400">
                             {totalRevenue.toLocaleString()}
                             <span className="text-sm font-normal text-slate-400">원</span>
@@ -1066,9 +1046,9 @@ export default function ConversionsPage() {
                           <p className="text-lg font-bold text-slate-600">--</p>
                         )}
                       </div>
-                      <div className={`p-3 rounded-xl ${hasBasicPlan ? signal.bg : 'bg-slate-800/50'} border ${hasBasicPlan ? (overallRoas >= 300 ? 'border-emerald-500/30' : overallRoas >= 150 ? 'border-amber-500/30' : 'border-red-500/30') : 'border-slate-700/50'}`}>
+                      <div className={`p-3 rounded-xl ${hasAccess ? signal.bg : 'bg-slate-800/50'} border ${hasAccess ? (overallRoas >= 300 ? 'border-emerald-500/30' : overallRoas >= 150 ? 'border-amber-500/30' : 'border-red-500/30') : 'border-slate-700/50'}`}>
                         <p className="text-xs text-slate-500">전체 ROAS</p>
-                        {hasBasicPlan ? (
+                        {hasAccess ? (
                           <p className={`text-lg font-bold ${signal.text}`}>
                             {overallRoas}%
                             <span className="ml-1">{signal.label.split(' ')[0]}</span>
@@ -1081,26 +1061,26 @@ export default function ConversionsPage() {
                   )
                 })()}
 
-                {/* BASIC 플랜 이상 필요 안내 배너 */}
-                {!hasBasicPlan && (
-                  <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30">
+                {/* 구독 필요 안내 배너 */}
+                {!hasAccess && (
+                  <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/30">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-amber-500/20 rounded-full flex items-center justify-center">
-                          <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center">
+                          <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                           </svg>
                         </div>
                         <div>
-                          <p className="font-medium text-white">전환 · 매출 · ROAS 데이터는 BASIC 플랜부터 확인 가능합니다</p>
-                          <p className="text-sm text-slate-400">광고 효율을 정확히 측정하고 최적화하세요</p>
+                          <p className="font-medium text-white">무료 체험 기간이 만료되었습니다</p>
+                          <p className="text-sm text-slate-400">구독하시면 전환 · 매출 · ROAS 데이터를 확인할 수 있습니다</p>
                         </div>
                       </div>
                       <Link
                         href="/billing"
-                        className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap flex items-center gap-2"
+                        className="px-4 py-2 bg-blue-500 hover:bg-blue-400 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap flex items-center gap-2"
                       >
-                        플랜 업그레이드
+                        구독 시작하기
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                         </svg>
@@ -1186,21 +1166,21 @@ export default function ConversionsPage() {
                             <td className="py-4 text-center text-base text-white px-4">{campaign.total_spend.toLocaleString()}원</td>
                             <td className="py-4 text-center text-base text-white px-4">{campaign.total_clicks.toLocaleString()}</td>
                             <td className="py-4 text-center text-base px-4">
-                              {hasBasicPlan ? (
+                              {hasAccess ? (
                                 <span className="text-emerald-400">{campaign.total_conversions.toLocaleString()}</span>
                               ) : (
                                 <span className="text-slate-600">--</span>
                               )}
                             </td>
                             <td className="py-4 text-center text-base px-4">
-                              {hasBasicPlan ? (
+                              {hasAccess ? (
                                 <span className="text-blue-400">{campaign.total_conversion_value.toLocaleString()}원</span>
                               ) : (
                                 <span className="text-slate-600">--</span>
                               )}
                             </td>
                             <td className="py-4 text-center px-4">
-                              {hasBasicPlan ? (
+                              {hasAccess ? (
                                 <span className={`px-2 py-1 text-sm rounded ${signal.bg} ${signal.text}`}>{campaignRoas}%</span>
                               ) : (
                                 <span className="text-slate-600">--</span>
@@ -1211,7 +1191,7 @@ export default function ConversionsPage() {
                               {/* Meta/Google 광고 AI 분석 버튼 */}
                               {(campaign.channel_type === 'meta' || campaign.channel_type === 'google_ads') && (
                                 <AdAnalysisButton
-                                  platform={campaign.channel_type === 'meta' ? 'meta' : 'youtube'}
+                                  platform={campaign.channel_type === 'meta' ? 'meta' : 'instagram'}
                                   contentType="image"
                                   metaChannelId={campaign.channel_type === 'meta' ? campaign.channel_id : undefined}
                                   metaCampaignId={campaign.channel_type === 'meta' ? campaign.campaign_id : undefined}
@@ -1244,14 +1224,6 @@ export default function ConversionsPage() {
                         const effectiveChannelType = link.channel_type || link.utm_source
                         const channelBadge = getChannelBadgeStyle(effectiveChannelType)
 
-                        // 영상번호 (유튜브 또는 틱톡): video_code가 있고, channel_type이 youtube 또는 tiktok인 경우
-                        const isVideoCode = (link.channel_type === 'youtube' || link.channel_type === 'tiktok') && link.video_code
-                        const matchedVideoCode = isVideoCode
-                          ? { video_code: link.video_code || '', video_title: link.post_name?.replace(/^(쇼츠|틱톡) [A-Z]\d{3} - /, '') || '' }
-                          : null
-                        // 영상번호 URL 경로 (유튜브: /v/, 틱톡: /tt/)
-                        const videoCodePath = link.channel_type === 'tiktok' ? 'tt' : 'v'
-
                         return (
                           <tr key={`link-${link.id}`} className="hover:bg-white/5">
                             <td className="py-4">
@@ -1277,76 +1249,10 @@ export default function ConversionsPage() {
                                       {link.status === 'active' ? '활성' : '비활성'}
                                     </span>
                                   </div>
-                                  {/* 영상번호(유튜브/틱톡)인 경우 코드 + 제목 표시 */}
-                                  {isVideoCode && matchedVideoCode ? (
-                                    <div className="flex items-center gap-2">
-                                      <span className={`font-mono text-lg font-bold ${link.channel_type === 'tiktok' ? 'text-pink-400' : 'text-red-400'}`}>{matchedVideoCode.video_code}</span>
-                                      <span className="text-base text-white truncate max-w-[300px]" title={matchedVideoCode.video_title || ''}>
-                                        {matchedVideoCode.video_title || ''}
-                                      </span>
-                                    </div>
-                                  ) : (
-                                    <span className="text-base text-white truncate max-w-[400px]" title={link.utm_campaign || link.post_name || ''}>
-                                      {link.utm_campaign || link.post_name || ''}
-                                    </span>
-                                  )}
-                                  {/* 영상번호(유튜브/틱톡): 검색 페이지 URL + 상품 URL 표시 (가로) */}
-                                  {isVideoCode && link.store_slug && matchedVideoCode ? (
-                                    <div className="flex items-center gap-6 flex-wrap">
-                                      {/* 검색 페이지 URL */}
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="text-xs text-slate-500 px-1.5 py-0.5 rounded bg-slate-700/50 flex-shrink-0">검색</span>
-                                        <span className="text-sm text-slate-400">
-                                          {typeof window !== 'undefined' ? window.location.origin : ''}/{videoCodePath}/{link.store_slug}
-                                        </span>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/${videoCodePath}/${link.store_slug}`
-                                            copyToClipboard(url, `${link.id}-search`)
-                                          }}
-                                          className="p-1 rounded hover:bg-white/10 transition-colors flex-shrink-0"
-                                          title="검색 페이지 URL 복사"
-                                        >
-                                          {copiedId === `${link.id}-search` ? (
-                                            <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                            </svg>
-                                          ) : (
-                                            <svg className="w-3.5 h-3.5 text-slate-500 hover:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                            </svg>
-                                          )}
-                                        </button>
-                                      </div>
-                                      {/* 상품 URL */}
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="text-xs text-slate-500 px-1.5 py-0.5 rounded bg-slate-700/50 flex-shrink-0">상품</span>
-                                        <span className="text-sm text-slate-400">
-                                          {typeof window !== 'undefined' ? window.location.origin : ''}/{videoCodePath}/{link.store_slug}/{matchedVideoCode.video_code}
-                                        </span>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/${videoCodePath}/${link.store_slug}/${matchedVideoCode.video_code}`
-                                            copyToClipboard(url, `${link.id}-product`)
-                                          }}
-                                          className="p-1 rounded hover:bg-white/10 transition-colors flex-shrink-0"
-                                          title="상품 URL 복사"
-                                        >
-                                          {copiedId === `${link.id}-product` ? (
-                                            <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                            </svg>
-                                          ) : (
-                                            <svg className="w-3.5 h-3.5 text-slate-500 hover:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                            </svg>
-                                          )}
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ) : (link.go_url || link.tracking_url) && (
+                                  <span className="text-base text-white truncate max-w-[400px]" title={link.utm_campaign || link.post_name || ''}>
+                                    {link.utm_campaign || link.post_name || ''}
+                                  </span>
+                                  {(link.go_url || link.tracking_url) && (
                                     <div className="flex items-center gap-2">
                                       <span className="text-sm text-slate-500 truncate max-w-[320px]" title={link.go_url || link.tracking_url}>
                                         {link.go_url || link.tracking_url}
@@ -1387,7 +1293,7 @@ export default function ConversionsPage() {
                             </td>
                             <td className="py-4 text-center text-base text-white px-4">{link.clicks.toLocaleString()}</td>
                             <td className="py-4 text-center px-4">
-                              {hasBasicPlan ? (
+                              {hasAccess ? (
                                 <div className="flex flex-col items-center">
                                   <span className="text-base text-emerald-400">{link.conversions.toLocaleString()}</span>
                                   <span className="text-xs text-slate-500">{conversionRate}%</span>
@@ -1397,14 +1303,14 @@ export default function ConversionsPage() {
                               )}
                             </td>
                             <td className="py-4 text-center text-base px-4">
-                              {hasBasicPlan ? (
+                              {hasAccess ? (
                                 <span className="text-blue-400">{link.revenue.toLocaleString()}원</span>
                               ) : (
                                 <span className="text-slate-600">--</span>
                               )}
                             </td>
                             <td className="py-4 text-center px-4">
-                              {hasBasicPlan ? (
+                              {hasAccess ? (
                                 <button
                                   onClick={() => {
                                     setEditingRoasLink(link)
@@ -1427,18 +1333,16 @@ export default function ConversionsPage() {
                             </td>
                             <td className="py-4 px-4">
                               <div className="flex items-center justify-center gap-1">
-                                {/* AI 분석 버튼 - 인스타그램, 유튜브, Meta 광고 */}
-                                {(effectiveChannelType === 'instagram' || effectiveChannelType === 'youtube' || effectiveChannelType === 'meta') && (
+                                {/* AI 분석 버튼 - 인스타그램, Meta 광고 */}
+                                {(effectiveChannelType === 'instagram' || effectiveChannelType === 'meta') && (
                                   <AdAnalysisButton
-                                    platform={effectiveChannelType as 'instagram' | 'youtube' | 'meta'}
+                                    platform={effectiveChannelType as 'instagram' | 'meta'}
                                     contentType={
-                                      effectiveChannelType === 'youtube' ? 'video' :
                                       effectiveChannelType === 'meta' ? 'image' :
                                       link.thumbnail_url?.includes('carousel') ? 'carousel' :
                                       link.thumbnail_url?.includes('video') || link.thumbnail_url?.includes('reel') ? 'reels' : 'image'
                                     }
                                     imageUrls={link.thumbnail_url ? [link.thumbnail_url] : undefined}
-                                    youtubeUrl={effectiveChannelType === 'youtube' && link.video_code ? `https://www.youtube.com/watch?v=${link.video_code}` : undefined}
                                     metrics={{
                                       impressions: 0,
                                       clicks: link.clicks || 0,
@@ -1806,28 +1710,6 @@ export default function ConversionsPage() {
           </div>
         </div>
       )}
-
-      {/* 유튜브 영상번호 모달 */}
-      <YoutubeVideoCodeModal
-        isOpen={showYoutubeVideoCodeModal}
-        onClose={() => setShowYoutubeVideoCodeModal(false)}
-        onSuccess={() => {
-          setShowYoutubeVideoCodeModal(false)
-          fetchTrackingLinks()
-          fetchVideoCodes()
-        }}
-      />
-
-      {/* 틱톡 영상번호 모달 */}
-      <TiktokVideoCodeModal
-        isOpen={showTiktokVideoCodeModal}
-        onClose={() => setShowTiktokVideoCodeModal(false)}
-        onSuccess={() => {
-          setShowTiktokVideoCodeModal(false)
-          fetchTrackingLinks()
-          fetchTiktokVideoCodes()
-        }}
-      />
 
     </div>
   )

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 export default function BillingPage() {
   const [isSubscribed, setIsSubscribed] = useState(false)
@@ -9,35 +10,45 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
 
-  const MONTHLY_PRICE = 22900
+  const MONTHLY_PRICE = 12900
 
-  // 프로필 및 구독 정보 로드
+  // 구독 정보 로드
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const profileRes = await fetch('/api/profile')
-        const profileData = await profileRes.json()
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
 
-        if (profileData.success && profileData.data) {
-          const plan = profileData.data.plan
-          const createdAt = profileData.data.created_at
+        // 구독 정보 확인
+        const { data: sub } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .maybeSingle()
 
-          if (plan === 'premium' || plan === 'pro' || plan === 'basic') {
-            setIsSubscribed(true)
-          } else {
-            // 무료 체험 기간 계산 (가입일로부터 30일)
-            if (createdAt) {
-              const trialEnd = new Date(createdAt)
-              trialEnd.setDate(trialEnd.getDate() + 30)
-              const now = new Date()
-              const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        if (sub) {
+          setIsSubscribed(true)
+        } else {
+          // 무료 체험 기간 계산 (가입일로부터 7일)
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('created_at')
+            .eq('id', user.id)
+            .maybeSingle()
 
-              if (daysLeft > 0) {
-                setTrialDaysLeft(daysLeft)
-                setTrialEndDate(trialEnd.toLocaleDateString('ko-KR'))
-              } else {
-                setTrialDaysLeft(0)
-              }
+          if (profile?.created_at) {
+            const trialEnd = new Date(profile.created_at)
+            trialEnd.setDate(trialEnd.getDate() + 7)
+            const now = new Date()
+            const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+
+            if (daysLeft > 0) {
+              setTrialDaysLeft(daysLeft)
+              setTrialEndDate(trialEnd.toLocaleDateString('ko-KR'))
+            } else {
+              setTrialDaysLeft(0)
             }
           }
         }

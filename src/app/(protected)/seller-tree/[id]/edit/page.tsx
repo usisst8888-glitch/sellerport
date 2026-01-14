@@ -1460,7 +1460,7 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                                 <div className="flex-1" />
                                 <span className="text-xs text-slate-400">클릭 {vp.clicks}</span>
                                 <button
-                                  onClick={() => router.push(`/conversions?tracking_link_id=${vp.id}`)}
+                                  onClick={() => router.push(`/ad-performance?tracking_link_id=${vp.id}`)}
                                   className="px-2 py-1 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-600/20 rounded transition-colors"
                                 >
                                   상세통계

@@ -279,7 +279,7 @@ export default function SignupPage() {
             <div className="flex items-center justify-center gap-2">
               <span className="text-2xl">🎉</span>
               <div className="text-left">
-                <p className="text-sm font-semibold text-white">30일 무료 체험</p>
+                <p className="text-sm font-semibold text-white">7일 무료 체험</p>
                 <p className="text-xs text-slate-400">가입 즉시 모든 기능을 무료로 이용하세요</p>
               </div>
             </div>
@@ -620,10 +620,10 @@ export default function SignupPage() {
               className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold py-3"
               disabled={loading || !isPhoneVerified || !agreeTerms || !agreePrivacy}
             >
-              {loading ? '처리 중...' : '30일 무료 체험 시작'}
+              {loading ? '처리 중...' : '7일 무료 체험 시작'}
             </Button>
             <p className="text-center text-xs text-slate-500 mt-2">
-              체험 기간 종료 후 월 22,900원으로 계속 이용하세요
+              체험 기간 종료 후 월 12,900원으로 계속 이용하세요
             </p>
           </form>
 

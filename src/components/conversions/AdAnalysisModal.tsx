@@ -6,11 +6,10 @@ import ReactMarkdown from 'react-markdown'
 interface AdAnalysisModalProps {
   isOpen: boolean
   onClose: () => void
-  platform: 'instagram' | 'youtube' | 'meta'
-  contentType: 'image' | 'carousel' | 'reels' | 'video'
+  platform: 'instagram' | 'meta'
+  contentType: 'image' | 'carousel' | 'reels'
   imageUrls?: string[]
   videoUrl?: string
-  youtubeUrl?: string
   // Meta 캠페인 (크리에이티브 동적 로드용)
   metaChannelId?: string
   metaCampaignId?: string
@@ -31,7 +30,7 @@ interface MetaCreative {
   adId: string
   adName: string
   creativeId: string
-  type: 'image' | 'video' | 'carousel'
+  type: 'image' | 'reels' | 'carousel'
   imageUrls: string[]
   videoUrl: string | null
   thumbnailUrl: string | null
@@ -44,7 +43,6 @@ export function AdAnalysisModal({
   contentType: initialContentType,
   imageUrls: initialImageUrls,
   videoUrl: initialVideoUrl,
-  youtubeUrl,
   metaChannelId,
   metaCampaignId,
   metrics,
@@ -111,7 +109,7 @@ export function AdAnalysisModal({
   const selectCreative = (creative: MetaCreative) => {
     setSelectedCreative(creative)
     setContentType(creative.type)
-    if (creative.type === 'video' && creative.videoUrl) {
+    if (creative.type === 'reels' && creative.videoUrl) {
       setVideoUrl(creative.videoUrl)
       setImageUrls(undefined)
     } else {
@@ -135,8 +133,8 @@ export function AdAnalysisModal({
         body: JSON.stringify({
           platform,
           contentType: creative.type,
-          imageUrls: creative.type !== 'video' ? creative.imageUrls : undefined,
-          videoUrl: creative.type === 'video' ? creative.videoUrl : undefined,
+          imageUrls: creative.type !== 'reels' ? creative.imageUrls : undefined,
+          videoUrl: creative.type === 'reels' ? creative.videoUrl : undefined,
           metrics,
           campaignName,
           postName: creative.adName || postName,
@@ -170,7 +168,6 @@ export function AdAnalysisModal({
           contentType,
           imageUrls,
           videoUrl,
-          youtubeUrl,
           metrics,
           campaignName,
           postName,
@@ -193,11 +190,10 @@ export function AdAnalysisModal({
 
   if (!isOpen) return null
 
-  const platformLabel = platform === 'instagram' ? '인스타그램' : platform === 'meta' ? 'Meta 광고' : '유튜브'
+  const platformLabel = platform === 'instagram' ? '인스타그램' : 'Meta 광고'
   const contentTypeLabel =
     contentType === 'carousel' ? '캐러셀' :
-    contentType === 'reels' ? '릴스' :
-    contentType === 'video' ? '영상' : '피드'
+    contentType === 'reels' ? '릴스' : '피드'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -317,8 +313,7 @@ export function AdAnalysisModal({
               </p>
               <p className="mt-1 text-sm text-gray-500">
                 {loadingCreative ? 'Meta API에서 크리에이티브 로드 중' :
-                  platform === 'youtube' ? '영상 다운로드 및 프레임 추출 중...' :
-                  contentType === 'reels' || contentType === 'video' ? '영상 프레임 추출 중...' : '이미지 분석 중...'}
+                  contentType === 'reels' ? '영상 프레임 추출 중...' : '이미지 분석 중...'}
               </p>
             </div>
           )}

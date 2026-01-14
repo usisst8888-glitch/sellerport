@@ -267,7 +267,7 @@ export default function DashboardPage() {
           <p className="text-slate-400 mt-1">광고 효율을 신호등으로 한눈에 확인하세요</p>
         </div>
         <Link
-          href="/conversions"
+          href="/ad-performance"
           className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
         >
           광고 성과 관리
@@ -426,7 +426,7 @@ export default function DashboardPage() {
                 {signalFilter === 'red' && 'ROAS 150% 미만, 즉시 점검이 필요합니다'}
               </p>
             </div>
-            <Link href="/conversions" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+            <Link href="/ad-performance" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
               전체 보기
             </Link>
           </div>
@@ -466,7 +466,7 @@ export default function DashboardPage() {
                   <p className="text-xs text-slate-500">매출</p>
                 </div>
                 {link.trafficLight === 'red' && (
-                  <Link href="/conversions" className="px-3 py-1.5 text-xs font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors">
+                  <Link href="/ad-performance" className="px-3 py-1.5 text-xs font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors">
                     점검하기
                   </Link>
                 )}
@@ -479,7 +479,7 @@ export default function DashboardPage() {
               </div>
               <p className="text-slate-400 mb-2">아직 등록된 추적 링크가 없습니다</p>
               <p className="text-sm text-slate-500 mb-4">추적 링크를 생성하여 광고 효율을 측정하세요</p>
-              <Link href="/conversions" className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors">
+              <Link href="/ad-performance" className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors">
                 추적 링크 만들기
               </Link>
             </div>
@@ -574,7 +574,7 @@ export default function DashboardPage() {
 
               {/* Step 3: 추적 링크 생성 */}
               <Link
-                href="/conversions"
+                href="/ad-performance"
                 className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-200 group ${
                   currentStep === 3 ? 'bg-white/5 hover:bg-white/10' : 'hover:bg-white/5'
                 }`}
@@ -659,7 +659,7 @@ export default function DashboardPage() {
                       <p className="text-sm font-medium text-white truncate">{link.name}</p>
                       <p className="text-xs text-red-400">ROAS {link.roas}% · {link.utm_source}</p>
                     </div>
-                    <Link href="/conversions" className="px-3 py-1.5 text-xs font-medium text-white bg-red-500 hover:bg-red-400 rounded-lg transition-colors">점검</Link>
+                    <Link href="/ad-performance" className="px-3 py-1.5 text-xs font-medium text-white bg-red-500 hover:bg-red-400 rounded-lg transition-colors">점검</Link>
                   </div>
                 ))}
               </div>

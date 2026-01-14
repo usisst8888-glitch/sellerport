@@ -984,46 +984,6 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
             </div>
           </ChannelGuideCard>
 
-          {/* TikTok Ads */}
-          <ChannelGuideCard
-            id="tiktok-ads"
-            icon={
-              <svg viewBox="0 0 24 24" className="w-6 h-6">
-                <path fill="#25F4EE" d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 0115.54 3h-3.09v12.4a2.592 2.592 0 01-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 004.3 1.38V7.3s-1.88.09-3.24-1.48z"/>
-                <path fill="#FE2C55" d="M17.6 6.82s.51.5 0 0A4.278 4.278 0 0116.54 4h-3.09v12.4a2.592 2.592 0 01-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48v-3.16c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7v-5.29a7.35 7.35 0 004.3 1.38V8.3s-1.88.09-3.24-1.48z"/>
-                <path fill="white" d="M17.1 6.32s.51.5 0 0A4.278 4.278 0 0116.04 3.5h-3.09v12.4a2.592 2.592 0 01-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V10.16c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V10.51a7.35 7.35 0 004.3 1.38V8.8s-1.88.09-3.24-1.48z"/>
-              </svg>
-            }
-            title="TikTok Ads (준비중)"
-            description="Marketing API 연동으로 광고 성과 수집"
-            isExpanded={expandedChannel === 'tiktok-ads'}
-            onToggle={() => toggleChannel('tiktok-ads')}
-            onConnect={() => handleConnect('tiktok-ads')}
-          >
-            <div className="space-y-4">
-              <div className="bg-amber-500/10 rounded-lg p-4 border border-amber-500/30">
-                <p className="text-amber-400 font-medium mb-2">API 연동 방식</p>
-                <p className="text-slate-300 text-sm">TikTok Marketing API 인증 정보가 필요합니다.</p>
-              </div>
-              <div className="space-y-3">
-                <StepCard step={1} title="TikTok Ads Manager 접속" description="ads.tiktok.com에 로그인하세요." />
-                <StepCard step={2} title="광고주 ID 확인" description="대시보드 상단에서 Advertiser ID를 확인하세요." />
-                <StepCard step={3} title="TikTok for Developers 접속" description="developers.tiktok.com에서 Marketing API 앱을 생성하세요." />
-                <StepCard step={4} title="API 정보 발급" description="App ID, App Secret, Access Token을 발급받으세요." />
-                <StepCard step={5} title="셀러포트에서 연동" description="빠른 시작 메뉴에서 광고 채널 중 'TikTok Ads'를 선택하고, 광고주 ID와 API 정보를 입력하세요." />
-              </div>
-              <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-                <p className="text-slate-400 font-medium mb-2">입력 정보</p>
-                <ul className="text-slate-300 text-sm space-y-1">
-                  <li>• <strong className="text-white">계정 별칭:</strong> 관리용 이름 (자유 입력)</li>
-                  <li>• <strong className="text-white">광고주 ID:</strong> 숫자 형태의 Advertiser ID</li>
-                  <li>• <strong className="text-white">App ID / App Secret:</strong> TikTok for Developers에서 발급</li>
-                  <li>• <strong className="text-white">Access Token:</strong> Long-term Access Token</li>
-                </ul>
-              </div>
-            </div>
-          </ChannelGuideCard>
-
           {/* 네이버 GFA */}
           <ChannelGuideCard
             id="naver-gfa"

@@ -103,7 +103,7 @@ const menuItems: MenuItem[] = [
   },
   {
     title: '광고 성과 관리',
-    href: '/conversions',
+    href: '/ad-performance',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -252,7 +252,7 @@ export function Sidebar() {
           .select('*')
           .eq('user_id', user.id)
           .eq('status', 'active')
-          .single()
+          .maybeSingle()
 
         if (sub) {
           setSubscription({
@@ -265,14 +265,14 @@ export function Sidebar() {
             .from('profiles')
             .select('created_at')
             .eq('id', user.id)
-            .single()
+            .maybeSingle()
 
           if (profile) {
             const createdAt = new Date(profile.created_at)
             const now = new Date()
             const diffTime = now.getTime() - createdAt.getTime()
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-            const trialDaysLeft = Math.max(0, 30 - diffDays)
+            const trialDaysLeft = Math.max(0, 7 - diffDays)
 
             if (trialDaysLeft > 0) {
               setSubscription({

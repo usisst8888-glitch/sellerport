@@ -4,13 +4,11 @@ import { useState } from 'react'
 import { AdAnalysisModal } from './AdAnalysisModal'
 
 interface AdAnalysisButtonProps {
-  platform: 'instagram' | 'youtube' | 'meta'
-  contentType: 'image' | 'carousel' | 'reels' | 'video'
+  platform: 'instagram' | 'meta'
+  contentType: 'image' | 'carousel' | 'reels'
   // Instagram / Meta
   imageUrls?: string[]
   videoUrl?: string
-  // YouTube
-  youtubeUrl?: string
   // Meta 캠페인 (크리에이티브 동적 로드용)
   metaChannelId?: string
   metaCampaignId?: string
@@ -37,7 +35,6 @@ export function AdAnalysisButton({
   contentType,
   imageUrls,
   videoUrl,
-  youtubeUrl,
   metaChannelId,
   metaCampaignId,
   metrics,
@@ -92,7 +89,6 @@ export function AdAnalysisButton({
           contentType={contentType}
           imageUrls={imageUrls}
           videoUrl={videoUrl}
-          youtubeUrl={youtubeUrl}
           metaChannelId={metaChannelId}
           metaCampaignId={metaCampaignId}
           metrics={metrics}
