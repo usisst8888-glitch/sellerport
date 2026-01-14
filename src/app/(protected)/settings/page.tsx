@@ -28,22 +28,12 @@ interface Balance {
   alertBalance: number
 }
 
-interface AlertSettings {
-  orderAlert: boolean
-  redLightAlert: boolean
-  dailySummary: boolean
-  yellowLightAlert: boolean
-  kakaoEnabled: boolean
-  kakaoPhone: string
-}
-
 
 export default function SettingsPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [balance, setBalance] = useState<Balance>({ slotBalance: 0, alertBalance: 0 })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [savingAlerts, setSavingAlerts] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [subscription, setSubscription] = useState<SubscriptionInfo>({
     status: 'none',
@@ -55,15 +45,6 @@ export default function SettingsPage() {
     businessNumber: '',
     ownerName: '',
     phone: '',
-  })
-
-  const [alertSettings, setAlertSettings] = useState<AlertSettings>({
-    orderAlert: true,
-    redLightAlert: true,
-    dailySummary: true,
-    yellowLightAlert: false,
-    kakaoEnabled: false,
-    kakaoPhone: '',
   })
 
   useEffect(() => {
@@ -154,12 +135,6 @@ export default function SettingsPage() {
           ownerName: profileData.data.ownerName || '',
           phone: profileData.data.phone || '',
         })
-        if (profileData.data.alertSettings) {
-          setAlertSettings({
-            ...alertSettings,
-            ...profileData.data.alertSettings
-          })
-        }
       }
 
       if (balanceData.success) {
@@ -200,33 +175,6 @@ export default function SettingsPage() {
       setMessage({ type: 'error', text: '저장에 실패했습니다' })
     } finally {
       setSaving(false)
-    }
-  }
-
-  const handleSaveAlertSettings = async () => {
-    try {
-      setSavingAlerts(true)
-      setMessage(null)
-
-      const response = await fetch('/api/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ alertSettings })
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        setMessage({ type: 'success', text: '알림 설정이 저장되었습니다' })
-        setTimeout(() => setMessage(null), 3000)
-      } else {
-        setMessage({ type: 'error', text: data.error || '저장에 실패했습니다' })
-      }
-    } catch (error) {
-      console.error('Failed to save alert settings:', error)
-      setMessage({ type: 'error', text: '저장에 실패했습니다' })
-    } finally {
-      setSavingAlerts(false)
     }
   }
 
@@ -304,15 +252,13 @@ export default function SettingsPage() {
             </div>
             <div className="flex items-center justify-between py-7 px-5 bg-slate-800/50 rounded-lg">
               <div>
-                <p className="text-lg text-slate-300">
-                  {subscription.status === 'active' ? '알림톡 잔여' : '남은 기간'}
-                </p>
+                <p className="text-lg text-slate-300">남은 기간</p>
                 <p className="text-sm text-slate-500 mt-1">
-                  {subscription.status === 'active' ? '추가 15원/건' : '무료 체험 기간'}
+                  {subscription.status === 'active' ? '무제한 이용' : '무료 체험 기간'}
                 </p>
               </div>
               {subscription.status === 'active' ? (
-                <p className="text-4xl font-bold text-white">{balance.alertBalance}<span className="text-xl font-normal text-slate-400 ml-1">건</span></p>
+                <p className="text-2xl font-bold text-green-400">무제한</p>
               ) : (
                 <p className={`text-4xl font-bold ${subscription.status === 'trial' ? 'text-white' : 'text-red-400'}`}>
                   {subscription.status === 'trial' ? subscription.trialDaysLeft : 0}
@@ -359,167 +305,63 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* 중단 2열: 사업자 정보 + 카카오 알림톡 설정 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 사업자 정보 */}
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
-          <h2 className="text-base font-semibold text-white mb-4">사업자 정보</h2>
+      {/* 사업자 정보 */}
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
+        <h2 className="text-base font-semibold text-white mb-4">사업자 정보</h2>
 
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="business_name" className="text-xs text-slate-400">상호명</Label>
-                <Input
-                  id="business_name"
-                  placeholder="상호명"
-                  value={formData.businessName}
-                  onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-                  className="h-9 text-sm bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="business_number" className="text-xs text-slate-400">사업자등록번호</Label>
-                <Input
-                  id="business_number"
-                  placeholder="000-00-00000"
-                  value={formData.businessNumber}
-                  onChange={(e) => setFormData({ ...formData, businessNumber: e.target.value })}
-                  className="h-9 text-sm bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
-                />
-              </div>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="business_name" className="text-xs text-slate-400">상호명</Label>
+              <Input
+                id="business_name"
+                placeholder="상호명"
+                value={formData.businessName}
+                onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                className="h-9 text-sm bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
+              />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="owner_name" className="text-xs text-slate-400">대표자명</Label>
-                <Input
-                  id="owner_name"
-                  placeholder="대표자명"
-                  value={formData.ownerName}
-                  onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
-                  className="h-9 text-sm bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="phone" className="text-xs text-slate-400">연락처</Label>
-                <Input
-                  id="phone"
-                  placeholder="010-0000-0000"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="h-9 text-sm bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
-                />
-              </div>
-            </div>
-            <Button
-              onClick={handleSave}
-              disabled={saving || !hasChanges}
-              size="sm"
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50"
-            >
-              {saving ? '저장 중...' : '저장하기'}
-            </Button>
-          </div>
-        </div>
-
-        {/* 카카오 알림톡 설정 */}
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-white flex items-center gap-2">
-              <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-              카카오 알림톡 설정
-            </h2>
-            <p className="text-xs text-slate-500">15원/건</p>
-          </div>
-
-          {/* 알림톡 활성화 및 전화번호 */}
-          <div className="mb-4 p-3 bg-slate-700/50 rounded-lg space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-white">알림톡 발송</p>
-                <p className="text-xs text-slate-500">카카오 알림톡으로 알림 받기</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setAlertSettings({ ...alertSettings, kakaoEnabled: !alertSettings.kakaoEnabled })}
-                className={`relative w-11 h-6 rounded-full transition-colors ${alertSettings.kakaoEnabled ? 'bg-blue-600' : 'bg-slate-600'}`}
-              >
-                <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${alertSettings.kakaoEnabled ? 'left-6' : 'left-1'}`} />
-              </button>
-            </div>
-            {alertSettings.kakaoEnabled && (
-              <div className="space-y-1.5">
-                <Label htmlFor="kakao_phone" className="text-xs text-slate-400">수신 전화번호</Label>
-                <Input
-                  id="kakao_phone"
-                  placeholder="01012345678"
-                  value={alertSettings.kakaoPhone}
-                  onChange={(e) => setAlertSettings({ ...alertSettings, kakaoPhone: e.target.value })}
-                  className="h-9 text-sm bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg border border-red-500/20">
-              <div>
-                <p className="text-sm font-medium text-white flex items-center gap-1">
-                  🔴 빨간불
-                  <span className="px-1 py-0.5 text-[10px] bg-red-500/20 text-red-400 rounded">중요</span>
-                </p>
-                <p className="text-xs text-slate-500">ROAS 150% 미만</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setAlertSettings({ ...alertSettings, redLightAlert: !alertSettings.redLightAlert })}
-                className={`relative w-11 h-6 rounded-full transition-colors ${alertSettings.redLightAlert ? 'bg-red-600' : 'bg-slate-600'}`}
-              >
-                <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${alertSettings.redLightAlert ? 'left-6' : 'left-1'}`} />
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
-              <div>
-                <p className="text-sm font-medium text-white">🟡 노란불</p>
-                <p className="text-xs text-slate-500">ROAS 150-300%</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setAlertSettings({ ...alertSettings, yellowLightAlert: !alertSettings.yellowLightAlert })}
-                className={`relative w-11 h-6 rounded-full transition-colors ${alertSettings.yellowLightAlert ? 'bg-amber-600' : 'bg-slate-600'}`}
-              >
-                <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${alertSettings.yellowLightAlert ? 'left-6' : 'left-1'}`} />
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
-              <div>
-                <p className="text-sm font-medium text-white">일일 요약</p>
-                <p className="text-xs text-slate-500">매일 밤 성과 요약</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setAlertSettings({ ...alertSettings, dailySummary: !alertSettings.dailySummary })}
-                className={`relative w-11 h-6 rounded-full transition-colors ${alertSettings.dailySummary ? 'bg-blue-600' : 'bg-slate-600'}`}
-              >
-                <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${alertSettings.dailySummary ? 'left-6' : 'left-1'}`} />
-              </button>
+            <div className="space-y-1.5">
+              <Label htmlFor="business_number" className="text-xs text-slate-400">사업자등록번호</Label>
+              <Input
+                id="business_number"
+                placeholder="000-00-00000"
+                value={formData.businessNumber}
+                onChange={(e) => setFormData({ ...formData, businessNumber: e.target.value })}
+                className="h-9 text-sm bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
+              />
             </div>
           </div>
-
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-700">
-            <p className="text-xs text-slate-500">알림 설정 저장</p>
-            <Button
-              onClick={handleSaveAlertSettings}
-              disabled={savingAlerts}
-              size="sm"
-              className="bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50"
-            >
-              {savingAlerts ? '저장 중...' : '설정 저장'}
-            </Button>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="owner_name" className="text-xs text-slate-400">대표자명</Label>
+              <Input
+                id="owner_name"
+                placeholder="대표자명"
+                value={formData.ownerName}
+                onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
+                className="h-9 text-sm bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="phone" className="text-xs text-slate-400">연락처</Label>
+              <Input
+                id="phone"
+                placeholder="010-0000-0000"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="h-9 text-sm bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
+              />
+            </div>
           </div>
+          <Button
+            onClick={handleSave}
+            disabled={saving || !hasChanges}
+            size="sm"
+            className="w-full bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50"
+          >
+            {saving ? '저장 중...' : '저장하기'}
+          </Button>
         </div>
       </div>
 

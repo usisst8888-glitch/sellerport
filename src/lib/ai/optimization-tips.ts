@@ -228,9 +228,9 @@ export function generateOptimizationTips(metrics: CampaignMetrics): Optimization
 }
 
 /**
- * 알림톡용 간단 요약 메시지 생성
+ * 간단 요약 메시지 생성
  */
-export function generateAlimtalkSummary(
+export function generateSummaryMessage(
   campaignName: string,
   metrics: CampaignMetrics,
   tips: OptimizationTip[]

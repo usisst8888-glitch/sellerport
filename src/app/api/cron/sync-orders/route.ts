@@ -178,9 +178,6 @@ export async function GET(request: NextRequest) {
               .eq('id', matchedClick.id)
 
             // 캠페인 테이블 삭제됨 - ad_channels로 대체됨
-
-            // 주문 알림 발송
-            await sendOrderAlert(site.user_id, order, profit, supabase)
           }
         }
 
@@ -220,22 +217,4 @@ function parseUtm(inflowPath: string) {
     }
   } catch {}
   return result
-}
-
-async function sendOrderAlert(userId: string, order: any, profit: number, supabase: ReturnType<typeof getSupabaseAdmin>) {
-  try {
-    const { data: settings } = await supabase
-      .from('alert_settings')
-      .select('kakao_enabled, kakao_phone')
-      .eq('user_id', userId)
-      .single()
-
-    if (!settings?.kakao_enabled || !settings?.kakao_phone) return
-
-    // 간단한 주문 알림 (실제로는 알림톡 API 호출)
-    console.log(`[Alert] Order notification for user ${userId}: ${order.productName}, profit: ${profit}`)
-
-  } catch (err) {
-    console.error('[Alert] Send error:', err)
-  }
 }

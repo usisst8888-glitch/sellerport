@@ -17,7 +17,6 @@ export async function GET(request: NextRequest) {
     success: true,
     message: 'AI analysis disabled - campaigns table removed',
     campaigns: 0,
-    alerts: 0,
-    alimtalks: 0
+    alerts: 0
   })
 }
