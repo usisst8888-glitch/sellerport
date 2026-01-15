@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     // mall_id로 연결된 사이트 찾기
     const { data: site, error: siteError } = await supabaseAdmin
-      .from('my_sites')
+      .from('my_shoppingmall')
       .select('id, user_id, site_name')
       .eq('site_type', 'cafe24')
       .eq('store_id', payload.mall_id)

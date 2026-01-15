@@ -22,7 +22,7 @@ interface TrackingLinkData {
     image_url: string | null
     price: number
     site_type: string
-    my_sites?: {
+    my_shoppingmall?: {
       id: string
       site_type: string
       site_name: string
@@ -185,7 +185,7 @@ function BridgeShopPage() {
   // 사이트 타입 결정
   const getPlatformType = (): PlatformType => {
     const siteType = trackingLink?.products?.site_type ||
-                        trackingLink?.products?.my_sites?.site_type
+                        trackingLink?.products?.my_shoppingmall?.site_type
 
     if (siteType === 'naver') return 'naver'
     if (siteType === 'coupang') return 'coupang'
@@ -222,7 +222,7 @@ function BridgeShopPage() {
   const product = trackingLink.products
   const platformType = getPlatformType()
   const theme = platformThemes[platformType]
-  const storeName = product?.my_sites?.site_name || theme.name
+  const storeName = product?.my_shoppingmall?.site_name || theme.name
 
   return (
     <>

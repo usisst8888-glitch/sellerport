@@ -12,7 +12,7 @@ export async function GET() {
     }
 
     const { data: sites, error } = await supabase
-      .from('my_sites')
+      .from('my_shoppingmall')
       .select('id, site_type, site_name, store_id')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })

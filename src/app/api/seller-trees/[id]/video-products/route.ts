@@ -50,8 +50,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
           name,
           image_url,
           price,
-          my_site_id,
-          my_sites (
+          my_shoppingmall_id,
+          my_shoppingmall (
             id,
             site_type,
             site_name
@@ -151,8 +151,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
           id,
           name,
           image_url,
-          my_site_id,
-          my_sites (
+          my_shoppingmall_id,
+          my_shoppingmall (
             id,
             site_type,
             site_name
@@ -164,8 +164,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       if (product) {
         productInfo = product
         thumbnailUrl = product.image_url || thumbnailUrl
-        // my_sites가 배열일 수 있으므로 처리
-        const mySite = Array.isArray(product.my_sites) ? product.my_sites[0] : product.my_sites
+        // my_shoppingmall가 배열일 수 있으므로 처리
+        const mySite = Array.isArray(product.my_shoppingmall) ? product.my_shoppingmall[0] : product.my_shoppingmall
         siteType = mySite?.site_type
       }
     }

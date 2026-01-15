@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     // 사이트 정보 조회
     const { data: site, error: siteError } = await supabase
-      .from('my_sites')
+      .from('my_shoppingmall')
       .select('*')
       .eq('id', siteId)
       .eq('user_id', user.id)

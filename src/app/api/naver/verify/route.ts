@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     // 사이트 정보 조회
     const { data: site, error: siteError } = await supabase
-      .from('my_sites')
+      .from('my_shoppingmall')
       .select('*')
       .eq('id', siteId)
       .eq('user_id', user.id)
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
       // 연동 상태 업데이트
       await supabase
-        .from('my_sites')
+        .from('my_shoppingmall')
         .update({
           status: 'connected',
           last_sync_at: new Date().toISOString()
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       console.error('사용된 Application Secret (앞 10자):', site.application_secret?.substring(0, 10))
 
       await supabase
-        .from('my_sites')
+        .from('my_shoppingmall')
         .update({ status: 'error' })
         .eq('id', siteId)
 

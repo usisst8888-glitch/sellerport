@@ -38,7 +38,7 @@ function InstallCompleteContent() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-blue-400 font-bold">2.</span>
-                내 사이트에서 카페24 쇼핑몰 연결
+                내 쇼핑몰에서 카페24 쇼핑몰 연결
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-blue-400 font-bold">3.</span>

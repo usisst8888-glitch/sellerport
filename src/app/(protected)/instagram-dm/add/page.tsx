@@ -21,7 +21,7 @@ interface Product {
   image_url: string | null
   external_product_id: string
   product_url: string | null
-  my_sites?: {
+  my_shoppingmall?: {
     id: string
     site_type: string
     site_name: string
@@ -101,7 +101,7 @@ export default function InstagramDmAddPage() {
   const [showMediaModal, setShowMediaModal] = useState(false)
   const [loadingMedia, setLoadingMedia] = useState(false)
 
-  // 내 사이트 목록
+  // 내 쇼핑몰 목록
   const [mySites, setMySites] = useState<MySite[]>([])
   const [sellerTrees, setSellerTrees] = useState<SellerTree[]>([])
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null) // null = "사이트 선택 없음"
@@ -192,16 +192,16 @@ export default function InstagramDmAddPage() {
     }
   }, [router, channelIdFromUrl])
 
-  // 내 사이트 목록 불러오기
+  // 내 쇼핑몰 목록 불러오기
   const fetchMySites = useCallback(async () => {
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // 내 사이트 불러오기
+      // 내 쇼핑몰 불러오기
       const { data: sites } = await supabase
-        .from('my_sites')
+        .from('my_shoppingmall')
         .select('id, site_type, site_name, store_id, status')
         .eq('user_id', user.id)
         .eq('status', 'connected')
@@ -229,7 +229,7 @@ export default function InstagramDmAddPage() {
   const fetchProducts = useCallback(async (siteId?: string | null) => {
     setProductsLoading(true)
     try {
-      const url = siteId ? `/api/products?my_site_id=${siteId}` : '/api/products'
+      const url = siteId ? `/api/products?my_shoppingmall_id=${siteId}` : '/api/products'
       const response = await fetch(url)
       const result = await response.json()
       if (result.success && result.data) {
@@ -866,7 +866,7 @@ export default function InstagramDmAddPage() {
                     {/* 사이트 목록 */}
                     {mySites.length > 0 && (
                       <>
-                        <div className="px-3 py-1.5 text-xs text-slate-500 bg-slate-800/50">내 사이트</div>
+                        <div className="px-3 py-1.5 text-xs text-slate-500 bg-slate-800/50">내 쇼핑몰</div>
                         {mySites.map((site) => (
                           <button
                             key={site.id}

@@ -110,7 +110,7 @@ export async function GET() {
     // 설정 상태 확인
     // 1. 사이트 연동 확인
     const { data: mySites } = await supabase
-      .from('my_sites')
+      .from('my_shoppingmall')
       .select('id, status')
       .eq('user_id', user.id)
       .eq('status', 'connected')

@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     // 1. 상품 데이터 가져오기
     const { data: products, error: productsError } = await supabase
       .from('products')
-      .select('id, name, site_type, price, cost, my_sites(site_name)')
+      .select('id, name, site_type, price, cost, my_shoppingmall(site_name)')
       .eq('user_id', user.id)
 
     if (productsError) {
@@ -196,7 +196,7 @@ export async function GET(request: NextRequest) {
       return {
         productId: product.id,
         productName: product.name,
-        platform: (product.my_sites as { site_name?: string } | null)?.site_name || product.site_type,
+        platform: (product.my_shoppingmall as { site_name?: string } | null)?.site_name || product.site_type,
         platformType: product.site_type,
         sellingPrice: product.price,
         cost: product.cost,

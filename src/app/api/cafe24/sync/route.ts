@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     // 사이트 정보 조회
     const { data: site, error: siteError } = await supabase
-      .from('my_sites')
+      .from('my_shoppingmall')
       .select('*')
       .eq('id', siteId)
       .eq('user_id', user.id)
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       try {
         const newToken = await cafe24Client.refreshAccessToken(site.refresh_token)
         await supabase
-          .from('my_sites')
+          .from('my_shoppingmall')
           .update({
             access_token: newToken.access_token,
             refresh_token: newToken.refresh_token,
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
               .from('products')
               .upsert({
                 user_id: user.id,
-                my_site_id: siteId,
+                my_shoppingmall_id: siteId,
                 site_type: 'cafe24',
                 external_product_id: product.product_no.toString(),
                 name: product.product_name,
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
                 image_url: product.detail_image || product.list_image || null,
                 synced_at: new Date().toISOString()
               }, {
-                onConflict: 'my_site_id,external_product_id'
+                onConflict: 'my_shoppingmall_id,external_product_id'
               })
 
             results.products.synced++
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
               const { data: productWithLink } = await supabase
                 .from('products')
                 .select('id')
-                .eq('my_site_id', siteId)
+                .eq('my_shoppingmall_id', siteId)
                 .eq('external_product_id', item.product_no.toString())
                 .single()
 
@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
                 .from('orders')
                 .upsert({
                   user_id: user.id,
-                  my_site_id: siteId,
+                  my_shoppingmall_id: siteId,
                   site_type: 'cafe24',
                   external_order_id: order.order_id,
                   product_order_id: item.order_item_code,
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
                   tracking_link_id: trackingLinkId,
                   synced_at: new Date().toISOString()
                 }, {
-                  onConflict: 'my_site_id,external_order_id,product_order_id'
+                  onConflict: 'my_shoppingmall_id,external_order_id,product_order_id'
                 })
 
               // 추적 링크가 매칭된 경우 전환/매출 업데이트
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
 
     // 마지막 동기화 시간 업데이트
     await supabase
-      .from('my_sites')
+      .from('my_shoppingmall')
       .update({ last_sync_at: new Date().toISOString() })
       .eq('id', siteId)
 

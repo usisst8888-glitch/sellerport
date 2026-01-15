@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     // 사이트 정보 조회
     const { data: site, error: siteError } = await supabase
-      .from('my_sites')
+      .from('my_shoppingmall')
       .select('*')
       .eq('id', siteId)
       .eq('user_id', user.id)
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
         const { error: deleteError } = await supabase
           .from('products')
           .delete()
-          .eq('my_site_id', siteId)
+          .eq('my_shoppingmall_id', siteId)
           .eq('user_id', user.id)
 
         if (deleteError) {
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
               .from('products')
               .upsert({
                 user_id: user.id,
-                my_site_id: siteId,
+                my_shoppingmall_id: siteId,
                 site_type: 'naver',
                 external_product_id: productId,
                 name: channelProduct.name,
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
                 product_url: productUrl,
                 synced_at: new Date().toISOString()
               }, {
-                onConflict: 'my_site_id,external_product_id'
+                onConflict: 'my_shoppingmall_id,external_product_id'
               })
 
             results.products.synced++
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
             const { data: productWithLink } = await supabase
               .from('products')
               .select('id')
-              .eq('my_site_id', siteId)
+              .eq('my_shoppingmall_id', siteId)
               .eq('external_product_id', order.originProductNo?.toString())
               .single()
 
@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
               .from('orders')
               .upsert({
                 user_id: user.id,
-                my_site_id: siteId,
+                my_shoppingmall_id: siteId,
                 site_type: 'naver',
                 external_order_id: order.orderId,
                 product_order_id: order.productOrderId,
@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
                 tracking_link_id: trackingLinkId,
                 synced_at: new Date().toISOString()
               }, {
-                onConflict: 'my_site_id,external_order_id,product_order_id'
+                onConflict: 'my_shoppingmall_id,external_order_id,product_order_id'
               })
 
             // 추적 링크가 매칭된 경우 tracking_links의 전환/매출 업데이트
@@ -264,7 +264,7 @@ export async function POST(request: NextRequest) {
                     // 실제 수수료를 platform_fee에도 저장
                     platform_fee: settlement.totalCommission
                   })
-                  .eq('my_site_id', siteId)
+                  .eq('my_shoppingmall_id', siteId)
                   .eq('product_order_id', settlement.productOrderId)
 
                 results.settlements.synced++
@@ -295,7 +295,7 @@ export async function POST(request: NextRequest) {
         const { data: ordersWithoutSettlement } = await supabase
           .from('orders')
           .select('product_order_id')
-          .eq('my_site_id', siteId)
+          .eq('my_shoppingmall_id', siteId)
           .eq('site_type', 'naver')
           .is('settlement_amount', null)
           .not('product_order_id', 'is', null)
@@ -320,7 +320,7 @@ export async function POST(request: NextRequest) {
                     settlement_synced_at: new Date().toISOString(),
                     platform_fee: settlement.totalCommission
                   })
-                  .eq('my_site_id', siteId)
+                  .eq('my_shoppingmall_id', siteId)
                   .eq('product_order_id', settlement.productOrderId)
 
                 results.settlements.synced++
@@ -338,7 +338,7 @@ export async function POST(request: NextRequest) {
 
     // 마지막 동기화 시간 업데이트
     await supabase
-      .from('my_sites')
+      .from('my_shoppingmall')
       .update({ last_sync_at: new Date().toISOString() })
       .eq('id', siteId)
 

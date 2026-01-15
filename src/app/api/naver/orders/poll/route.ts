@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     // 폴링 대상 사이트 조회
     let query = supabase
-      .from('my_sites')
+      .from('my_shoppingmall')
       .select('id, user_id, application_id, application_secret, last_sync_at')
       .eq('site_type', 'naver')
       .eq('status', 'connected')
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
           // 주문 저장
           const { error: orderError } = await supabase.from('orders').upsert({
             user_id: site.user_id,
-            my_site_id: site.id,
+            my_shoppingmall_id: site.id,
             site_type: 'naver',
             external_order_id: order.orderId,
             product_order_id: order.productOrderId,
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
             ordered_at: order.orderDate,
             synced_at: now.toISOString()
           }, {
-            onConflict: 'my_site_id,external_order_id,product_order_id'
+            onConflict: 'my_shoppingmall_id,external_order_id,product_order_id'
           })
 
           if (!orderError) {
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
 
         // 마지막 동기화 시간 업데이트
         await supabase
-          .from('my_sites')
+          .from('my_shoppingmall')
           .update({ last_sync_at: now.toISOString() })
           .eq('id', site.id)
 

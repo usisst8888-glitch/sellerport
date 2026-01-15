@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
           image_url,
           price,
           site_type,
-          my_sites (
+          my_shoppingmall (
             id,
             site_type,
             site_name

@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       .from('products')
       .select(`
         *,
-        my_sites (
+        my_shoppingmall (
           id,
           site_type,
           site_name,
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
 
     if (siteId) {
-      query = query.eq('my_site_id', siteId)
+      query = query.eq('my_shoppingmall_id', siteId)
     }
 
     if (status) {
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
 
     // 사이트 존재 확인
     const { data: site, error: siteError } = await supabase
-      .from('my_sites')
+      .from('my_shoppingmall')
       .select('id, site_type')
       .eq('id', siteId)
       .eq('user_id', user.id)
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
       .from('products')
       .insert({
         user_id: user.id,
-        my_site_id: siteId,
+        my_shoppingmall_id: siteId,
         site_type: site.site_type,
         external_product_id: externalProductId || `manual_${Date.now()}`,
         name,

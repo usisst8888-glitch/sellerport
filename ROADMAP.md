@@ -464,7 +464,7 @@ instagram_dm_logs (Instagram DM 발송 로그)
 | 전환 추적 (`/conversions`) | ✅ 완료 | 추적 링크 생성, 슬롯 관리 UI |
 | 수익 계산 (`/profit`) | ✅ 완료 | 마진 계산기 UI |
 | 알림 관리 (`/alerts`) | ✅ 완료 | 빨간불/노란불 알림 내역, 알림 설정 |
-| 내 사이트 (`/my-sites`) | ✅ 완료 | 쇼핑몰 등록 (스마트스토어, 카페24, 아임웹) |
+| 내 쇼핑몰 (`/my-shoppingmall`) | ✅ 완료 | 쇼핑몰 등록 (스마트스토어, 카페24, 아임웹) |
 | 광고 채널 (`/ad-channels`) | ✅ 완료 | 광고 채널 등록 (Meta, 네이버블로그, TikTok, YouTube 등) |
 | 디자이너 연결 (`/designers`) | ✅ 완료 | 디자이너 목록, 문의 모달 |
 | 결제 관리 (`/billing`) | ✅ 완료 | 구독 관리, 알림 충전 (15원/건) |
@@ -574,11 +574,11 @@ instagram_dm_logs (Instagram DM 발송 로그)
 
 | 이전 | 이후 |
 |------|------|
-| 빠른시작 (사이트+광고채널 통합) | **내 사이트** + **광고 채널** 분리 |
+| 빠른시작 (사이트+광고채널 통합) | **내 쇼핑몰** + **광고 채널** 분리 |
 | 광고 성과 관리 (연결 상태 카드 포함) | 광고 성과 관리 (성과만 표시) |
 
 **현재 사이드바 메뉴 순서:**
-1. 내 사이트 (`/my-sites`) - 쇼핑몰 등록
+1. 내 쇼핑몰 (`/my-shoppingmall`) - 쇼핑몰 등록
 2. 광고 채널 (`/ad-channels`) - 광고 채널 등록
 3. 셀러트리 (`/seller-tree`) - 영상번호 검색 랜딩
 4. 인스타그램 자동 DM (`/instagram-dm`) - DM 자동발송
@@ -600,7 +600,7 @@ instagram_dm_logs (Instagram DM 발송 로그)
 | 변경 | 파일 |
 |------|------|
 | 삭제 | `/app/(protected)/quick-start/page.tsx` |
-| 신규 | `/app/(protected)/my-sites/page.tsx` |
+| 신규 | `/app/(protected)/my-shoppingmall/page.tsx` |
 | 신규 | `/app/(protected)/ad-channels/page.tsx` |
 | 수정 | `/app/(protected)/conversions/page.tsx` - 연결 상태 카드 섹션 제거 |
 | 수정 | `/components/layout/sidebar.tsx` - 메뉴 순서/뱃지 스타일 변경 |
@@ -972,7 +972,7 @@ K/M 표기법(예: 60K)을 사용하지 않고 전체 숫자로 표시하도록 
 
 | 항목 | 이전 | 이후 |
 |------|------|------|
-| 사이트 선택 라벨 | "판매 사이트 선택" | "내 사이트 선택" |
+| 사이트 선택 라벨 | "판매 사이트 선택" | "내 쇼핑몰 선택" |
 | 트래픽 출처 선택 | 고정 목록 (메타 등) | 광고 채널 선택으로 대체 |
 | 광고 유형 선택 | "paid" / "direct" 선택 | 제거됨 |
 | 채널 선택 방식 | - | "API 연동 채널" / "수동 채널" 버튼 선택 후 드롭다운에서 등록된 채널 선택 |
@@ -1079,18 +1079,18 @@ K/M 표기법(예: 60K)을 사용하지 않고 전체 숫자로 표시하도록 
 
 ---
 
-### platforms → my_sites 리네이밍
+### platforms → my_shoppingmall 리네이밍
 
 #### DB 마이그레이션
 
 | 파일 | 설명 |
 |------|------|
-| `027_rename_platforms_to_my_sites.sql` | platforms → my_sites 테이블 리네이밍 |
+| `027_rename_platforms_to_my_shoppingmall.sql` | platforms → my_shoppingmall 테이블 리네이밍 |
 
 #### 변경된 파일
 
-- `/app/(protected)/platforms/page.tsx` → `/app/(protected)/my-sites/page.tsx`
-- `/components/platforms/naver-connect-dialog.tsx` → `/components/my-sites/naver-connect-dialog.tsx`
+- `/app/(protected)/platforms/page.tsx` → `/app/(protected)/my-shoppingmall/page.tsx`
+- `/components/platforms/naver-connect-dialog.tsx` → `/components/my-shoppingmall/naver-connect-dialog.tsx`
 - 다수 API 파일에서 테이블 참조 변경
 
 ---
@@ -1109,7 +1109,7 @@ K/M 표기법(예: 60K)을 사용하지 않고 전체 숫자로 표시하도록 
 | `/app/api/bridge/tracking-link/route.ts` | API 수정 |
 | `/app/api/conversions/track/route.ts` | API 수정 |
 | `/app/api/cron/sync-orders/route.ts` | 크론잡 수정 |
-| `/app/api/naver/*` | 네이버 API 전체 수정 (my_sites 테이블 참조) |
+| `/app/api/naver/*` | 네이버 API 전체 수정 (my_shoppingmall 테이블 참조) |
 | `/app/api/orders/sync/route.ts` | 주문 동기화 API 수정 |
 | `/app/api/products/*` | 상품 API 수정 |
 | `/app/api/profit/stats/route.ts` | 수익 통계 API 수정 |
@@ -1231,7 +1231,7 @@ YouTube 채널 자동 연동을 위한 Google OAuth 인증 흐름을 구현했�
 
 ---
 
-### 내 사이트 연동 페이지 라벨 수정
+### 내 쇼핑몰 연동 페이지 라벨 수정
 
 외부 마켓플레이스 뱃지 텍스트를 사용자 친화적으로 변경했습니다.
 
@@ -1243,13 +1243,13 @@ YouTube 채널 자동 연동을 위한 Google OAuth 인증 흐름을 구현했�
 
 #### 수정된 파일
 
-- `/app/(protected)/my-sites/page.tsx` - needsBridgeShop 뱃지 텍스트 변경
+- `/app/(protected)/my-shoppingmall/page.tsx` - needsBridgeShop 뱃지 텍스트 변경
 
 ---
 
 ## 변경 사항 (2025-12-14)
 
-### 용어 개선: "플랫폼 연동" → "내 사이트 연동"
+### 용어 개선: "플랫폼 연동" → "내 쇼핑몰 연동"
 
 사용자 친화적인 용어로 변경하여 쇼핑몰, 회원가입 사이트, DB 수집 사이트 등 다양한 유형을 포괄할 수 있도록 개선했습니다.
 
@@ -1257,26 +1257,26 @@ YouTube 채널 자동 연동을 위한 Google OAuth 인증 흐름을 구현했�
 
 | 파일 | 설명 |
 |------|------|
-| `027_rename_platforms_to_my_sites.sql` | platforms → my_sites 테이블 리네이밍, 컬럼명 변경 (platform_type → site_type, platform_name → site_name) |
+| `027_rename_platforms_to_my_shoppingmall.sql` | platforms → my_shoppingmall 테이블 리네이밍, 컬럼명 변경 (platform_type → site_type, platform_name → site_name) |
 
 #### 변경된 파일/폴더
 
 | 항목 | 이전 | 이후 |
 |------|------|------|
-| 페이지 경로 | `/platforms` | `/my-sites` |
-| 컴포넌트 폴더 | `components/platforms/` | `components/my-sites/` |
-| 사이드바 메뉴 | "플랫폼 연동" | "내 사이트" |
-| DB 테이블 | `platforms` | `my_sites` |
+| 페이지 경로 | `/platforms` | `/my-shoppingmall` |
+| 컴포넌트 폴더 | `components/platforms/` | `components/my-shoppingmall/` |
+| 사이드바 메뉴 | "플랫폼 연동" | "내 쇼핑몰" |
+| DB 테이블 | `platforms` | `my_shoppingmall` |
 | 컬럼명 | `platform_id`, `platform_type`, `platform_name` | `my_site_id`, `site_type`, `site_name` |
 
 #### 수정된 API 파일
 
 - `/api/naver/verify/route.ts` - platformId → siteId
-- `/api/naver/sync/route.ts` - platforms → my_sites
+- `/api/naver/sync/route.ts` - platforms → my_shoppingmall
 - `/api/naver/stats/route.ts` - platformId → siteId
-- `/api/naver/test/route.ts` - platforms → my_sites
+- `/api/naver/test/route.ts` - platforms → my_shoppingmall
 - `/api/naver/orders/poll/route.ts` - platforms → sites
-- `/api/dashboard/stats/route.ts` - platforms → my_sites
+- `/api/dashboard/stats/route.ts` - platforms → my_shoppingmall
 - `/api/products/route.ts` - platform_id → my_site_id
 - `/api/orders/sync/route.ts` - platforms → sites
 - `/api/cron/sync-orders/route.ts` - platforms → sites
@@ -1644,7 +1644,7 @@ ad_spend_daily (일별 광고비)
 ### Supabase 설정
 - [x] 프로젝트 생성
 - [x] profiles 테이블 (사용자 프로필 - 회원 정보, 요금제, 약관/개인정보 동의)
-- [x] my_sites 테이블 (내 사이트 - 네이버 스마트스토어, 자체몰, 서비스 사이트 등 연동)
+- [x] my_shoppingmall 테이블 (내 쇼핑몰 - 네이버 스마트스토어, 자체몰, 서비스 사이트 등 연동)
 - [x] orders 테이블 (주문 내역 - 네이버/쿠팡 등 플랫폼 주문 동기화)
 - [x] products 테이블 (상품 목록 - 연동된 플랫폼의 상품 정보)
 - [x] tracking_links 테이블 (추적 링크 - 광고 전환 추적을 위한 UTM 링크)

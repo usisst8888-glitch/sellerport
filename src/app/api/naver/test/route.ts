@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     if (!siteId) {
       // siteId가 없으면 사용자의 네이버 사이트 목록 조회
       const { data: sites } = await supabase
-        .from('my_sites')
+        .from('my_shoppingmall')
         .select('id, site_name, site_type, status, application_id')
         .eq('user_id', user.id)
         .eq('site_type', 'naver')
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 
     // 사이트 정보 조회
     const { data: site, error: siteError } = await supabase
-      .from('my_sites')
+      .from('my_shoppingmall')
       .select('*')
       .eq('id', siteId)
       .eq('user_id', user.id)

@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     // siteCode로 연결된 사이트 찾기
     const { data: site, error: siteError } = await supabaseAdmin
-      .from('my_sites')
+      .from('my_shoppingmall')
       .select('id, user_id, site_name')
       .eq('site_type', 'imweb')
       .eq('store_id', payload.siteCode)
@@ -217,7 +217,7 @@ async function handleAppUninstalled(
 
   // 사이트 상태를 disconnected로 변경
   const { error: updateError } = await supabaseAdmin
-    .from('my_sites')
+    .from('my_shoppingmall')
     .update({
       status: 'disconnected',
       access_token: null,

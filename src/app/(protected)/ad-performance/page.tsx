@@ -44,8 +44,8 @@ interface Product {
   cost: number
   image_url: string | null
   site_type: string
-  my_site_id: string
-  my_sites?: {
+  my_shoppingmall_id: string
+  my_shoppingmall?: {
     id: string
     site_type: string
     site_name: string
@@ -217,7 +217,7 @@ export default function ConversionsPage() {
 
     // 연결된 사이트 조회
     const { data: sites } = await supabase
-      .from('my_sites')
+      .from('my_shoppingmall')
       .select('id, site_type, site_name, store_id, status, last_sync_at')
       .eq('user_id', user.id)
       .in('status', ['connected', 'active', 'pending_verification', 'pending_script'])
@@ -867,7 +867,7 @@ export default function ConversionsPage() {
                   </div>
                 ))}
                 {connectedSites.length > 2 && (
-                  <Link href="/my-sites" className="block text-center text-xs text-slate-400 hover:text-white py-2">
+                  <Link href="/my-shoppingmall" className="block text-center text-xs text-slate-400 hover:text-white py-2">
                     +{connectedSites.length - 2}개 더 보기
                   </Link>
                 )}
@@ -898,7 +898,7 @@ export default function ConversionsPage() {
               <div className="text-center py-4">
                 <p className="text-sm text-slate-400 mb-3">연동된 쇼핑몰이 없습니다</p>
                 <Link
-                  href="/my-sites"
+                  href="/my-shoppingmall"
                   className="inline-block px-4 py-2 text-sm font-medium bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
                 >
                   쇼핑몰 연동하기

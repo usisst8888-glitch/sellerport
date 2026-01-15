@@ -199,7 +199,7 @@ export default function ProductsPage() {
             <h3 className="text-lg font-semibold text-white mb-4">상품 추가</h3>
             <p className="text-slate-400 mb-6">
               상품은 사이트 연동 시 자동으로 동기화됩니다.<br />
-              내 사이트를 먼저 연동해주세요.
+              내 쇼핑몰를 먼저 연동해주세요.
             </p>
             <div className="flex gap-3 justify-end">
               <button
@@ -209,7 +209,7 @@ export default function ProductsPage() {
                 취소
               </button>
               <a
-                href="/my-sites"
+                href="/my-shoppingmall"
                 className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors"
               >
                 사이트 연동하기

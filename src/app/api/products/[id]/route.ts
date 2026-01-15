@@ -28,7 +28,7 @@ export async function GET(
       .from('products')
       .select(`
         *,
-        my_sites (
+        my_shoppingmall (
           id,
           site_type,
           site_name

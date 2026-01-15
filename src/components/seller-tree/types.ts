@@ -42,8 +42,8 @@ export interface Product {
   image_url?: string
   price?: number
   product_url?: string
-  my_site_id?: string
-  my_sites?: {
+  my_shoppingmall_id?: string
+  my_shoppingmall?: {
     id: string
     site_type: string
     site_name: string

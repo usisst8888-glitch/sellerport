@@ -48,8 +48,8 @@ interface Product {
   image_url?: string
   price?: number
   product_url?: string
-  my_site_id?: string
-  my_sites?: {
+  my_shoppingmall_id?: string
+  my_shoppingmall?: {
     id: string
     site_type: string
     site_name: string
@@ -181,7 +181,7 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
       name: string
       image_url?: string
       price?: number
-      my_sites?: {
+      my_shoppingmall?: {
         id: string
         site_type: string
         site_name: string
@@ -283,7 +283,7 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
   // 쇼핑몰 목록 로드
   const loadMySites = async () => {
     try {
-      const response = await fetch('/api/seller-trees/my-sites')
+      const response = await fetch('/api/seller-trees/my-shoppingmall')
       if (response.ok) {
         const data = await response.json()
         setMySites(data.sites || [])
@@ -2447,7 +2447,7 @@ export default function SellerTreeEditPage({ params }: { params: Promise<{ id: s
                   <div className="text-center py-8">
                     <p className="text-slate-400 mb-4">등록된 쇼핑몰이 없습니다</p>
                     <button
-                      onClick={() => router.push('/my-sites')}
+                      onClick={() => router.push('/my-shoppingmall')}
                       className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
                     >
                       쇼핑몰 등록하기

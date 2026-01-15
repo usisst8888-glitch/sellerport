@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     // 동기화할 사이트 목록 조회
     let query = supabase
-      .from('my_sites')
+      .from('my_shoppingmall')
       .select('*')
       .eq('status', 'connected')
       .eq('site_type', 'naver')
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
           const { data: existingOrder } = await supabase
             .from('orders')
             .select('id')
-            .eq('my_site_id', site.id)
+            .eq('my_shoppingmall_id', site.id)
             .eq('external_order_id', order.orderId)
             .eq('product_order_id', order.productOrderId || order.orderId)
             .single()
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
           const { data: product } = await supabase
             .from('products')
             .select('id, cost')
-            .eq('my_site_id', site.id)
+            .eq('my_shoppingmall_id', site.id)
             .eq('external_product_id', String(order.originProductNo))
             .single()
 
@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
             .from('orders')
             .insert({
               user_id: site.user_id,
-              my_site_id: site.id,
+              my_shoppingmall_id: site.id,
               product_id: product?.id || null,
               site_type: 'naver',
               external_order_id: order.orderId,
@@ -255,7 +255,7 @@ export async function POST(request: NextRequest) {
 
         // 사이트 마지막 동기화 시간 업데이트
         await supabase
-          .from('my_sites')
+          .from('my_shoppingmall')
           .update({ last_sync_at: new Date().toISOString() })
           .eq('id', site.id)
 

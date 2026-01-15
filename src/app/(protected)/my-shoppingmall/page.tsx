@@ -46,11 +46,11 @@ export default function MySitesPage() {
 
     if (success === 'cafe24_connected') {
       setMessage({ type: 'success', text: '카페24 쇼핑몰이 연동되었습니다' })
-      window.history.replaceState({}, '', '/my-sites')
+      window.history.replaceState({}, '', '/my-shoppingmall')
       fetchSites()
     } else if (success === 'imweb_connected') {
       setMessage({ type: 'success', text: '아임웹 쇼핑몰이 연동되었습니다' })
-      window.history.replaceState({}, '', '/my-sites')
+      window.history.replaceState({}, '', '/my-shoppingmall')
       fetchSites()
     } else if (error) {
       const errorMessages: Record<string, string> = {
@@ -60,7 +60,7 @@ export default function MySitesPage() {
         'configuration_error': '서버 설정 오류입니다',
       }
       setMessage({ type: 'error', text: errorMessages[error] || error })
-      window.history.replaceState({}, '', '/my-sites')
+      window.history.replaceState({}, '', '/my-shoppingmall')
     }
   }, [searchParams])
 
@@ -81,7 +81,7 @@ export default function MySitesPage() {
       if (!user) return
 
       const { data, error } = await supabase
-        .from('my_sites')
+        .from('my_shoppingmall')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -117,7 +117,7 @@ export default function MySitesPage() {
 
       // 먼저 사이트 등록
       const { data: siteData, error: insertError } = await supabase
-        .from('my_sites')
+        .from('my_shoppingmall')
         .insert({
           user_id: user.id,
           site_type: 'naver',
@@ -147,7 +147,7 @@ export default function MySitesPage() {
 
       if (!verifyRes.ok || !verifyData.success) {
         // 검증 실패 시 삭제
-        await supabase.from('my_sites').delete().eq('id', siteData.id)
+        await supabase.from('my_shoppingmall').delete().eq('id', siteData.id)
         throw new Error(verifyData.error || 'API 인증에 실패했습니다')
       }
 
@@ -169,7 +169,7 @@ export default function MySitesPage() {
 
     try {
       const { error } = await supabase
-        .from('my_sites')
+        .from('my_shoppingmall')
         .delete()
         .eq('id', siteId)
 
@@ -231,7 +231,7 @@ export default function MySitesPage() {
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">내 사이트</h1>
+          <h1 className="text-2xl font-bold text-white">내 쇼핑몰</h1>
           <p className="text-slate-400 text-sm mt-1">판매 중인 쇼핑몰을 등록하세요</p>
         </div>
         <button

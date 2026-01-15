@@ -189,7 +189,7 @@ interface Product {
   site_type: string
   price: number
   cost: number
-  my_sites?: {
+  my_shoppingmall?: {
     site_name: string
   }
 }
@@ -474,7 +474,7 @@ export default function ProfitPage() {
       return {
         id: product.id,
         name: product.name,
-        platform: product.my_sites?.site_name || product.site_type,
+        platform: product.my_shoppingmall?.site_name || product.site_type,
         platformType: product.site_type,
         sellingPrice: product.price,
         cost: product.cost,

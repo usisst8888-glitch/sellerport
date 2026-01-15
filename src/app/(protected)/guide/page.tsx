@@ -172,7 +172,7 @@ function MySitesContent() {
   }
 
   const handleConnect = (siteId: string) => {
-    router.push(`/my-sites`)
+    router.push(`/my-shoppingmall`)
   }
 
   return (
@@ -181,7 +181,7 @@ function MySitesContent() {
         <h2 className="text-xl font-bold text-white mb-4">쇼핑몰 연동이란?</h2>
         <p className="text-slate-300 leading-relaxed">
           셀러포트에서 전환(구매)을 추적하려면 먼저 <span className="text-blue-400 font-semibold">쇼핑몰</span>을 등록해야 합니다.
-          좌측 메뉴의 &apos;내 사이트&apos;에서 스마트스토어, 카페24, 자체몰을 등록하면 해당 쇼핑몰에서 발생하는 주문을 추적할 수 있습니다.
+          좌측 메뉴의 &apos;내 쇼핑몰&apos;에서 스마트스토어, 카페24, 자체몰을 등록하면 해당 쇼핑몰에서 발생하는 주문을 추적할 수 있습니다.
         </p>
       </section>
 

@@ -23,13 +23,13 @@ export async function GET(request: NextRequest) {
     if (error || errorCode) {
       console.error('Imweb auth error:', error || errorCode)
       return NextResponse.redirect(
-        new URL(`/my-sites?error=${encodeURIComponent('아임웹 인증이 취소되었습니다')}`, request.url)
+        new URL(`/my-shoppingmall?error=${encodeURIComponent('아임웹 인증이 취소되었습니다')}`, request.url)
       )
     }
 
     if (!code || !state) {
       return NextResponse.redirect(
-        new URL('/my-sites?error=인증 정보가 없습니다', request.url)
+        new URL('/my-shoppingmall?error=인증 정보가 없습니다', request.url)
       )
     }
 
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       stateData = JSON.parse(Buffer.from(state, 'base64').toString())
     } catch {
       return NextResponse.redirect(
-        new URL('/my-sites?error=잘못된 인증 요청입니다', request.url)
+        new URL('/my-shoppingmall?error=잘못된 인증 요청입니다', request.url)
       )
     }
 
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     // siteCode가 없으면 에러 (아임웹은 siteCode가 필수)
     if (!siteCode) {
       return NextResponse.redirect(
-        new URL('/my-sites?error=사이트 코드가 없습니다', request.url)
+        new URL('/my-shoppingmall?error=사이트 코드가 없습니다', request.url)
       )
     }
 
@@ -73,9 +73,9 @@ export async function GET(request: NextRequest) {
       console.warn('사이트 정보 조회 실패:', e)
     }
 
-    // my_sites에 저장 또는 업데이트
+    // my_shoppingmall에 저장 또는 업데이트
     const { data: existingSite } = await supabase
-      .from('my_sites')
+      .from('my_shoppingmall')
       .select('id')
       .eq('user_id', user_id)
       .eq('site_type', 'imweb')
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
     if (existingSite) {
       // 기존 사이트 업데이트
       await supabase
-        .from('my_sites')
+        .from('my_shoppingmall')
         .update({
           site_name: siteName,
           store_url: siteDomain ? `https://${siteDomain}` : null,
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
     } else {
       // 새 사이트 생성
       await supabase
-        .from('my_sites')
+        .from('my_shoppingmall')
         .insert({
           user_id,
           site_type: 'imweb',
@@ -111,16 +111,16 @@ export async function GET(request: NextRequest) {
         })
     }
 
-    // 성공 시 내 사이트 페이지로 리다이렉트
+    // 성공 시 내 쇼핑몰 페이지로 리다이렉트
     return NextResponse.redirect(
-      new URL(`/my-sites?success=${encodeURIComponent('아임웹 연동이 완료되었습니다')}`, request.url)
+      new URL(`/my-shoppingmall?success=${encodeURIComponent('아임웹 연동이 완료되었습니다')}`, request.url)
     )
 
   } catch (error) {
     console.error('Imweb callback error:', error)
     const errorMessage = error instanceof Error ? error.message : '아임웹 연동에 실패했습니다'
     return NextResponse.redirect(
-      new URL(`/my-sites?error=${encodeURIComponent(errorMessage)}`, request.url)
+      new URL(`/my-shoppingmall?error=${encodeURIComponent(errorMessage)}`, request.url)
     )
   }
 }
