@@ -44,12 +44,11 @@ export async function POST(request: NextRequest) {
       // 현재 잔액 조회
       const { data: currentBalance } = await supabase
         .from('user_balance')
-        .select('slot_balance, alert_balance')
+        .select('slot_balance')
         .eq('user_id', user.id)
         .single()
 
       const slotBalance = currentBalance?.slot_balance || 0
-      const alertBalance = currentBalance?.alert_balance || 0
 
       // 잔액 업데이트
       if (productType === 'slot') {
@@ -58,15 +57,6 @@ export async function POST(request: NextRequest) {
           .upsert({
             user_id: user.id,
             slot_balance: slotBalance + (quantity || Math.floor(amount / 2000)),
-            alert_balance: alertBalance,
-          })
-      } else if (productType === 'alert') {
-        await supabase
-          .from('user_balance')
-          .upsert({
-            user_id: user.id,
-            slot_balance: slotBalance,
-            alert_balance: alertBalance + (quantity || Math.floor(amount / 15)),
           })
       }
 

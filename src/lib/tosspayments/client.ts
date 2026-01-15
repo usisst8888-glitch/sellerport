@@ -1,7 +1,7 @@
 /**
  * 토스페이먼츠 결제 API 클라이언트
  *
- * 슬롯 및 알림 충전을 위한 결제 연동
+ * 슬롯 충전 및 구독 결제를 위한 결제 연동
  * - 카드 결제
  * - 간편결제 (토스페이, 네이버페이, 카카오페이 등)
  * - 가상계좌
@@ -297,14 +297,6 @@ export const Products = {
     type: 'slot' as const,
   }),
 
-  // 알림 충전
-  alerts: (quantity: number) => ({
-    name: `알림톡 ${quantity}건`,
-    amount: quantity * 15,
-    quantity,
-    type: 'alert' as const,
-  }),
-
   // 슬롯 패키지
   slotPackages: {
     starter: { name: '스타터 패키지 (슬롯 10개)', amount: 18000, quantity: 10 },
@@ -312,10 +304,8 @@ export const Products = {
     pro: { name: '프로 패키지 (슬롯 100개)', amount: 150000, quantity: 100 },
   },
 
-  // 알림 패키지
-  alertPackages: {
-    basic: { name: '베이직 (알림 100건)', amount: 1400, quantity: 100 },
-    standard: { name: '스탠다드 (알림 500건)', amount: 6500, quantity: 500 },
-    premium: { name: '프리미엄 (알림 1000건)', amount: 12000, quantity: 1000 },
+  // 구독 상품
+  subscription: {
+    premium: { name: '프리미엄 구독', amount: 12900 },
   },
 }

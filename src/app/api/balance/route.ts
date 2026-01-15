@@ -19,7 +19,7 @@ export async function GET() {
     // 잔액 조회
     const { data: balance, error } = await supabase
       .from('user_balance')
-      .select('slot_balance, alert_balance, updated_at')
+      .select('slot_balance, updated_at')
       .eq('user_id', user.id)
       .single()
 
@@ -36,7 +36,6 @@ export async function GET() {
         .insert({
           user_id: user.id,
           slot_balance: 5, // 무료 슬롯 5개 제공
-          alert_balance: 10, // 무료 알림 10건 제공
         })
         .select()
         .single()
@@ -45,7 +44,6 @@ export async function GET() {
         success: true,
         data: {
           slotBalance: newBalance?.slot_balance || 5,
-          alertBalance: newBalance?.alert_balance || 10,
           isNewUser: true,
         },
       })
@@ -55,7 +53,6 @@ export async function GET() {
       success: true,
       data: {
         slotBalance: balance.slot_balance,
-        alertBalance: balance.alert_balance,
         updatedAt: balance.updated_at,
       },
     })

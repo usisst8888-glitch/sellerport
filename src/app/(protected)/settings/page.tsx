@@ -25,13 +25,12 @@ interface SubscriptionInfo {
 
 interface Balance {
   slotBalance: number
-  alertBalance: number
 }
 
 
 export default function SettingsPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [balance, setBalance] = useState<Balance>({ slotBalance: 0, alertBalance: 0 })
+  const [balance, setBalance] = useState<Balance>({ slotBalance: 0 })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -139,8 +138,7 @@ export default function SettingsPage() {
 
       if (balanceData.success) {
         setBalance({
-          slotBalance: balanceData.data.slotBalance || 0,
-          alertBalance: balanceData.data.alertBalance || 0
+          slotBalance: balanceData.data.slotBalance || 0
         })
       }
     } catch (error) {

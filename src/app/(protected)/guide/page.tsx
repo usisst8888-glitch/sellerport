@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 
-type TabId = 'overview' | 'mysites' | 'tracking' | 'adchannels' | 'instagram-dm' | 'dashboard' | 'profit' | 'alerts' | 'faq'
+type TabId = 'overview' | 'mysites' | 'tracking' | 'adchannels' | 'instagram-dm' | 'dashboard' | 'profit' | 'faq'
 
 interface Tab {
   id: TabId
@@ -76,15 +76,6 @@ const tabs: Tab[] = [
     ),
   },
   {
-    id: 'alerts',
-    title: '알림 설정',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-      </svg>
-    ),
-  },
-  {
     id: 'faq',
     title: '자주 묻는 질문',
     icon: (
@@ -104,7 +95,7 @@ export default function GuidePage() {
     const tab = searchParams.get('tab')
     const channel = searchParams.get('channel')
 
-    if (tab && ['overview', 'mysites', 'tracking', 'adchannels', 'instagram-dm', 'dashboard', 'profit', 'alerts', 'faq'].includes(tab)) {
+    if (tab && ['overview', 'mysites', 'tracking', 'adchannels', 'instagram-dm', 'dashboard', 'profit', 'faq'].includes(tab)) {
       setActiveTab(tab as TabId)
     }
 
@@ -153,7 +144,6 @@ export default function GuidePage() {
           {activeTab === 'instagram-dm' && <InstagramDmContent />}
           {activeTab === 'dashboard' && <DashboardContent />}
           {activeTab === 'profit' && <ProfitContent />}
-          {activeTab === 'alerts' && <AlertsContent />}
           {activeTab === 'faq' && <FAQContent />}
         </div>
       </div>
@@ -410,11 +400,6 @@ function OverviewContent() {
             icon="💰"
             title="자동 수익 계산"
             description="원가, 플랫폼 수수료, 광고비를 반영한 실제 순이익을 자동으로 계산합니다."
-          />
-          <FeatureCard
-            icon="📱"
-            title="카카오 알림톡"
-            description="ROAS 급변, 신호 변경 등 중요 이벤트를 카카오톡으로 바로 받아보세요."
           />
         </div>
       </section>
@@ -1338,78 +1323,6 @@ function ProfitContent() {
   )
 }
 
-function AlertsContent() {
-  return (
-    <div className="space-y-8">
-      <section>
-        <h2 className="text-xl font-bold text-white mb-4">알림 설정</h2>
-        <p className="text-slate-300 leading-relaxed">
-          중요한 이벤트가 발생하면 <span className="text-blue-400 font-semibold">카카오 알림톡</span>으로 바로 알려드립니다.
-          광고 효율이 급격히 변하거나, 신호등 색상이 바뀌면 즉시 대응할 수 있어요.
-        </p>
-      </section>
-
-      <section>
-        <h2 className="text-xl font-bold text-white mb-4">알림 종류</h2>
-        <div className="space-y-3">
-          <AlertTypeCard
-            emoji="🔴"
-            title="빨간불 전환 알림"
-            description="추적 링크가 초록불/노란불에서 빨간불로 바뀌면 알림"
-          />
-          <AlertTypeCard
-            emoji="🟢"
-            title="초록불 전환 알림"
-            description="추적 링크가 빨간불/노란불에서 초록불로 개선되면 알림"
-          />
-          <AlertTypeCard
-            emoji="📉"
-            title="ROAS 급락 알림"
-            description="ROAS가 급격히 하락하면 즉시 알림"
-          />
-          <AlertTypeCard
-            emoji="🤖"
-            title="AI 최적화 추천"
-            description="AI가 분석한 광고 개선 팁을 매일 아침 발송"
-          />
-        </div>
-      </section>
-
-      <section>
-        <h2 className="text-xl font-bold text-white mb-4">알림톡 설정 방법</h2>
-        <div className="space-y-4">
-          <StepCard
-            step={1}
-            title="설정 메뉴 접속"
-            description="좌측 사이드바에서 '설정'을 클릭하세요."
-          />
-          <StepCard
-            step={2}
-            title="알림톡 활성화"
-            description="'카카오 알림톡' 옵션을 켜고, 알림 받을 전화번호를 입력하세요."
-          />
-          <StepCard
-            step={3}
-            title="알림 조건 선택"
-            description="받고 싶은 알림 종류를 선택하세요. 모든 알림을 받거나, 빨간불 알림만 받을 수 있습니다."
-          />
-        </div>
-      </section>
-
-      <section>
-        <h2 className="text-xl font-bold text-white mb-4">알림톡 요금</h2>
-        <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-700/50">
-          <ul className="space-y-2 text-slate-300">
-            <li>• 베이직 요금제: 월 <span className="text-white font-semibold">300건</span> 기본 포함</li>
-            <li>• 프로 요금제: 월 <span className="text-white font-semibold">1,000건</span> 기본 포함</li>
-            <li>• 추가 알림톡: 건당 <span className="text-white font-semibold">15원</span></li>
-          </ul>
-        </div>
-      </section>
-    </div>
-  )
-}
-
 function InstagramDmContent() {
   return (
     <div className="space-y-8">
@@ -1633,10 +1546,6 @@ function FAQContent() {
       answer: '현재는 1추적 링크 = 1상품 구조입니다. 여러 상품을 묶어서 추적하려면 각각 추적 링크를 생성해 주세요.',
     },
     {
-      question: '알림톡이 오지 않아요',
-      answer: '설정에서 알림톡 수신 전화번호가 정확한지 확인해 주세요. 또한 알림톡 잔여 건수가 있는지 결제 관리에서 확인해 주세요.',
-    },
-    {
       question: '구독을 해지하면 데이터는 어떻게 되나요?',
       answer: '구독 해지 후에도 기존 데이터는 30일간 보관됩니다. 재구독하시면 이전 데이터를 그대로 사용할 수 있습니다.',
     },
@@ -1740,14 +1649,3 @@ function MetricCard({ title, formula, description }: { title: string; formula: s
   )
 }
 
-function AlertTypeCard({ emoji, title, description }: { emoji: string; title: string; description: string }) {
-  return (
-    <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-900/50 border border-slate-700/50">
-      <span className="text-2xl">{emoji}</span>
-      <div>
-        <p className="text-white font-medium">{title}</p>
-        <p className="text-slate-400 text-sm">{description}</p>
-      </div>
-    </div>
-  )
-}

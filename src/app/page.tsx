@@ -595,87 +595,6 @@ export default function Home() {
         </section>
         */}
 
-        {/* 카톡 알림 섹션 */}
-        <section className="py-20 bg-slate-900/80 relative">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <p className="text-blue-400 font-semibold mb-3 text-sm uppercase tracking-widest">KakaoTalk Alerts</p>
-              <h3 className="text-3xl sm:text-4xl font-bold mb-4">
-                중요한 건 <span className="bg-gradient-to-r from-yellow-400 to-amber-400 bg-clip-text text-transparent">카톡으로 바로</span> 알려드려요
-              </h3>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* 주문 알림 */}
-              <div className="p-5 rounded-2xl bg-gradient-to-b from-amber-600/10 to-slate-800/50 border border-amber-500/30 hover:border-amber-400/50 transition-all">
-                <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center mb-4">
-                  <span className="text-2xl">🔔</span>
-                </div>
-                <h4 className="font-bold text-amber-400 mb-2">주문 알림</h4>
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  유입경로 + 상품 + 전환 정보 포함 주문 알림
-                </p>
-              </div>
-
-              {/* 빨간불 경고 */}
-              <div className="p-5 rounded-2xl bg-gradient-to-b from-red-600/10 to-slate-800/50 border border-red-500/30 hover:border-red-400/50 transition-all">
-                <div className="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center mb-4">
-                  <span className="text-2xl">🚨</span>
-                </div>
-                <h4 className="font-bold text-red-400 mb-2">빨간불 경고</h4>
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  효율 낮은 광고 즉시 알림으로 광고비 낭비 방지
-                </p>
-              </div>
-
-              {/* 일일 요약 */}
-              <div className="p-5 rounded-2xl bg-gradient-to-b from-blue-600/10 to-slate-800/50 border border-blue-500/30 hover:border-blue-400/50 transition-all">
-                <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-4">
-                  <span className="text-2xl">📊</span>
-                </div>
-                <h4 className="font-bold text-blue-400 mb-2">일일 요약</h4>
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  매일 밤 당일 매출, 광고 성과 리포트 자동 발송
-                </p>
-              </div>
-
-              {/* 주간 리포트 */}
-              <div className="p-5 rounded-2xl bg-gradient-to-b from-violet-600/10 to-slate-800/50 border border-violet-500/30 hover:border-violet-400/50 transition-all">
-                <div className="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center mb-4">
-                  <span className="text-2xl">📈</span>
-                </div>
-                <h4 className="font-bold text-violet-400 mb-2">주간 리포트</h4>
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  주간 성과 요약 및 채널별 비교 분석 리포트
-                </p>
-              </div>
-            </div>
-
-            {/* 카톡 알림 예시 */}
-            <div className="mt-12 flex justify-center">
-              <div className="max-w-sm w-full p-4 rounded-2xl bg-[#FFE812] shadow-xl">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
-                    <span className="text-lg font-bold text-slate-800">S</span>
-                  </div>
-                  <span className="font-bold text-slate-800">셀러포트</span>
-                </div>
-                <div className="bg-white rounded-xl p-4 space-y-2">
-                  <p className="text-slate-800 text-sm font-semibold">🔴 빨간불 알림</p>
-                  <p className="text-slate-600 text-xs leading-relaxed">
-                    [메타 광고 - 겨울 신상] 캠페인의 ROAS가 85%로 하락했습니다.
-                    <br/><br/>
-                    💡 광고비 대비 매출이 낮아요. 소재나 타겟을 점검해보세요!
-                  </p>
-                  <div className="pt-2 border-t border-slate-200">
-                    <p className="text-blue-500 text-xs font-semibold">대시보드에서 확인하기 →</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* 광고 효율 신호등 섹션 */}
         <section className="py-20 bg-slate-900/80 relative">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -908,20 +827,6 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* 카톡 알림 */}
-              <div className="group p-6 rounded-2xl bg-gradient-to-b from-amber-600/20 to-slate-800/50 border border-amber-500/30 hover:border-amber-400 transition-all duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-amber-500/20">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mb-4 shadow-lg shadow-amber-500/30">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
-                </div>
-                <h4 className="text-lg font-bold mb-2 text-amber-400">카카오 알림톡</h4>
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  주문 알림, 일일 요약<br/>
-                  🔴 빨간불 알림 + 주간 리포트
-                </p>
-              </div>
-
               {/* 디자이너 연결 */}
               <div className="group p-6 rounded-2xl bg-gradient-to-b from-cyan-600/20 to-slate-800/50 border border-cyan-500/30 hover:border-cyan-400 transition-all duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-cyan-500/20">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center mb-4 shadow-lg shadow-cyan-500/30">
@@ -1135,56 +1040,27 @@ export default function Home() {
               <p className="text-slate-400 text-lg">비즈니스 규모에 맞는 플랜을 선택하세요</p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* 무료 */}
-              <div className="rounded-2xl p-6 bg-slate-800/50 border border-white/10 hover:border-white/20 transition-all duration-300">
-                <div className="mb-4">
-                  <h4 className="text-lg font-bold text-white">무료</h4>
-                  <p className="text-xs text-slate-400 mt-1">셀러포트를 처음 사용하는 분께</p>
-                </div>
-                <div className="mb-4">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-white">0원</span>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1">알림톡 미포함</p>
-                </div>
-                <ul className="space-y-2 mb-6">
-                  {['추적 링크 3개', '광고 성과 추적', '신호등 시스템', '실시간 대시보드'].map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm">
-                      <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="text-slate-300">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/signup">
-                  <Button className="w-full bg-slate-700 hover:bg-slate-600 text-white">
-                    무료로 시작하기
-                  </Button>
-                </Link>
-              </div>
-
-              {/* 베이직 - 인기 */}
-              <div className="relative rounded-2xl p-6 bg-gradient-to-b from-blue-600/20 to-slate-800/50 border-2 border-blue-500/50 shadow-lg shadow-blue-500/10">
+            <div className="max-w-md mx-auto">
+              {/* 단일 요금제 */}
+              <div className="relative rounded-2xl p-8 bg-gradient-to-b from-blue-600/20 to-slate-800/50 border-2 border-blue-500/50 shadow-lg shadow-blue-500/10">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-blue-500 text-white text-xs font-bold">
-                  인기
+                  7일 무료 체험
                 </div>
-                <div className="mb-4">
-                  <h4 className="text-lg font-bold text-white">베이직</h4>
-                  <p className="text-xs text-slate-400 mt-1">본격적으로 광고 효율을 관리하는 셀러</p>
+                <div className="mb-6 text-center">
+                  <h4 className="text-2xl font-bold text-white">프리미엄</h4>
+                  <p className="text-sm text-slate-400 mt-2">모든 기능을 무제한으로 사용하세요</p>
                 </div>
-                <div className="mb-4">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-white">55,000원</span>
-                    <span className="text-slate-400 text-sm">/월</span>
+                <div className="mb-6 text-center">
+                  <div className="flex items-baseline justify-center gap-1">
+                    <span className="text-5xl font-bold text-white">12,900원</span>
+                    <span className="text-slate-400 text-lg">/월</span>
                   </div>
-                  <p className="text-xs text-emerald-400 mt-1">알림톡 300건 포함</p>
+                  <p className="text-sm text-emerald-400 mt-2">첫 7일 무료 체험 후 결제</p>
                 </div>
-                <ul className="space-y-2 mb-6">
-                  {['무제한 추적 링크', '모든 채널 성과 추적', '🟢🟡🔴 신호등 시스템', '광고 성과 분석', '카톡 알림', '디자이너 연결'].map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm">
-                      <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <ul className="space-y-3 mb-8">
+                  {['무제한 추적 링크', '모든 채널 성과 추적', '🟢🟡🔴 신호등 시스템', '광고 성과 분석', '실시간 대시보드', '멀티 스토어 통합'].map((feature, i) => (
+                    <li key={i} className="flex items-center gap-3 text-base">
+                      <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                       <span className="text-slate-300">{feature}</span>
@@ -1192,74 +1068,15 @@ export default function Home() {
                   ))}
                 </ul>
                 <Link href="/signup">
-                  <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white">
-                    베이직 시작하기
-                  </Button>
-                </Link>
-              </div>
-
-              {/* 프로 */}
-              <div className="rounded-2xl p-6 bg-slate-800/50 border border-white/10 hover:border-white/20 transition-all duration-300">
-                <div className="mb-4">
-                  <h4 className="text-lg font-bold text-white">프로</h4>
-                  <p className="text-xs text-slate-400 mt-1">대규모 광고 운영 및 인플루언서 협업</p>
-                </div>
-                <div className="mb-4">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-white">110,000원</span>
-                    <span className="text-slate-400 text-sm">/월</span>
-                  </div>
-                  <p className="text-xs text-emerald-400 mt-1">알림톡 1,000건 포함</p>
-                </div>
-                <ul className="space-y-2 mb-6">
-                  {['베이직의 모든 기능', '인플루언서 자동 매칭', '채널 URL 전체 공개', '우선 고객 지원', '상세 리포트'].map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm">
-                      <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="text-slate-300">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/signup">
-                  <Button className="w-full bg-slate-700 hover:bg-slate-600 text-white">
-                    프로 시작하기
-                  </Button>
-                </Link>
-              </div>
-
-              {/* 리셀러 파트너 */}
-              <div className="rounded-2xl p-6 bg-gradient-to-b from-violet-600/10 to-slate-800/50 border border-violet-500/30 hover:border-violet-500/50 transition-all duration-300">
-                <div className="mb-4">
-                  <h4 className="text-lg font-bold text-white">리셀러 파트너</h4>
-                  <p className="text-xs text-slate-400 mt-1">화이트라벨 재판매 파트너십</p>
-                </div>
-                <div className="mb-4">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-white">별도 협의</span>
-                  </div>
-                  <p className="text-xs text-violet-400 mt-1">알림톡 협의</p>
-                </div>
-                <ul className="space-y-2 mb-6">
-                  {['화이트라벨 플랫폼 제공', '도매가 구독료', '자체 브랜드 운영', '파트너 대시보드', '수익 정산 시스템', '기술 지원'].map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm">
-                      <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="text-slate-300">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link href="mailto:contact@sellerport.app?subject=리셀러 파트너 문의">
-                  <Button className="w-full bg-violet-600 hover:bg-violet-500 text-white">
-                    파트너 문의
+                  <Button className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white text-lg font-semibold">
+                    무료로 시작하기
                   </Button>
                 </Link>
               </div>
             </div>
 
             <p className="text-center text-slate-500 text-sm mt-8">
-              * 알림톡 초과 시 15원/건으로 추가 충전 가능 · VAT 별도
+              * 7일 무료 체험 후 자동 결제 · VAT 별도
             </p>
           </div>
         </section>

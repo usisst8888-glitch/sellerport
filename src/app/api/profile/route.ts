@@ -30,40 +30,6 @@ export async function GET() {
       return NextResponse.json({ error: '프로필 조회에 실패했습니다' }, { status: 500 })
     }
 
-    // 알림 설정 조회
-    const { data: alertSettingsData } = await supabase
-      .from('alert_settings')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
-
-    const alertSettings = alertSettingsData ? {
-      orderAlert: alertSettingsData.order_alert_enabled ?? true,
-      redLightAlert: alertSettingsData.red_light_enabled ?? true,
-      dailySummary: alertSettingsData.daily_report_enabled ?? false,
-      yellowLightAlert: alertSettingsData.yellow_light_enabled ?? false,
-      kakaoEnabled: alertSettingsData.kakao_enabled ?? false,
-      kakaoPhone: alertSettingsData.kakao_phone || '',
-    } : {
-      orderAlert: true,
-      redLightAlert: true,
-      dailySummary: false,
-      yellowLightAlert: false,
-      kakaoEnabled: false,
-      kakaoPhone: '',
-    }
-
-    // 알리고 설정 조회
-    const aligoSettings = alertSettingsData ? {
-      aligoApiKey: alertSettingsData.aligo_api_key ? '********' : '',
-      aligoUserId: alertSettingsData.aligo_user_id || '',
-      aligoSenderKey: alertSettingsData.aligo_sender_key ? '********' : '',
-    } : {
-      aligoApiKey: '',
-      aligoUserId: '',
-      aligoSenderKey: '',
-    }
-
     // 프로필이 없으면 기본값 반환
     if (!profile) {
       return NextResponse.json({
@@ -81,8 +47,6 @@ export async function GET() {
           approvalStatus: 'approved',
           businessLicenseUrl: null,
           isNewUser: true,
-          alertSettings,
-          aligoSettings
         }
       })
     }
@@ -105,8 +69,6 @@ export async function GET() {
         rejectionReason: profile.rejection_reason,
         createdAt: profile.created_at,
         updatedAt: profile.updated_at,
-        alertSettings,
-        aligoSettings
       }
     })
 
@@ -128,62 +90,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { businessName, businessNumber, ownerName, phone, userType, businessLicenseUrl, alertSettings, aligoSettings } = body
-
-    // 알림 설정 업데이트
-    if (alertSettings) {
-      const alertUpdateData: Record<string, unknown> = {
-        user_id: user.id,
-        updated_at: new Date().toISOString()
-      }
-
-      if (alertSettings.orderAlert !== undefined) alertUpdateData.order_alert_enabled = alertSettings.orderAlert
-      if (alertSettings.redLightAlert !== undefined) alertUpdateData.red_light_enabled = alertSettings.redLightAlert
-      if (alertSettings.dailySummary !== undefined) alertUpdateData.daily_report_enabled = alertSettings.dailySummary
-      if (alertSettings.yellowLightAlert !== undefined) alertUpdateData.yellow_light_enabled = alertSettings.yellowLightAlert
-      if (alertSettings.kakaoEnabled !== undefined) alertUpdateData.kakao_enabled = alertSettings.kakaoEnabled
-      if (alertSettings.kakaoPhone !== undefined) alertUpdateData.kakao_phone = alertSettings.kakaoPhone
-
-      const { error: alertError } = await supabase
-        .from('alert_settings')
-        .upsert(alertUpdateData, { onConflict: 'user_id' })
-
-      if (alertError) {
-        console.error('Alert settings update error:', alertError)
-      }
-
-      return NextResponse.json({ success: true, message: '알림 설정이 저장되었습니다' })
-    }
-
-    // 알리고 설정 업데이트
-    if (aligoSettings) {
-      const aligoUpdateData: Record<string, unknown> = {
-        user_id: user.id,
-        updated_at: new Date().toISOString()
-      }
-
-      // 마스킹된 값(********)은 업데이트하지 않음
-      if (aligoSettings.aligoApiKey && aligoSettings.aligoApiKey !== '********') {
-        aligoUpdateData.aligo_api_key = aligoSettings.aligoApiKey
-      }
-      if (aligoSettings.aligoUserId) {
-        aligoUpdateData.aligo_user_id = aligoSettings.aligoUserId
-      }
-      if (aligoSettings.aligoSenderKey && aligoSettings.aligoSenderKey !== '********') {
-        aligoUpdateData.aligo_sender_key = aligoSettings.aligoSenderKey
-      }
-
-      const { error: aligoError } = await supabase
-        .from('alert_settings')
-        .upsert(aligoUpdateData, { onConflict: 'user_id' })
-
-      if (aligoError) {
-        console.error('Aligo settings update error:', aligoError)
-        return NextResponse.json({ error: '알리고 설정 저장에 실패했습니다' }, { status: 500 })
-      }
-
-      return NextResponse.json({ success: true, message: '알리고 설정이 저장되었습니다' })
-    }
+    const { businessName, businessNumber, ownerName, phone, userType, businessLicenseUrl } = body
 
     // 업데이트할 필드 구성
     const updateData: Record<string, unknown> = {}

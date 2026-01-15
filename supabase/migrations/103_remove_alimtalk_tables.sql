@@ -37,3 +37,12 @@ BEGIN
     ALTER TABLE billing DROP COLUMN alert_credits;
   END IF;
 END $$;
+
+-- user_balance 테이블에서 alert_balance 컬럼 제거 (있는 경우)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+             WHERE table_name = 'user_balance' AND column_name = 'alert_balance') THEN
+    ALTER TABLE user_balance DROP COLUMN alert_balance;
+  END IF;
+END $$;

@@ -16,7 +16,6 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     success: true,
     message: 'AI analysis disabled - campaigns table removed',
-    campaigns: 0,
-    alerts: 0
+    campaigns: 0
   })
 }

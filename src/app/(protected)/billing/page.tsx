@@ -68,7 +68,7 @@ export default function BillingPage() {
     { icon: '🎯', title: 'Meta 광고 연동', desc: '광고비/성과 자동 동기화' },
     { icon: '📤', title: '콘텐츠 발행', desc: '인스타그램 피드/릴스/스토리 발행' },
     { icon: '🔗', title: '무제한 추적 링크', desc: '광고별 유입/전환 추적' },
-    { icon: '🔔', title: '알림 시스템', desc: '빨간불/노란불 카카오톡 알림' },
+    { icon: '🔔', title: '신호등 시스템', desc: '광고 효율 빨간불/노란불 알림' },
   ]
 
   if (loading) {

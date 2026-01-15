@@ -71,7 +71,7 @@ const channelTypeLabels: Record<string, string> = {
   blog: '블로그',
   cafe: '카페/커뮤니티',
   email: '이메일/뉴스레터',
-  sms: 'SMS/알림톡',
+  sms: 'SMS',
   offline: '오프라인 광고',
   etc: '기타',
 }

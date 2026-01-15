@@ -62,26 +62,17 @@ export async function POST(request: NextRequest) {
       // 현재 잔액 조회
       const { data: currentBalance } = await supabase
         .from('user_balance')
-        .select('slot_balance, alert_balance')
+        .select('slot_balance')
         .eq('user_id', user.id)
         .single()
 
-      if (currentBalance) {
-        if (payment.product_type === 'slot') {
-          const slotsToRemove = Math.floor(cancelledAmount / 2000)
-          const newBalance = Math.max(0, currentBalance.slot_balance - slotsToRemove)
-          await supabase
-            .from('user_balance')
-            .update({ slot_balance: newBalance })
-            .eq('user_id', user.id)
-        } else if (payment.product_type === 'alert') {
-          const alertsToRemove = Math.floor(cancelledAmount / 15)
-          const newBalance = Math.max(0, currentBalance.alert_balance - alertsToRemove)
-          await supabase
-            .from('user_balance')
-            .update({ alert_balance: newBalance })
-            .eq('user_id', user.id)
-        }
+      if (currentBalance && payment.product_type === 'slot') {
+        const slotsToRemove = Math.floor(cancelledAmount / 2000)
+        const newBalance = Math.max(0, currentBalance.slot_balance - slotsToRemove)
+        await supabase
+          .from('user_balance')
+          .update({ slot_balance: newBalance })
+          .eq('user_id', user.id)
       }
 
       // 결제 상태 업데이트
