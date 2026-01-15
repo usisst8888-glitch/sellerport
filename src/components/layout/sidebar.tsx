@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -67,29 +68,6 @@ const menuItems: MenuItem[] = [
     badge: '등록',
     badgeColor: 'blue',
   },
-  // 셀러트리 - 현재 숨김 처리
-  // {
-  //   title: '셀러트리',
-  //   href: '/seller-tree',
-  //   icon: (
-  //     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-  //       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-  //     </svg>
-  //   ),
-  //   badge: '무료',
-  //   badgeColor: 'green',
-  // },
-  {
-    title: '인스타그램 자동 DM',
-    href: '/instagram-dm',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-      </svg>
-    ),
-    badge: '무료',
-    badgeColor: 'green',
-  },
   {
     title: '컨텐츠 발행',
     href: '/content-publish',
@@ -98,7 +76,7 @@ const menuItems: MenuItem[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
       </svg>
     ),
-    badge: 'NEW',
+    badge: '등록',
     badgeColor: 'blue',
   },
   {
@@ -110,6 +88,17 @@ const menuItems: MenuItem[] = [
       </svg>
     ),
     badge: '핵심',
+  },
+  {
+    title: '인스타그램 자동 DM',
+    href: '/instagram-dm',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+      </svg>
+    ),
+    badge: '무료',
+    badgeColor: 'green',
   },
 // 수익 계산 메뉴 - 정식 오픈 후 활성화 예정
   // {
@@ -299,13 +288,14 @@ export function Sidebar() {
       <div className="flex flex-col flex-grow bg-slate-900/80 backdrop-blur-xl border-r border-white/5 pt-5 pb-4 overflow-y-auto">
         {/* 로고 */}
         <div className="flex items-center flex-shrink-0 px-5">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
-              <span className="text-white font-bold text-sm">S</span>
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-              셀러포트
-            </span>
+          <Link href="/dashboard" className="flex items-center">
+            <Image
+              src="/logo.png"
+              alt="셀러포트"
+              width={140}
+              height={32}
+              className="h-8 w-auto"
+            />
           </Link>
         </div>
 

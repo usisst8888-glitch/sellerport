@@ -1,7 +1,6 @@
 /**
  * 광고 크리에이티브 분석 API
  * - Instagram: 피드(이미지), 캐러셀(여러 이미지), 릴스(영상)
- * - YouTube: 영상 (yt-dlp로 다운로드)
  *
  * Claude Vision API로 크리에이티브 + 성과 지표 분석
  */

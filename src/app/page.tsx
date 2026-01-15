@@ -1,111 +1,14 @@
 'use client'
 
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
-// 사이트 로고 컴포넌트
-const NaverLogo = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z" fill="#03C75A"/>
-  </svg>
-)
-
-const CoupangLogo = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none">
-    <rect width="100" height="100" rx="16" fill="#E31837"/>
-    <text x="50" y="62" textAnchor="middle" fill="white" fontSize="24" fontWeight="bold" fontFamily="Arial">CPNG</text>
-  </svg>
-)
-
-const Cafe24Logo = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none">
-    <rect width="100" height="100" rx="16" fill="#2A2A2A"/>
-    <text x="50" y="62" textAnchor="middle" fill="white" fontSize="32" fontWeight="bold" fontFamily="Arial">C24</text>
-  </svg>
-)
-
-const ImwebLogo = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none">
-    <rect width="100" height="100" rx="16" fill="#6366F1"/>
-    <text x="50" y="65" textAnchor="middle" fill="white" fontSize="28" fontWeight="bold" fontFamily="Arial">IM</text>
-  </svg>
-)
-
-const GodoLogo = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none">
-    <rect width="100" height="100" rx="16" fill="#FF6B35"/>
-    <text x="50" y="62" textAnchor="middle" fill="white" fontSize="24" fontWeight="bold" fontFamily="Arial">GODO</text>
-  </svg>
-)
-
-const MakeshopLogo = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none">
-    <rect width="100" height="100" rx="16" fill="#E91E63"/>
-    <text x="50" y="62" textAnchor="middle" fill="white" fontSize="20" fontWeight="bold" fontFamily="Arial">MAKE</text>
-  </svg>
-)
-
-const CustomSiteLogo = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none">
-    <rect width="100" height="100" rx="16" fill="#10B981"/>
-    <path d="M30 35h40M30 50h40M30 65h25" stroke="white" strokeWidth="6" strokeLinecap="round"/>
-  </svg>
-)
-
-// 카운터 애니메이션 훅
-function useCountUp(end: number, duration: number = 2000) {
-  const [count, setCount] = useState(0)
-  const [isVisible, setIsVisible] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true)
-        }
-      },
-      { threshold: 0.5 }
-    )
-
-    if (ref.current) {
-      observer.observe(ref.current)
-    }
-
-    return () => observer.disconnect()
-  }, [])
-
-  useEffect(() => {
-    if (!isVisible) return
-
-    let startTime: number
-    const animate = (currentTime: number) => {
-      if (!startTime) startTime = currentTime
-      const progress = Math.min((currentTime - startTime) / duration, 1)
-
-      const easeProgress = 1 - Math.pow(1 - progress, 4)
-      setCount(Math.floor(easeProgress * end))
-
-      if (progress < 1) {
-        requestAnimationFrame(animate)
-      }
-    }
-
-    requestAnimationFrame(animate)
-  }, [isVisible, end, duration])
-
-  return { count, ref }
-}
-
-
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const stat1 = useCountUp(99, 2000)
-  const stat2 = useCountUp(847, 1500)
-  const stat3 = useCountUp(24, 1800)
   const router = useRouter()
 
   // Supabase가 홈으로 리다이렉트할 때 code 파라미터를 감지하여 reset-password로 전달
@@ -189,28 +92,31 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-800 text-white overflow-hidden">
+    <div className="min-h-screen bg-[#0A0F1C] text-white overflow-hidden">
       {/* 헤더 */}
-      <header className="fixed top-0 w-full z-50 border-b border-slate-700/50 bg-slate-800/80 backdrop-blur-xl">
+      <header className="fixed top-0 w-full z-50 border-b border-white/5 bg-[#0A0F1C]/90 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <h1 className="text-xl font-bold text-white flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-violet-600 rounded-lg flex items-center justify-center">
-                <span className="text-sm font-bold">S</span>
-              </div>
-              셀러포트
-            </h1>
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/logo.png"
+                alt="셀러포트"
+                width={140}
+                height={32}
+                className="h-8 w-auto"
+              />
+            </Link>
             <div className="flex items-center gap-3">
               {isLoggedIn ? (
                 <>
                   <Link href="/dashboard">
-                    <Button className="bg-blue-600 text-white hover:bg-blue-500 transition-all duration-200">
+                    <Button className="bg-blue-500 hover:bg-blue-400 text-white font-medium">
                       대시보드
                     </Button>
                   </Link>
                   <Button
                     variant="ghost"
-                    className="text-slate-300 hover:text-white hover:bg-slate-700"
+                    className="text-gray-300 hover:text-white hover:bg-white/10"
                     onClick={handleLogout}
                   >
                     로그아웃
@@ -219,12 +125,12 @@ export default function Home() {
               ) : (
                 <>
                   <Link href="/login">
-                    <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-slate-700">
+                    <Button variant="ghost" className="text-gray-300 hover:text-white hover:bg-white/10">
                       로그인
                     </Button>
                   </Link>
                   <Link href="/signup">
-                    <Button className="bg-blue-600 text-white hover:bg-blue-500 transition-all duration-200">
+                    <Button className="bg-blue-500 hover:bg-blue-400 text-white font-medium">
                       무료로 시작하기
                     </Button>
                   </Link>
@@ -237,945 +143,341 @@ export default function Home() {
 
       {/* 히어로 섹션 */}
       <main className="pt-16">
-        <section className="relative min-h-[90vh] flex items-center">
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-animate" />
-          </div>
+        <section className="relative bg-[#0A0F1C]">
+          {/* 배경 그라데이션 */}
+          <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 via-transparent to-transparent"></div>
+          <div className="absolute top-20 left-1/4 w-96 h-96 bg-blue-500/8 rounded-full blur-3xl"></div>
+          <div className="absolute top-40 right-1/4 w-72 h-72 bg-cyan-500/8 rounded-full blur-3xl"></div>
 
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32 text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-blue-400/40 bg-blue-500/10 backdrop-blur-sm text-sm text-blue-300 mb-8 animate-fade-in hover:bg-blue-500/20 transition-colors cursor-default">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400"></span>
-              </span>
-              모든 온라인 비즈니스를 위한 광고 성과 분석 플랫폼
+          <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+              {/* 왼쪽: 메시지 */}
+              <div className="text-left">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 mb-6">
+                  <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                  <span className="text-blue-300 text-sm font-medium">7일 무료 체험</span>
+                </div>
+
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.1] mb-6">
+                  어떤 콘텐츠가<br/>
+                  <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                    돈 버는지
+                  </span>
+                  <br/>알고 계세요?
+                </h1>
+
+                <p className="text-lg text-gray-400 mb-8 leading-relaxed">
+                  릴스 10개 올렸는데, 주문은 어디서 온 걸까요?<br/>
+                  <span className="text-white">셀러포트가 바로 알려드립니다.</span>
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                  <Link href="/signup">
+                    <Button size="lg" className="bg-blue-500 hover:bg-blue-400 text-white text-lg px-8 h-14 font-semibold rounded-xl shadow-lg shadow-blue-500/25 border-0">
+                      무료로 시작하기
+                    </Button>
+                  </Link>
+                  <Link href="#how-it-works">
+                    <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 h-14 rounded-xl bg-white/5">
+                      어떻게 작동하나요?
+                    </Button>
+                  </Link>
+                </div>
+
+                <div className="flex items-center gap-6 text-sm text-gray-400">
+                  {['스마트스토어', '카페24', '아임웹'].map((platform) => (
+                    <div key={platform} className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center">
+                        <svg className="w-3 h-3 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <span>{platform}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 오른쪽: 데모 미리보기 */}
+              <div className="relative">
+                {/* 배경 글로우 효과 */}
+                <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/15 to-cyan-500/15 rounded-3xl blur-2xl"></div>
+
+                <div className="relative bg-[#111827] rounded-2xl border border-white/10 p-5 shadow-2xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-[#FF5F57]"></div>
+                      <div className="w-3 h-3 rounded-full bg-[#FFBD2E]"></div>
+                      <div className="w-3 h-3 rounded-full bg-[#28CA41]"></div>
+                    </div>
+                    <span className="text-xs text-gray-500 font-medium">콘텐츠별 주문 현황</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-white font-semibold">신상 릴스</p>
+                          <p className="text-sm text-gray-500">3일 전</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-emerald-400 font-bold text-lg">23건</p>
+                        <p className="text-sm text-gray-500">₩1.84M</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-white font-semibold">착샷 피드</p>
+                          <p className="text-sm text-gray-500">1주일 전</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-amber-400 font-bold text-lg">5건</p>
+                        <p className="text-sm text-gray-500">₩400K</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-rose-400 to-red-500 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-white font-semibold">스토리 광고</p>
+                          <p className="text-sm text-gray-500">광고비 ₩50K</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-rose-400 font-bold text-lg">0건</p>
+                        <p className="text-sm text-gray-500">효과없음</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                    <p className="text-blue-300 font-medium text-sm text-center flex items-center justify-center gap-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                      릴스 콘텐츠에 집중하세요!
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 3단계 설명 */}
+        <section id="how-it-works" className="py-20 bg-[#0A0F1C]">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3">
+                3단계로 끝
+              </h2>
+              <p className="text-gray-400 text-lg">복잡한 설정 없이 바로 시작</p>
             </div>
 
-            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6 animate-fade-in-up">
-              <span className="bg-gradient-to-r from-blue-400 via-violet-400 to-purple-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
-                광고 성과 관리
-              </span>
-              부터
-              <br />
-              <span className="bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent">
-                성과 분석
-              </span>
-              까지
-            </h2>
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="relative p-6 rounded-2xl bg-[#111827] border border-white/5 hover:border-blue-500/30 transition-all group">
+                <div className="absolute -top-4 left-6 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg">1</div>
+                <div className="pt-4">
+                  <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-4">
+                    <svg className="w-7 h-7 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">쇼핑몰 연결</h3>
+                  <p className="text-gray-400">스마트스토어, 카페24, 아임웹<br/>클릭 한 번으로 연동 완료</p>
+                </div>
+              </div>
 
-            <p className="text-lg sm:text-xl text-slate-300 mb-10 max-w-3xl mx-auto leading-relaxed animate-fade-in-up animation-delay-200">
-              광고 효율을 <span className="text-green-400 font-semibold">🟢</span><span className="text-yellow-400 font-semibold">🟡</span><span className="text-red-400 font-semibold">🔴</span> 신호등으로 한눈에 파악하고,
-              <br className="hidden sm:block" />
-              모든 채널의 성과를 통합 관리하세요
-            </p>
+              <div className="relative p-6 rounded-2xl bg-[#111827] border border-white/5 hover:border-sky-500/30 transition-all group">
+                <div className="absolute -top-4 left-6 w-8 h-8 bg-sky-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg">2</div>
+                <div className="pt-4">
+                  <div className="w-14 h-14 rounded-2xl bg-sky-500/10 flex items-center justify-center mb-4">
+                    <svg className="w-7 h-7 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">콘텐츠 발행</h3>
+                  <p className="text-gray-400">콘텐츠 등록하면<br/><span className="text-sky-300 font-medium">추적 링크 자동 생성</span></p>
+                </div>
+              </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up animation-delay-400">
+              <div className="relative p-6 rounded-2xl bg-[#111827] border border-white/5 hover:border-cyan-500/30 transition-all group">
+                <div className="absolute -top-4 left-6 w-8 h-8 bg-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg">3</div>
+                <div className="pt-4">
+                  <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 flex items-center justify-center mb-4">
+                    <svg className="w-7 h-7 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">주문 확인</h3>
+                  <p className="text-gray-400">어떤 콘텐츠에서 주문 왔는지<br/>대시보드에서 바로 확인</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 이런 고민 + 요금제 합치기 */}
+        <section className="py-20 bg-[#111827]/50">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              {/* 왼쪽: 고민 */}
+              <div>
+                <h3 className="text-3xl sm:text-4xl font-bold mb-8 text-white">
+                  이런 고민 있으시죠?
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-start gap-4 p-5 rounded-2xl bg-[#111827] border border-white/5">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
+                      <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <p className="text-gray-300 leading-relaxed">
+                      "릴스 10개 올렸는데, <span className="text-blue-300 font-medium">어떤 게 주문으로 이어졌는지</span> 모르겠어요"
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-4 p-5 rounded-2xl bg-[#111827] border border-white/5">
+                    <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center shrink-0">
+                      <svg className="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <p className="text-gray-300 leading-relaxed">
+                      "광고비는 나가는데, <span className="text-sky-300 font-medium">어떤 광고가 효과 있는지</span> 감으로만 판단해요"
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-4 p-5 rounded-2xl bg-[#111827] border border-white/5">
+                    <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center shrink-0">
+                      <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                    </div>
+                    <p className="text-gray-300 leading-relaxed">
+                      "주문은 들어오는데, <span className="text-cyan-300 font-medium">어떤 콘텐츠 덕분인지</span> 알 수가 없어요"
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-8 flex items-center gap-3">
+                  <div className="w-10 h-1 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full"></div>
+                  <p className="text-blue-300 font-semibold">셀러포트가 정확히 알려드립니다</p>
+                </div>
+              </div>
+
+              {/* 오른쪽: 요금제 */}
+              <div className="relative">
+                <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/15 to-cyan-500/15 rounded-3xl blur-2xl"></div>
+                <div className="relative rounded-2xl p-8 bg-[#111827] border border-white/10 shadow-2xl">
+                  <div className="flex items-center justify-between mb-6">
+                    <h4 className="text-2xl font-bold text-white">프리미엄</h4>
+                    <span className="px-4 py-1.5 rounded-full bg-blue-500/15 text-blue-300 text-sm font-bold border border-blue-500/20">
+                      7일 무료
+                    </span>
+                  </div>
+
+                  <div className="flex items-baseline gap-1 mb-6">
+                    <span className="text-5xl font-bold text-white">12,900원</span>
+                    <span className="text-gray-400 text-lg">/월</span>
+                  </div>
+
+                  <div className="space-y-3 mb-6">
+                    {['무제한 추적 링크', '콘텐츠별 주문 추적', '실시간 대시보드', '멀티 쇼핑몰 지원'].map((feature, i) => (
+                      <div key={i} className="flex items-center gap-3 text-gray-300">
+                        <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center">
+                          <svg className="w-3 h-3 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                        {feature}
+                      </div>
+                    ))}
+                  </div>
+
+                  <Link href="/signup">
+                    <Button className="w-full py-4 bg-blue-500 hover:bg-blue-400 text-white text-lg font-semibold rounded-xl shadow-lg shadow-blue-500/25 border-0">
+                      무료로 시작하기
+                    </Button>
+                  </Link>
+                  <p className="text-center text-sm text-gray-500 mt-4">카드 등록 없이 바로 시작</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 간단한 CTA */}
+        <section className="py-20 bg-[#0A0F1C] relative overflow-hidden">
+          {/* 배경 효과 */}
+          <div className="absolute inset-0">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-blue-500/15 rounded-full blur-[100px]"></div>
+            <div className="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[200px] bg-cyan-500/10 rounded-full blur-[80px]"></div>
+          </div>
+
+          <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center">
+              <h3 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+                어떤 콘텐츠가 돈 버는지,<br className="sm:hidden" /> 지금 확인하세요
+              </h3>
+              <p className="text-gray-400 text-lg mb-8">7일 무료 체험으로 바로 시작</p>
               <Link href="/signup">
-                <Button size="lg" className="bg-blue-600 text-white hover:bg-blue-500 text-lg px-8 h-14 w-full sm:w-auto transition-all duration-200">
+                <Button size="lg" className="bg-blue-500 hover:bg-blue-400 text-white font-bold px-12 h-14 text-lg rounded-xl shadow-lg shadow-blue-500/25 border-0">
                   무료로 시작하기
                 </Button>
               </Link>
-              <Link href="#features">
-                <Button size="lg" variant="outline" className="border-white/30 bg-white/10 text-white hover:bg-white/20 text-lg px-8 h-14 w-full sm:w-auto transition-all duration-200">
-                  기능 살펴보기
-                </Button>
-              </Link>
             </div>
-
-            {/* 핵심 가치 플로우 */}
-            <div className="mt-16 p-6 rounded-2xl bg-slate-900/50 border border-slate-700/50 max-w-4xl mx-auto animate-fade-in-up animation-delay-600">
-              <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 text-sm sm:text-base">
-                <span className="px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-300">광고 집행</span>
-                <span className="text-slate-500">→</span>
-                <span className="px-3 py-1.5 rounded-lg bg-violet-500/20 text-violet-300">성과 추적</span>
-                <span className="text-slate-500">→</span>
-                <span className="px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-300">데이터 수집</span>
-                <span className="text-slate-500">→</span>
-                <span className="px-3 py-1.5 rounded-lg bg-pink-500/20 text-pink-300">성과 분석</span>
-                <span className="text-slate-500">→</span>
-                <span className="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300">신호등 알림</span>
-                <span className="text-slate-500">→</span>
-                <span className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-300 font-semibold">광고 최적화</span>
-              </div>
-            </div>
-
-            {/* 핵심 수치 */}
-            <div className="grid grid-cols-3 gap-8 mt-16 pt-12 border-t border-slate-700/50 max-w-3xl mx-auto animate-fade-in-up animation-delay-600">
-              <div className="group" ref={stat1.ref}>
-                <p className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent transition-transform duration-300 group-hover:scale-110">
-                  {stat1.count}.9%
-                </p>
-                <p className="text-sm text-slate-400 mt-2">서비스 안정성</p>
-              </div>
-              <div className="group" ref={stat2.ref}>
-                <p className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent transition-transform duration-300 group-hover:scale-110">
-                  {stat2.count}+
-                </p>
-                <p className="text-sm text-slate-400 mt-2">가입자 수</p>
-              </div>
-              <div className="group" ref={stat3.ref}>
-                <p className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent transition-transform duration-300 group-hover:scale-110">
-                  {stat3.count}/7
-                </p>
-                <p className="text-sm text-slate-400 mt-2">실시간 모니터링</p>
-              </div>
-            </div>
-
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-              <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-              </svg>
-            </div>
-          </div>
-        </section>
-
-        {/* 문제 공감 섹션 */}
-        <section className="py-20 bg-slate-900/80 relative">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <p className="text-blue-400 font-semibold mb-3 text-sm uppercase tracking-widest">Pain Points</p>
-              <h3 className="text-3xl sm:text-4xl font-bold mb-4">
-                이런 경험 <span className="bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent">있으시죠?</span>
-              </h3>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[
-                { icon: '📱', text: '인스타 열심히 올리는데 뭐가 효과 있는지 모름' },
-                { icon: '💸', text: '광고비는 나가는데 매출이랑 연결이 안 됨' },
-                { icon: '🤝', text: '인플루언서한테 협찬 줬는데 효과가 있었는지 모름' },
-                { icon: '📊', text: '엑셀로 정리하다가 포기' },
-                { icon: '📋', text: '대행사 보고서 믿는 수밖에 없음' },
-                { icon: '🧮', text: '매출 100만원인데 실제로 얼마 남았지?' },
-              ].map((item, index) => (
-                <div
-                  key={index}
-                  className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-red-500/30 transition-all duration-300 flex items-start gap-3"
-                >
-                  <span className="text-2xl">{item.icon}</span>
-                  <p className="text-slate-300 text-sm leading-relaxed">{item.text}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-12 text-center">
-              <p className="text-xl text-slate-400">
-                이제 <span className="text-blue-400 font-semibold">셀러포트</span>로 해결하세요
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* 타겟별 케이스 섹션 */}
-        <section className="py-20 bg-slate-800 relative">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <p className="text-blue-400 font-semibold mb-3 text-sm uppercase tracking-widest">Use Cases</p>
-              <h3 className="text-3xl sm:text-4xl font-bold mb-4">
-                이렇게 <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">해결했어요</span>
-              </h3>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6">
-              {/* 케이스 A */}
-              <div className="p-6 rounded-2xl bg-gradient-to-b from-blue-600/10 to-slate-800/50 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-300">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                    <span className="text-xl">📱</span>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white">인스타 운영 초보 셀러</h4>
-                    <p className="text-xs text-slate-400">SNS 마케팅</p>
-                  </div>
-                </div>
-
-                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                  <p className="text-sm text-red-300">
-                    <span className="font-semibold">문제:</span> "주문 들어왔는데 어떤 게시물 보고 온 건지 모름"
-                  </p>
-                </div>
-
-                <div className="mb-4 p-3 rounded-lg bg-slate-900/50 space-y-2">
-                  <p className="text-xs text-slate-500 mb-2">셀러포트 분석 결과</p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-300">릴스 A</span>
-                    <span className="text-sm text-emerald-400 font-bold">주문 12건</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-300">착샷 게시물</span>
-                    <span className="text-sm text-yellow-400 font-bold">주문 2건</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-300">스토리</span>
-                    <span className="text-sm text-red-400 font-bold">주문 0건</span>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                  <p className="text-sm text-emerald-300">
-                    <span className="font-semibold">결론:</span> "아, 릴스가 진짜 효과 있네. 릴스 더 만들어야겠다"
-                  </p>
-                </div>
-              </div>
-
-              {/* 케이스 B */}
-              <div className="p-6 rounded-2xl bg-gradient-to-b from-violet-600/10 to-slate-800/50 border border-violet-500/30 hover:border-violet-400/50 transition-all duration-300">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-violet-500/20 flex items-center justify-center">
-                    <span className="text-xl">💰</span>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white">광고비 쓰는 셀러</h4>
-                    <p className="text-xs text-slate-400">유료 광고</p>
-                  </div>
-                </div>
-
-                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                  <p className="text-sm text-red-300">
-                    <span className="font-semibold">문제:</span> "여기저기 광고하는데 뭐가 효과인지 모름"
-                  </p>
-                </div>
-
-                <div className="mb-4 p-3 rounded-lg bg-slate-900/50 space-y-2">
-                  <p className="text-xs text-slate-500 mb-2">셀러포트 분석 결과</p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-300">네이버 광고</span>
-                    <span className="text-sm text-emerald-400 font-bold">ROAS 320% 🟢</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-300">카카오 광고</span>
-                    <span className="text-sm text-red-400 font-bold">ROAS 85% 🔴</span>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                  <p className="text-sm text-emerald-300">
-                    <span className="font-semibold">결론:</span> "네이버에 예산 집중하자!"
-                  </p>
-                </div>
-              </div>
-
-              {/* 케이스 C */}
-              <div className="p-6 rounded-2xl bg-gradient-to-b from-pink-600/10 to-slate-800/50 border border-pink-500/30 hover:border-pink-400/50 transition-all duration-300">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center">
-                    <span className="text-xl">🤝</span>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white">인플루언서 협찬 셀러</h4>
-                    <p className="text-xs text-slate-400">협찬 마케팅</p>
-                  </div>
-                </div>
-
-                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                  <p className="text-sm text-red-300">
-                    <span className="font-semibold">문제:</span> "협찬비 50만원 줬는데 효과 있었나?"
-                  </p>
-                </div>
-
-                <div className="mb-4 p-3 rounded-lg bg-slate-900/50 space-y-2">
-                  <p className="text-xs text-slate-500 mb-2">셀러포트 분석 결과</p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-300">인플루언서 A</span>
-                    <span className="text-sm text-red-400 font-bold">50만원 → 매출 12만원</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-300">인플루언서 B</span>
-                    <span className="text-sm text-emerald-400 font-bold">30만원 → 매출 89만원</span>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                  <p className="text-sm text-emerald-300">
-                    <span className="font-semibold">결론:</span> "B한테 더 줘야겠네"
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 마진/세금 자동 계산 섹션 - 정식 오픈 후 활성화 예정 */}
-        {/*
-        <section className="py-20 bg-slate-900/80 relative">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <p className="text-blue-400 font-semibold mb-3 text-sm uppercase tracking-widest">Profit Calculator</p>
-              <h3 className="text-3xl sm:text-4xl font-bold mb-4">
-                진짜 남는 돈, <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">자동으로 계산</span>해드려요
-              </h3>
-              <p className="text-slate-400 text-lg">
-                "매출 100만원인데 실제로 얼마 남았지?" → 바로 확인 가능
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-8 items-center">
-              <div className="space-y-6">
-                <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-emerald-500/30 transition-all">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
-                    <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white mb-1">플랫폼 수수료 자동 반영</h4>
-                    <p className="text-slate-400 text-sm">네이버 정산 API 연동으로 실제 수수료 자동 계산</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-violet-500/30 transition-all">
-                  <div className="w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center shrink-0">
-                    <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white mb-1">순이익 자동 계산</h4>
-                    <p className="text-slate-400 text-sm">원가, 배송비, 광고비 → 순이익까지 자동 계산</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-pink-500/30 transition-all">
-                  <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center shrink-0">
-                    <svg className="w-5 h-5 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white mb-1">세금 예상 금액까지</h4>
-                    <p className="text-slate-400 text-sm">부가세, 종소세 예상 금액 미리 확인</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6 rounded-2xl bg-slate-800/80 border border-slate-700/50">
-                <div className="text-center mb-6">
-                  <p className="text-slate-500 text-xs mb-2">이번 달 매출</p>
-                  <p className="text-4xl font-bold text-white">₩3,500,000</p>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center py-2 border-b border-slate-700/30">
-                    <span className="text-slate-400 text-sm">원가</span>
-                    <span className="text-red-400 text-sm">-₩1,400,000</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-700/30">
-                    <span className="text-slate-400 text-sm">플랫폼 수수료</span>
-                    <span className="text-red-400 text-sm">-₩385,000</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-700/30">
-                    <span className="text-slate-400 text-sm">배송비</span>
-                    <span className="text-red-400 text-sm">-₩180,000</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-700/30">
-                    <span className="text-slate-400 text-sm">광고비</span>
-                    <span className="text-red-400 text-sm">-₩450,000</span>
-                  </div>
-                </div>
-
-                <div className="mt-6 pt-4 border-t-2 border-emerald-500/30">
-                  <div className="flex justify-between items-center">
-                    <span className="text-white font-semibold">실제 순수익</span>
-                    <span className="text-2xl font-bold text-emerald-400">₩1,085,000</span>
-                  </div>
-                  <div className="flex justify-between items-center mt-2">
-                    <span className="text-slate-500 text-xs">순이익률</span>
-                    <span className="text-emerald-400 text-sm font-semibold">31%</span>
-                  </div>
-                </div>
-
-                <div className="mt-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                  <p className="text-xs text-blue-300">
-                    💡 예상 부가세: ₩108,500 / 예상 종소세: ₩65,100
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-        */}
-
-        {/* 광고 효율 신호등 섹션 */}
-        <section className="py-20 bg-slate-900/80 relative">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <p className="text-blue-400 font-semibold mb-3 text-sm uppercase tracking-widest">Traffic Light System</p>
-              <h3 className="text-3xl sm:text-4xl font-bold mb-4">
-                광고 효율을 <span className="bg-gradient-to-r from-green-400 via-yellow-400 to-red-400 bg-clip-text text-transparent">신호등</span>으로 한눈에
-              </h3>
-              <p className="text-slate-400 text-lg">
-                복잡한 ROAS 계산 필요 없이, 색상만 보면 됩니다
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6">
-              {/* 초록불 */}
-              <div className="p-6 rounded-2xl bg-gradient-to-b from-green-600/20 to-slate-800/50 border border-green-500/30 hover:border-green-400/50 transition-all duration-300">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/50">
-                    <span className="text-2xl">🟢</span>
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-bold text-green-400">초록불</h4>
-                    <p className="text-sm text-slate-400">ROAS 300% 이상</p>
-                  </div>
-                </div>
-                <p className="text-slate-300 text-sm leading-relaxed">
-                  "이 광고 효율 좋아요!<br/>예산 늘려보세요"
-                </p>
-              </div>
-
-              {/* 노란불 */}
-              <div className="p-6 rounded-2xl bg-gradient-to-b from-yellow-600/20 to-slate-800/50 border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-300">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-yellow-500 flex items-center justify-center shadow-lg shadow-yellow-500/50">
-                    <span className="text-2xl">🟡</span>
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-bold text-yellow-400">노란불</h4>
-                    <p className="text-sm text-slate-400">ROAS 150-300%</p>
-                  </div>
-                </div>
-                <p className="text-slate-300 text-sm leading-relaxed">
-                  "보통이에요.<br/>소재나 타겟 점검 필요"
-                </p>
-              </div>
-
-              {/* 빨간불 */}
-              <div className="p-6 rounded-2xl bg-gradient-to-b from-red-600/20 to-slate-800/50 border border-red-500/30 hover:border-red-400/50 transition-all duration-300">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/50">
-                    <span className="text-2xl">🔴</span>
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-bold text-red-400">빨간불</h4>
-                    <p className="text-sm text-slate-400">ROAS 150% 미만</p>
-                  </div>
-                </div>
-                <p className="text-slate-300 text-sm leading-relaxed">
-                  "효율 낮아요!<br/>중단 또는 수정 권장 + 즉시 카톡 알림"
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 핵심 차별화 - 경쟁사 비교 */}
-        <section className="py-20 bg-slate-800 relative">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <p className="text-blue-400 font-semibold mb-3 text-sm uppercase tracking-widest">Why SellerPort</p>
-              <h3 className="text-3xl sm:text-4xl font-bold mb-4">
-                셀러포트만의 <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">차별화</span>
-              </h3>
-              <p className="text-slate-400">다른 서비스와 비교해보세요</p>
-            </div>
-
-            <div className="overflow-x-auto">
-              <div className="overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/50 backdrop-blur-sm min-w-[640px]">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-slate-700/50">
-                      <th className="px-6 py-4 text-left text-slate-400 font-medium">기능</th>
-                      <th className="px-4 py-4 text-center text-slate-400 font-medium">A사</th>
-                      <th className="px-4 py-4 text-center text-slate-400 font-medium">B사</th>
-                      <th className="px-4 py-4 text-center text-slate-400 font-medium">C사</th>
-                      <th className="px-6 py-4 text-center text-white font-bold bg-blue-600/20">셀러포트</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b border-slate-700/30">
-                      <td className="px-6 py-4 font-medium text-slate-300">메타 광고 성과 추적</td>
-                      <td className="px-4 py-4 text-center text-green-400">O</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-4 py-4 text-center text-green-400">O</td>
-                      <td className="px-6 py-4 text-center text-green-400 font-bold bg-blue-600/10">O</td>
-                    </tr>
-                    <tr className="border-b border-slate-700/30">
-                      <td className="px-6 py-4 font-medium text-slate-300">구글/네이버/카카오 전환</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-4 py-4 text-center text-green-400">O</td>
-                      <td className="px-6 py-4 text-center text-green-400 font-bold bg-blue-600/10">O</td>
-                    </tr>
-                    <tr className="border-b border-slate-700/30">
-                      <td className="px-6 py-4 font-medium text-slate-300">광고 효율 신호등</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-6 py-4 text-center text-green-400 font-bold bg-blue-600/10">O</td>
-                    </tr>
-                    <tr className="border-b border-slate-700/30">
-                      <td className="px-6 py-4 font-medium text-slate-300">광고 성과 분석</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-4 py-4 text-center text-green-400">O</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-6 py-4 text-center text-green-400 font-bold bg-blue-600/10">O</td>
-                    </tr>
-                    <tr className="border-b border-slate-700/30">
-                      <td className="px-6 py-4 font-medium text-slate-300">채널별 통합 대시보드</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-6 py-4 text-center text-green-400 font-bold bg-blue-600/10">O</td>
-                    </tr>
-                    <tr className="border-b border-slate-700/30">
-                      <td className="px-6 py-4 font-medium text-slate-300">빨간불 즉시 카톡 알림</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-6 py-4 text-center text-green-400 font-bold bg-blue-600/10">O</td>
-                    </tr>
-                    <tr className="border-b border-slate-700/30">
-                      <td className="px-6 py-4 font-medium text-slate-300">멀티 스토어 통합 관리</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-4 py-4 text-center text-green-400">O</td>
-                      <td className="px-4 py-4 text-center text-green-400">O</td>
-                      <td className="px-6 py-4 text-center text-green-400 font-bold bg-blue-600/10">O</td>
-                    </tr>
-                    <tr className="border-b border-slate-700/30">
-                      <td className="px-6 py-4 font-medium text-slate-300">디자이너 연결 (썸네일)</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-6 py-4 text-center text-green-400 font-bold bg-blue-600/10">O</td>
-                    </tr>
-                    <tr className="bg-gradient-to-r from-blue-600/20 to-violet-600/20">
-                      <td className="px-6 py-4 font-bold text-white">첫 채널 무료</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-4 py-4 text-center text-slate-500">X</td>
-                      <td className="px-6 py-4 text-center text-green-400 font-bold bg-blue-600/10">O</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 핵심 기능 */}
-        <section id="features" className="py-24 bg-slate-900/50 relative">
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-800/50 via-transparent to-slate-800/50 pointer-events-none" />
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <p className="text-blue-400 font-semibold mb-3 text-sm uppercase tracking-widest">Features</p>
-              <h3 className="text-3xl sm:text-4xl font-bold mb-4">
-                모든 온라인 비즈니스를 위한 <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">올인원 솔루션</span>
-              </h3>
-              <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-                쇼핑몰부터 서비스 사이트까지, 광고 성과 추적과 분석을 셀러포트 하나로 해결하세요
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* 광고 성과 추적 */}
-              <div className="group p-6 rounded-2xl bg-gradient-to-b from-blue-600/20 to-slate-800/50 border border-blue-500/30 hover:border-blue-400 transition-all duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-blue-500/20">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-                <h4 className="text-lg font-bold mb-2 text-blue-400">광고 성과 추적</h4>
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  메타, 구글, 네이버, 카카오<br/>
-                  모든 광고 채널 성과 추적
-                </p>
-              </div>
-
-              {/* 신호등 시스템 */}
-              <div className="group p-6 rounded-2xl bg-gradient-to-b from-emerald-600/20 to-slate-800/50 border-2 border-emerald-500/50 hover:border-emerald-400 transition-all duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-500/20">
-                <div className="absolute top-4 right-4 px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold">
-                  핵심 기능
-                </div>
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/30">
-                  <span className="text-xl">🚦</span>
-                </div>
-                <h4 className="text-lg font-bold mb-2 text-emerald-400">광고 효율 신호등</h4>
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  🟢🟡🔴 ROAS 기반 실시간 효율 표시<br/>
-                  빨간불 시 즉시 카톡 알림
-                </p>
-              </div>
-
-              {/* 광고 채널 통합 */}
-              <div className="group p-6 rounded-2xl bg-gradient-to-b from-violet-600/20 to-slate-800/50 border border-violet-500/30 hover:border-violet-400 transition-all duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-violet-500/20">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center mb-4 shadow-lg shadow-violet-500/30">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-                  </svg>
-                </div>
-                <h4 className="text-lg font-bold mb-2 text-violet-400">광고 채널 통합</h4>
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  메타, 네이버, 구글, 카카오<br/>
-                  모든 광고를 한 곳에서 관리
-                </p>
-              </div>
-
-              {/* 실시간 대시보드 */}
-              <div className="group p-6 rounded-2xl bg-gradient-to-b from-pink-600/20 to-slate-800/50 border border-pink-500/30 hover:border-pink-400 transition-all duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-pink-500/20">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center mb-4 shadow-lg shadow-pink-500/30">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-                <h4 className="text-lg font-bold mb-2 text-pink-400">실시간 대시보드</h4>
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  클릭, 전환, 매출 데이터<br/>
-                  실시간으로 한눈에 확인
-                </p>
-              </div>
-
-              {/* 디자이너 연결 */}
-              <div className="group p-6 rounded-2xl bg-gradient-to-b from-cyan-600/20 to-slate-800/50 border border-cyan-500/30 hover:border-cyan-400 transition-all duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-cyan-500/20">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center mb-4 shadow-lg shadow-cyan-500/30">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <h4 className="text-lg font-bold mb-2 text-cyan-400">디자이너 연결</h4>
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  썸네일 마켓플레이스<br/>
-                  전문 디자이너에게 의뢰
-                </p>
-              </div>
-            </div>
-
-            {/* 추가 기능 */}
-            <div className="mt-8 grid md:grid-cols-2 gap-6">
-              <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-600/50">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-bold text-white">추적 링크 생성</h4>
-                    <p className="text-slate-400 text-sm">광고 캠페인별 추적 링크 발급 및 성과 분석</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-600/50">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-lg shadow-teal-500/30">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-bold text-white">멀티 스토어 통합</h4>
-                    <p className="text-slate-400 text-sm">여러 스토어를 한 대시보드에서 관리</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 셀러 워크플로우 */}
-        <section className="py-24 bg-slate-800 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-transparent to-violet-600/5" />
-          <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <p className="text-blue-400 font-semibold mb-3 text-sm uppercase tracking-widest">Workflow</p>
-              <h3 className="text-3xl sm:text-4xl font-bold mb-4">
-                이렇게 <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">간단하게</span> 사용하세요
-              </h3>
-            </div>
-
-            <div className="grid md:grid-cols-4 gap-4">
-              {[
-                { step: '1', title: '사이트 연동', desc: '쇼핑몰, 서비스, 자체 사이트 등', color: 'blue' },
-                { step: '2', title: '광고 연동', desc: '메타, 구글, 네이버 광고 연결', color: 'violet' },
-                { step: '3', title: '신호등 확인', desc: '🟢🟡🔴 광고 효율 실시간 확인', color: 'emerald' },
-                { step: '4', title: '성과 확인', desc: '효율, 전환율 한눈에 파악', color: 'pink' },
-              ].map((item, index) => (
-                <div key={index} className="relative">
-                  <div className="flex flex-col items-center text-center p-6">
-                    <div className={`w-12 h-12 rounded-full bg-${item.color}-500/20 flex items-center justify-center mb-4 border-2 border-${item.color}-500/50`}>
-                      <span className={`text-xl font-bold text-${item.color}-400`}>{item.step}</span>
-                    </div>
-                    <h4 className="font-bold text-white mb-2">{item.title}</h4>
-                    <p className="text-slate-400 text-sm">{item.desc}</p>
-                  </div>
-                  {index < 3 && (
-                    <div className="hidden md:block absolute top-10 -right-2 text-slate-600">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* 고객 사례 - 정식 오픈 후 활성화 예정 */}
-        {/*
-        <section className="py-24 bg-slate-900/80 relative">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <p className="text-blue-400 font-semibold mb-3 text-sm uppercase tracking-widest">Success Stories</p>
-              <h3 className="text-3xl sm:text-4xl font-bold mb-4">
-                셀러포트와 함께 <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">성장한 고객들</span>
-              </h3>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="p-6 rounded-2xl bg-gradient-to-b from-slate-800 to-slate-800/50 border border-slate-700/50 hover:border-blue-500/30 transition-all duration-300">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white font-bold">
-                    김
-                  </div>
-                  <div>
-                    <p className="font-semibold text-white">김OO 셀러</p>
-                    <p className="text-sm text-slate-400">패션잡화 · 스마트스토어</p>
-                  </div>
-                </div>
-                <div className="mb-4 p-4 rounded-xl bg-slate-900/50 border border-slate-700/30">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-slate-400 text-sm">광고 효율 개선</span>
-                    <span className="text-green-400 font-bold">+127%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400 text-sm">월 순이익 증가</span>
-                    <span className="text-emerald-400 font-bold">+340만원</span>
-                  </div>
-                </div>
-                <p className="text-slate-300 text-sm leading-relaxed">
-                  "🔴 빨간불 알림 덕분에 효율 낮은 광고를 바로 잡을 수 있었어요.
-                  예전엔 ROAS 계산하느라 시간 다 썼는데, 이제 신호등만 보면 끝!"
-                </p>
-              </div>
-
-              <div className="p-6 rounded-2xl bg-gradient-to-b from-slate-800 to-slate-800/50 border border-slate-700/50 hover:border-violet-500/30 transition-all duration-300">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-white font-bold">
-                    이
-                  </div>
-                  <div>
-                    <p className="font-semibold text-white">이OO 셀러</p>
-                    <p className="text-sm text-slate-400">건강식품 · 쿠팡 + 스마트스토어</p>
-                  </div>
-                </div>
-                <div className="mb-4 p-4 rounded-xl bg-slate-900/50 border border-slate-700/30">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-slate-400 text-sm">관리 시간 절감</span>
-                    <span className="text-blue-400 font-bold">-70%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400 text-sm">세금 절약</span>
-                    <span className="text-violet-400 font-bold">+89만원</span>
-                  </div>
-                </div>
-                <p className="text-slate-300 text-sm leading-relaxed">
-                  "멀티 스토어 운영하면서 마진 계산이 너무 복잡했는데,
-                  셀러포트가 자동으로 해주니까 본업에 집중할 수 있어요. 세금 계산도 덤!"
-                </p>
-              </div>
-
-              <div className="p-6 rounded-2xl bg-gradient-to-b from-slate-800 to-slate-800/50 border border-slate-700/50 hover:border-emerald-500/30 transition-all duration-300">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-bold">
-                    박
-                  </div>
-                  <div>
-                    <p className="font-semibold text-white">박OO 대표</p>
-                    <p className="text-sm text-slate-400">온라인 교육 · 자체 제작 사이트</p>
-                  </div>
-                </div>
-                <div className="mb-4 p-4 rounded-xl bg-slate-900/50 border border-slate-700/30">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-slate-400 text-sm">전환율 상승</span>
-                    <span className="text-amber-400 font-bold">+45%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400 text-sm">광고비 절감</span>
-                    <span className="text-cyan-400 font-bold">-35%</span>
-                  </div>
-                </div>
-                <p className="text-slate-300 text-sm leading-relaxed">
-                  "자체 사이트에 추적 코드만 설치하면 되니까 정말 간편해요.
-                  어떤 광고가 실제 결제로 이어지는지 바로 파악되니 광고비 낭비가 확 줄었어요!"
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-12 p-6 rounded-2xl bg-gradient-to-r from-blue-600/10 via-violet-600/10 to-pink-600/10 border border-slate-700/50">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-                <div>
-                  <p className="text-3xl font-bold text-blue-400">평균 127%</p>
-                  <p className="text-sm text-slate-400 mt-1">ROAS 개선</p>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-violet-400">평균 70%</p>
-                  <p className="text-sm text-slate-400 mt-1">관리 시간 절감</p>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-emerald-400">평균 +230만</p>
-                  <p className="text-sm text-slate-400 mt-1">월 순이익 증가</p>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-pink-400">98%</p>
-                  <p className="text-sm text-slate-400 mt-1">만족도</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-        */}
-
-        {/* 요금 안내 */}
-        <section id="pricing" className="py-24 bg-slate-900/80 relative">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <p className="text-blue-400 font-semibold mb-3 text-sm uppercase tracking-widest">Pricing</p>
-              <h3 className="text-3xl sm:text-4xl font-bold mb-4">
-                합리적인 <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">요금제</span>
-              </h3>
-              <p className="text-slate-400 text-lg">비즈니스 규모에 맞는 플랜을 선택하세요</p>
-            </div>
-
-            <div className="max-w-md mx-auto">
-              {/* 단일 요금제 */}
-              <div className="relative rounded-2xl p-8 bg-gradient-to-b from-blue-600/20 to-slate-800/50 border-2 border-blue-500/50 shadow-lg shadow-blue-500/10">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-blue-500 text-white text-xs font-bold">
-                  7일 무료 체험
-                </div>
-                <div className="mb-6 text-center">
-                  <h4 className="text-2xl font-bold text-white">프리미엄</h4>
-                  <p className="text-sm text-slate-400 mt-2">모든 기능을 무제한으로 사용하세요</p>
-                </div>
-                <div className="mb-6 text-center">
-                  <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-5xl font-bold text-white">12,900원</span>
-                    <span className="text-slate-400 text-lg">/월</span>
-                  </div>
-                  <p className="text-sm text-emerald-400 mt-2">첫 7일 무료 체험 후 결제</p>
-                </div>
-                <ul className="space-y-3 mb-8">
-                  {['무제한 추적 링크', '모든 채널 성과 추적', '🟢🟡🔴 신호등 시스템', '광고 성과 분석', '실시간 대시보드', '멀티 스토어 통합'].map((feature, i) => (
-                    <li key={i} className="flex items-center gap-3 text-base">
-                      <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="text-slate-300">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/signup">
-                  <Button className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white text-lg font-semibold">
-                    무료로 시작하기
-                  </Button>
-                </Link>
-              </div>
-            </div>
-
-            <p className="text-center text-slate-500 text-sm mt-8">
-              * 7일 무료 체험 후 자동 결제 · VAT 별도
-            </p>
-          </div>
-        </section>
-
-        {/* 지원 사이트 */}
-        <section className="py-20 bg-slate-800 relative overflow-hidden">
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <p className="text-center text-slate-400 mb-12 font-medium uppercase tracking-widest text-sm">연동 지원 사이트</p>
-            <div className="flex flex-wrap justify-center items-center gap-6 sm:gap-10">
-              {[
-                { Logo: NaverLogo, name: '스마트스토어' },
-                { Logo: CoupangLogo, name: '쿠팡' },
-                { Logo: Cafe24Logo, name: '카페24' },
-                { Logo: ImwebLogo, name: '아임웹' },
-                { Logo: GodoLogo, name: '고도몰' },
-                { Logo: MakeshopLogo, name: '메이크샵' },
-                { Logo: CustomSiteLogo, name: '자체 제작 사이트' },
-              ].map(({ Logo, name }) => (
-                <div key={name} className="flex flex-col items-center gap-3 group">
-                  <div className="w-16 h-16 rounded-2xl bg-slate-700/80 border border-slate-600 flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:border-blue-500/50 overflow-hidden backdrop-blur-sm">
-                    <Logo className="w-10 h-10" />
-                  </div>
-                  <span className="text-xs font-medium text-slate-400 group-hover:text-slate-200 transition-colors">{name}</span>
-                </div>
-              ))}
-            </div>
-            <p className="text-center text-slate-500 text-sm mt-8">
-              워드프레스, Wix, Shopify 등 모든 웹사이트에 추적 코드 설치 지원
-            </p>
-          </div>
-        </section>
-
-        {/* CTA 섹션 */}
-        <section className="py-28 bg-slate-900/80">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h3 className="text-4xl sm:text-5xl font-bold mb-6 text-white leading-tight">
-              지금 바로 시작하세요
-            </h3>
-            <p className="text-lg text-slate-400 mb-4">
-              쇼핑몰, 서비스 사이트, 자체 제작 사이트 모두 <span className="text-blue-400 font-semibold">무료</span>로 시작하세요
-            </p>
-            <p className="text-slate-500 mb-10">
-              광고 성과 추적 · 성과 분석 · 신호등 알림 · 카톡 알림 · 디자이너 연결 모두 무료!
-            </p>
-            <Link href="/signup">
-              <Button size="lg" className="bg-blue-600 text-white hover:bg-blue-500 text-lg px-12 h-14 transition-all duration-200">
-                무료로 시작하기
-              </Button>
-            </Link>
           </div>
         </section>
 
         {/* 푸터 */}
-        <footer className="bg-slate-900 border-t border-slate-700/50 py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid md:grid-cols-4 gap-12">
-              <div className="md:col-span-2">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-violet-600 rounded-lg flex items-center justify-center">
-                    <span className="text-sm font-bold">S</span>
-                  </div>
-                  <h5 className="text-xl font-bold">셀러포트</h5>
+        <footer className="bg-[#0A0F1C] border-t border-white/5 py-12">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-6">
+              {/* 상단: 로고 + 링크 */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <Link href="/">
+                  <Image
+                    src="/logo.png"
+                    alt="셀러포트"
+                    width={120}
+                    height={28}
+                    className="h-7 w-auto"
+                  />
+                </Link>
+                <div className="flex gap-6 text-sm text-gray-400">
+                  <Link href="/terms" className="hover:text-gray-300 transition-colors">이용약관</Link>
+                  <Link href="/privacy" className="hover:text-gray-300 transition-colors">개인정보처리방침</Link>
                 </div>
-                <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
-                  모든 온라인 비즈니스를 위한 광고 성과 분석 플랫폼.
-                  광고 성과 추적부터 분석, 디자이너 연결까지.
-                </p>
               </div>
-              <div>
-                <h6 className="font-semibold mb-4 text-slate-200">서비스</h6>
-                <ul className="space-y-3 text-sm text-slate-400">
-                  <li><Link href="#features" className="hover:text-white transition-colors duration-300">기능 소개</Link></li>
-                  <li><Link href="#pricing" className="hover:text-white transition-colors duration-300">요금 안내</Link></li>
-                  <li><Link href="#" className="hover:text-white transition-colors duration-300">고객 사례</Link></li>
-                </ul>
-              </div>
-              <div>
-                <h6 className="font-semibold mb-4 text-slate-200">회사</h6>
-                <ul className="space-y-3 text-sm text-slate-400">
-                  <li><Link href="/terms" className="hover:text-white transition-colors duration-300">이용약관</Link></li>
-                  <li><Link href="/privacy" className="hover:text-white transition-colors duration-300">개인정보처리방침</Link></li>
-                  <li><Link href="#" className="hover:text-white transition-colors duration-300">문의하기</Link></li>
-                </ul>
-              </div>
-            </div>
-            <div className="mt-16 pt-8 border-t border-slate-700/50">
-              <div className="mb-6">
-                <p className="text-xs text-slate-500 mb-1">서비스 운영</p>
-                <p className="text-sm text-slate-400">
-                  어시스트솔루션 (602-27-04681) 대표 배철응
-                </p>
-                <p className="text-xs text-slate-500 mt-1">
-                  서울시 광진구 화양동 15-51
-                </p>
-              </div>
-              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                <p className="text-sm text-slate-500">
-                  © 2025 SellerPort. All rights reserved.
-                </p>
+
+              {/* 구분선 */}
+              <div className="border-t border-white/5"></div>
+
+              {/* 하단: 사업자 정보 */}
+              <div className="text-sm text-gray-500 space-y-1">
+                <p className="font-medium text-gray-400">어시스트솔루션</p>
+                <p>대표: 배철응 | 사업자등록번호: 602-27-04681</p>
+                <p>주소: 서울시 광진구 화양동 15-51</p>
+                <p>이메일: support@sellerport.io</p>
+                <p className="pt-2 text-gray-600">© 2025 SellerPort. All rights reserved.</p>
               </div>
             </div>
           </div>

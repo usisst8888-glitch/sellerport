@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { ExternalLink, Play, ShoppingBag, Link as LinkIcon, Instagram, Youtube, MessageCircle, Search } from 'lucide-react'
+import { ExternalLink, Play, ShoppingBag, Link as LinkIcon, Instagram, MessageCircle, Search } from 'lucide-react'
 
 interface SellerTreeLink {
   id: string
@@ -66,7 +66,6 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   shopping: ShoppingBag,
   link: LinkIcon,
   instagram: Instagram,
-  youtube: Youtube,
   kakao: MessageCircle,
   play: Play,
 }
