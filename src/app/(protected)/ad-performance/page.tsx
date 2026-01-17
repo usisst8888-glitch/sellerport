@@ -116,6 +116,53 @@ interface CampaignSummary {
   // 크리에이티브 정보
   thumbnail_url?: string | null
   creative_type?: 'image' | 'video' | 'carousel' | null
+  // A/B 테스트 정보
+  is_ab_test?: boolean
+  creative_count?: number
+}
+
+// A/B 테스트 성과 데이터 인터페이스
+interface ABTestInsight {
+  ad_id: string
+  ad_name: string
+  impressions: number
+  clicks: number
+  spend: number
+  conversions: number
+  ctr: number
+  cpc: number
+  roas: number
+}
+
+interface ABTestResult {
+  campaign: {
+    id: string
+    name: string
+    isABTest: boolean
+    creativeCount: number
+    status: string
+    createdAt: string
+  }
+  insights: ABTestInsight[]
+  analysis: {
+    winner: {
+      adId: string
+      adName: string
+      roas: number
+      reason: string
+    } | null
+    rankings: {
+      byRoas: { id: string; name: string; value: number }[]
+      byCtr: { id: string; name: string; value: number }[]
+      byCpc: { id: string; name: string; value: number }[]
+    }
+    summary: {
+      totalSpend: number
+      totalConversions: number
+      avgRoas: number
+      avgCtr: number
+    }
+  }
 }
 
 // ROAS 기준 신호등 색상 반환 (개별 기준 지원)
@@ -178,6 +225,12 @@ export default function ConversionsPage() {
 
   // 전환 데이터 설명 팝업
   const [showConversionInfoModal, setShowConversionInfoModal] = useState(false)
+
+  // A/B 테스트 성과 비교 모달
+  const [abTestModalOpen, setAbTestModalOpen] = useState(false)
+  const [abTestLoading, setAbTestLoading] = useState(false)
+  const [abTestResult, setAbTestResult] = useState<ABTestResult | null>(null)
+  const [selectedABTestCampaign, setSelectedABTestCampaign] = useState<CampaignSummary | null>(null)
 
   // 구독 상태
   const [subscriptionStatus, setSubscriptionStatus] = useState<'trial' | 'active' | 'expired' | 'none'>('none')
@@ -295,15 +348,39 @@ export default function ConversionsPage() {
         summary.total_conversion_value += record.conversion_value || 0
       }
 
+      // meta_campaigns 테이블에서 A/B 테스트 정보 조회
+      const campaignIds = Array.from(campaignMap.values()).map(c => c.campaign_id)
+      const { data: metaCampaigns } = await supabase
+        .from('meta_campaigns')
+        .select('campaign_id, is_ab_test, creative_count')
+        .eq('user_id', userId)
+        .in('campaign_id', campaignIds)
+
+      // A/B 테스트 정보 매핑
+      const abTestMap = new Map<string, { is_ab_test: boolean; creative_count: number }>()
+      if (metaCampaigns) {
+        for (const mc of metaCampaigns) {
+          abTestMap.set(mc.campaign_id, {
+            is_ab_test: mc.is_ab_test,
+            creative_count: mc.creative_count
+          })
+        }
+      }
+
       // CTR, CPC, ROAS 계산
-      const summaries = Array.from(campaignMap.values()).map(s => ({
-        ...s,
-        ctr: s.total_impressions > 0 ? (s.total_clicks / s.total_impressions) * 100 : 0,
-        cpc: s.total_clicks > 0 ? Math.round(s.total_spend / s.total_clicks) : 0,
-        roas: s.total_spend > 0 ? Math.round((s.total_conversion_value / s.total_spend) * 100) : 0,
-        thumbnail_url: null as string | null,
-        creative_type: null as 'image' | 'video' | 'carousel' | null,
-      }))
+      const summaries = Array.from(campaignMap.values()).map(s => {
+        const abTestInfo = abTestMap.get(s.campaign_id)
+        return {
+          ...s,
+          ctr: s.total_impressions > 0 ? (s.total_clicks / s.total_impressions) * 100 : 0,
+          cpc: s.total_clicks > 0 ? Math.round(s.total_spend / s.total_clicks) : 0,
+          roas: s.total_spend > 0 ? Math.round((s.total_conversion_value / s.total_spend) * 100) : 0,
+          thumbnail_url: null as string | null,
+          creative_type: null as 'image' | 'video' | 'carousel' | null,
+          is_ab_test: abTestInfo?.is_ab_test || false,
+          creative_count: abTestInfo?.creative_count || 1,
+        }
+      })
 
       // 광고비 높은 순으로 정렬
       summaries.sort((a, b) => b.total_spend - a.total_spend)
@@ -640,6 +717,33 @@ export default function ConversionsPage() {
       greenThreshold: link.target_roas_green ?? 300,
       yellowThreshold: link.target_roas_yellow ?? 150
     })
+  }
+
+  // A/B 테스트 성과 조회
+  const fetchABTestInsights = async (campaign: CampaignSummary) => {
+    setSelectedABTestCampaign(campaign)
+    setAbTestModalOpen(true)
+    setAbTestLoading(true)
+
+    try {
+      const response = await fetch(
+        `/api/ad-channels/meta/ab-test?campaignId=${campaign.campaign_id}&channelId=${campaign.channel_id}`
+      )
+      const result = await response.json()
+
+      if (result.success) {
+        setAbTestResult(result)
+      } else {
+        setMessage({ type: 'error', text: result.error || 'A/B 테스트 성과 조회에 실패했습니다' })
+        setAbTestModalOpen(false)
+      }
+    } catch (error) {
+      console.error('Failed to fetch A/B test insights:', error)
+      setMessage({ type: 'error', text: 'A/B 테스트 성과 조회 중 오류가 발생했습니다' })
+      setAbTestModalOpen(false)
+    } finally {
+      setAbTestLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -1138,6 +1242,12 @@ export default function ConversionsPage() {
                                         {campaign.creative_type === 'video' ? '릴스/영상' : campaign.creative_type === 'carousel' ? '캐러셀' : '이미지'}
                                       </span>
                                     )}
+                                    {/* A/B 테스트 뱃지 */}
+                                    {campaign.is_ab_test && (
+                                      <span className="px-2 py-0.5 text-xs rounded bg-purple-500/20 text-purple-400">
+                                        A/B 테스트 ({campaign.creative_count}개 소재)
+                                      </span>
+                                    )}
                                     <span className="text-base text-white truncate max-w-[400px]" title={campaign.campaign_name}>
                                       {campaign.campaign_name}
                                     </span>
@@ -1176,7 +1286,20 @@ export default function ConversionsPage() {
                               )}
                             </td>
                             <td className="py-4 px-4">
-                              <div className="flex justify-center">
+                              <div className="flex justify-center gap-2">
+                              {/* A/B 테스트 성과 비교 버튼 */}
+                              {campaign.is_ab_test && campaign.channel_type === 'meta' && (
+                                <button
+                                  onClick={() => fetchABTestInsights(campaign)}
+                                  className="px-3 py-1.5 text-xs rounded-lg bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-colors flex items-center gap-1.5"
+                                  title="A/B 테스트 성과 비교"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                  </svg>
+                                  비교
+                                </button>
+                              )}
                               {/* Meta 광고 AI 분석 버튼 */}
                               {campaign.channel_type === 'meta' && (
                                 <AdAnalysisButton
@@ -1785,6 +1908,210 @@ export default function ConversionsPage() {
                 className="w-full h-11 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium transition-colors"
               >
                 확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* A/B 테스트 성과 비교 모달 */}
+      {abTestModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-slate-800 rounded-2xl w-full max-w-3xl border border-slate-700 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-5 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-white">A/B 테스트 성과 비교</h3>
+                  {selectedABTestCampaign && (
+                    <p className="text-sm text-slate-400">{selectedABTestCampaign.campaign_name}</p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setAbTestModalOpen(false)
+                  setAbTestResult(null)
+                  setSelectedABTestCampaign(null)
+                }}
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto flex-1">
+              {abTestLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
+                  <span className="ml-3 text-slate-400">성과 데이터 조회 중...</span>
+                </div>
+              ) : abTestResult ? (
+                <div className="space-y-6">
+                  {/* 승자 소재 표시 */}
+                  {abTestResult.analysis.winner && (
+                    <div className="p-4 rounded-xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30">
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-2xl">🏆</span>
+                        <div>
+                          <h4 className="font-bold text-white">승자 소재</h4>
+                          <p className="text-sm text-purple-300">{abTestResult.analysis.winner.reason}</p>
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-lg bg-black/30">
+                        <p className="font-medium text-white">{abTestResult.analysis.winner.adName}</p>
+                        <p className="text-sm text-purple-300 mt-1">ROAS {abTestResult.analysis.winner.roas.toFixed(0)}%</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 요약 정보 */}
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="p-4 rounded-xl bg-slate-700/50 text-center">
+                      <p className="text-xs text-slate-400 mb-1">총 광고비</p>
+                      <p className="text-lg font-bold text-white">{abTestResult.analysis.summary.totalSpend.toLocaleString()}원</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-slate-700/50 text-center">
+                      <p className="text-xs text-slate-400 mb-1">총 전환</p>
+                      <p className="text-lg font-bold text-emerald-400">{abTestResult.analysis.summary.totalConversions}</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-slate-700/50 text-center">
+                      <p className="text-xs text-slate-400 mb-1">평균 ROAS</p>
+                      <p className="text-lg font-bold text-blue-400">{abTestResult.analysis.summary.avgRoas.toFixed(0)}%</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-slate-700/50 text-center">
+                      <p className="text-xs text-slate-400 mb-1">평균 CTR</p>
+                      <p className="text-lg font-bold text-purple-400">{abTestResult.analysis.summary.avgCtr.toFixed(2)}%</p>
+                    </div>
+                  </div>
+
+                  {/* 소재별 상세 성과 */}
+                  <div>
+                    <h4 className="font-semibold text-white mb-3">소재별 상세 성과</h4>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-slate-400 border-b border-slate-700">
+                            <th className="pb-3 font-medium">소재명</th>
+                            <th className="pb-3 font-medium text-center">노출</th>
+                            <th className="pb-3 font-medium text-center">클릭</th>
+                            <th className="pb-3 font-medium text-center">CTR</th>
+                            <th className="pb-3 font-medium text-center">CPC</th>
+                            <th className="pb-3 font-medium text-center">전환</th>
+                            <th className="pb-3 font-medium text-center">ROAS</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-700/50">
+                          {abTestResult.insights.map((insight, index) => {
+                            const isWinner = abTestResult.analysis.winner?.adId === insight.ad_id
+                            return (
+                              <tr key={insight.ad_id} className={isWinner ? 'bg-purple-500/10' : ''}>
+                                <td className="py-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                                      isWinner ? 'bg-purple-500 text-white' : 'bg-slate-700 text-slate-400'
+                                    }`}>
+                                      {String.fromCharCode(65 + index)}
+                                    </span>
+                                    <span className={isWinner ? 'text-white font-medium' : 'text-slate-300'}>
+                                      {insight.ad_name}
+                                    </span>
+                                    {isWinner && <span className="text-xs">🏆</span>}
+                                  </div>
+                                </td>
+                                <td className="py-3 text-center text-slate-300">{insight.impressions.toLocaleString()}</td>
+                                <td className="py-3 text-center text-slate-300">{insight.clicks.toLocaleString()}</td>
+                                <td className="py-3 text-center text-slate-300">{insight.ctr.toFixed(2)}%</td>
+                                <td className="py-3 text-center text-slate-300">{Math.round(insight.cpc).toLocaleString()}원</td>
+                                <td className="py-3 text-center text-emerald-400">{insight.conversions}</td>
+                                <td className="py-3 text-center">
+                                  <span className={`px-2 py-1 rounded ${
+                                    insight.roas >= 300 ? 'bg-emerald-500/20 text-emerald-400' :
+                                    insight.roas >= 150 ? 'bg-amber-500/20 text-amber-400' :
+                                    'bg-red-500/20 text-red-400'
+                                  }`}>
+                                    {insight.roas.toFixed(0)}%
+                                  </span>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* 랭킹 비교 차트 */}
+                  <div className="grid grid-cols-3 gap-4">
+                    {/* ROAS 순위 */}
+                    <div className="p-4 rounded-xl bg-slate-700/30">
+                      <h5 className="text-sm font-medium text-slate-400 mb-3">ROAS 순위</h5>
+                      <div className="space-y-2">
+                        {abTestResult.analysis.rankings.byRoas.map((item, index) => (
+                          <div key={item.id} className="flex items-center justify-between">
+                            <span className="text-sm text-slate-300">
+                              {index + 1}. {item.name.split(' - ').pop()}
+                            </span>
+                            <span className="text-sm font-medium text-blue-400">{item.value.toFixed(0)}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* CTR 순위 */}
+                    <div className="p-4 rounded-xl bg-slate-700/30">
+                      <h5 className="text-sm font-medium text-slate-400 mb-3">CTR 순위</h5>
+                      <div className="space-y-2">
+                        {abTestResult.analysis.rankings.byCtr.map((item, index) => (
+                          <div key={item.id} className="flex items-center justify-between">
+                            <span className="text-sm text-slate-300">
+                              {index + 1}. {item.name.split(' - ').pop()}
+                            </span>
+                            <span className="text-sm font-medium text-purple-400">{item.value.toFixed(2)}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* CPC 순위 (낮을수록 좋음) */}
+                    <div className="p-4 rounded-xl bg-slate-700/30">
+                      <h5 className="text-sm font-medium text-slate-400 mb-3">CPC 순위 (낮을수록 좋음)</h5>
+                      <div className="space-y-2">
+                        {abTestResult.analysis.rankings.byCpc.map((item, index) => (
+                          <div key={item.id} className="flex items-center justify-between">
+                            <span className="text-sm text-slate-300">
+                              {index + 1}. {item.name.split(' - ').pop()}
+                            </span>
+                            <span className="text-sm font-medium text-emerald-400">{Math.round(item.value).toLocaleString()}원</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12 text-slate-400">
+                  데이터를 불러올 수 없습니다
+                </div>
+              )}
+            </div>
+
+            <div className="p-5 border-t border-slate-700 flex-shrink-0">
+              <button
+                onClick={() => {
+                  setAbTestModalOpen(false)
+                  setAbTestResult(null)
+                  setSelectedABTestCampaign(null)
+                }}
+                className="w-full h-11 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-medium transition-colors"
+              >
+                닫기
               </button>
             </div>
           </div>

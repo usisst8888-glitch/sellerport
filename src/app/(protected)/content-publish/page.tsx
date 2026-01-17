@@ -1118,10 +1118,75 @@ function InstagramTab({ channels, hasAccess }: { channels: AdChannel[]; hasAcces
   )
 }
 
+// A/B 테스트 소재 타입
+interface ABTestCreative {
+  id: string
+  file: File | null
+  previewUrl: string | null
+  name: string
+}
+
 // Meta 광고 탭
 function MetaTab({ channels, hasAccess }: { channels: AdChannel[]; hasAccess: boolean }) {
   const [campaignObjective, setCampaignObjective] = useState<'conversions' | 'traffic' | 'awareness'>('conversions')
   const [selectedChannel, setSelectedChannel] = useState(channels[0]?.id || '')
+  const [campaignName, setCampaignName] = useState('')
+  const [dailyBudget, setDailyBudget] = useState('')
+  const [adText, setAdText] = useState('')
+
+  // A/B 테스트 관련 상태
+  const [enableABTest, setEnableABTest] = useState(false)
+  const [abCreatives, setAbCreatives] = useState<ABTestCreative[]>([
+    { id: '1', file: null, previewUrl: null, name: '소재 A' },
+    { id: '2', file: null, previewUrl: null, name: '소재 B' },
+  ])
+  const [singleCreative, setSingleCreative] = useState<{ file: File | null; previewUrl: string | null }>({
+    file: null,
+    previewUrl: null
+  })
+
+  // 파일 업로드 핸들러 (단일 소재)
+  const handleSingleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const previewUrl = URL.createObjectURL(file)
+      setSingleCreative({ file, previewUrl })
+    }
+  }
+
+  // 파일 업로드 핸들러 (A/B 테스트)
+  const handleABFileUpload = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const previewUrl = URL.createObjectURL(file)
+      setAbCreatives(prev => prev.map(c =>
+        c.id === id ? { ...c, file, previewUrl } : c
+      ))
+    }
+  }
+
+  // A/B 테스트 소재 추가 (최대 4개)
+  const addABCreative = () => {
+    if (abCreatives.length >= 4) return
+    const newId = String(abCreatives.length + 1)
+    const labels = ['A', 'B', 'C', 'D']
+    setAbCreatives(prev => [...prev, {
+      id: newId,
+      file: null,
+      previewUrl: null,
+      name: `소재 ${labels[prev.length]}`
+    }])
+  }
+
+  // A/B 테스트 소재 삭제
+  const removeABCreative = (id: string) => {
+    if (abCreatives.length <= 2) return
+    setAbCreatives(prev => {
+      const filtered = prev.filter(c => c.id !== id)
+      const labels = ['A', 'B', 'C', 'D']
+      return filtered.map((c, i) => ({ ...c, name: `소재 ${labels[i]}` }))
+    })
+  }
 
   if (channels.length === 0) {
     return (
@@ -1198,6 +1263,8 @@ function MetaTab({ channels, hasAccess }: { channels: AdChannel[]; hasAccess: bo
           <label className="block text-sm font-medium text-slate-300 mb-2">캠페인 이름</label>
           <input
             type="text"
+            value={campaignName}
+            onChange={(e) => setCampaignName(e.target.value)}
             placeholder="캠페인 이름 입력"
             className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
@@ -1207,6 +1274,8 @@ function MetaTab({ channels, hasAccess }: { channels: AdChannel[]; hasAccess: bo
           <div className="relative">
             <input
               type="number"
+              value={dailyBudget}
+              onChange={(e) => setDailyBudget(e.target.value)}
               placeholder="10000"
               className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
             />
@@ -1215,18 +1284,153 @@ function MetaTab({ channels, hasAccess }: { channels: AdChannel[]; hasAccess: bo
         </div>
       </div>
 
+      {/* A/B 테스트 토글 */}
+      <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+              <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-white">A/B 테스트</h4>
+              <p className="text-xs text-slate-400">여러 크리에이티브를 테스트하여 최고 성과를 찾으세요</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setEnableABTest(!enableABTest)}
+            className={`relative w-14 h-7 rounded-full transition-colors ${
+              enableABTest ? 'bg-cyan-500' : 'bg-slate-600'
+            }`}
+          >
+            <span
+              className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${
+                enableABTest ? 'left-8' : 'left-1'
+              }`}
+            />
+          </button>
+        </div>
+        {enableABTest && (
+          <div className="mt-3 pt-3 border-t border-cyan-500/20">
+            <p className="text-xs text-cyan-300/80">
+              • 2~4개 소재를 동시에 테스트하여 성과 비교<br/>
+              • 예산은 소재별로 균등 분배되어 테스트<br/>
+              • 테스트 결과는 광고 성과 관리에서 확인 가능
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* 광고 소재 업로드 */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-slate-300 mb-2">광고 소재</label>
-        <div className="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center hover:border-blue-500/50 transition-colors cursor-pointer">
-          <div className="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </div>
-          <p className="text-white font-medium mb-1">광고 이미지 또는 영상을 업로드하세요</p>
-          <p className="text-sm text-slate-400">이미지: 1080x1080 권장 / 영상: MP4</p>
+        <div className="flex items-center justify-between mb-3">
+          <label className="text-sm font-medium text-slate-300">
+            광고 소재 {enableABTest && <span className="text-cyan-400 ml-1">({abCreatives.length}개 테스트)</span>}
+          </label>
+          {enableABTest && abCreatives.length < 4 && (
+            <button
+              type="button"
+              onClick={addABCreative}
+              className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              소재 추가 (최대 4개)
+            </button>
+          )}
         </div>
+
+        {enableABTest ? (
+          /* A/B 테스트 모드: 여러 소재 업로드 */
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {abCreatives.map((creative, index) => (
+              <div key={creative.id} className="relative">
+                <div className="absolute -top-2 -left-2 z-10 w-6 h-6 rounded-full bg-cyan-500 flex items-center justify-center text-white text-xs font-bold">
+                  {String.fromCharCode(65 + index)}
+                </div>
+                {abCreatives.length > 2 && (
+                  <button
+                    type="button"
+                    onClick={() => removeABCreative(creative.id)}
+                    className="absolute -top-2 -right-2 z-10 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center text-white hover:bg-red-600"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+                <label className="block cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*,video/*"
+                    onChange={(e) => handleABFileUpload(creative.id, e)}
+                    className="hidden"
+                  />
+                  {creative.previewUrl ? (
+                    <div className="aspect-square rounded-xl overflow-hidden border-2 border-cyan-500/50">
+                      {creative.file?.type.startsWith('video/') ? (
+                        <video src={creative.previewUrl} className="w-full h-full object-cover" />
+                      ) : (
+                        <img src={creative.previewUrl} alt={creative.name} className="w-full h-full object-cover" />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="aspect-square rounded-xl border-2 border-dashed border-slate-600 flex flex-col items-center justify-center hover:border-cyan-500/50 transition-colors">
+                      <svg className="w-8 h-8 text-slate-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+                      </svg>
+                      <span className="text-xs text-slate-500">{creative.name}</span>
+                    </div>
+                  )}
+                </label>
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* 일반 모드: 단일 소재 업로드 */
+          <label className="block cursor-pointer">
+            <input
+              type="file"
+              accept="image/*,video/*"
+              onChange={handleSingleFileUpload}
+              className="hidden"
+            />
+            {singleCreative.previewUrl ? (
+              <div className="relative rounded-xl overflow-hidden border-2 border-blue-500/50 max-w-md">
+                {singleCreative.file?.type.startsWith('video/') ? (
+                  <video src={singleCreative.previewUrl} className="w-full aspect-square object-cover" controls />
+                ) : (
+                  <img src={singleCreative.previewUrl} alt="광고 소재" className="w-full aspect-square object-cover" />
+                )}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setSingleCreative({ file: null, previewUrl: null })
+                  }}
+                  className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              <div className="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center hover:border-blue-500/50 transition-colors">
+                <div className="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <p className="text-white font-medium mb-1">광고 이미지 또는 영상을 업로드하세요</p>
+                <p className="text-sm text-slate-400">이미지: 1080x1080 권장 / 영상: MP4</p>
+              </div>
+            )}
+          </label>
+        )}
       </div>
 
       {/* 광고 문구 */}
@@ -1234,6 +1438,8 @@ function MetaTab({ channels, hasAccess }: { channels: AdChannel[]; hasAccess: bo
         <label className="block text-sm font-medium text-slate-300 mb-2">광고 문구</label>
         <textarea
           rows={3}
+          value={adText}
+          onChange={(e) => setAdText(e.target.value)}
           placeholder="광고 문구를 입력하세요..."
           className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
         />
@@ -1267,9 +1473,14 @@ function MetaTab({ channels, hasAccess }: { channels: AdChannel[]; hasAccess: bo
         </button>
         <button
           disabled={!hasAccess}
-          className="px-6 py-3 bg-blue-500 text-white font-medium rounded-xl hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-3 bg-blue-500 text-white font-medium rounded-xl hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
-          캠페인 생성
+          {enableABTest && (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          )}
+          {enableABTest ? 'A/B 테스트 시작' : '캠페인 생성'}
         </button>
       </div>
     </div>
