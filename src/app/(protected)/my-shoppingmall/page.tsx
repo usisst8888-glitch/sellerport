@@ -137,9 +137,7 @@ export default function MySitesPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          site_id: siteData.id,
-          application_id: addForm.application_id,
-          application_secret: addForm.application_secret
+          siteId: siteData.id
         })
       })
 

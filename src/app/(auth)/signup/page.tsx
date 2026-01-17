@@ -275,7 +275,7 @@ export default function SignupPage() {
             온라인 광고 성과 측정을 시작하세요
           </CardDescription>
           {/* 무료 체험 안내 배너 */}
-          <div className="mt-4 p-3 rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20">
+          <div className="mt-4 p-3 rounded-xl bg-gradient-to-r from-blue-500/10 to-blue-500/10 border border-blue-500/20">
             <div className="flex items-center justify-center gap-2">
               <span className="text-2xl">🎉</span>
               <div className="text-left">
@@ -319,19 +319,19 @@ export default function SignupPage() {
                   onClick={() => setUserType('agency')}
                   className={`p-3 rounded-xl border-2 transition-all ${
                     userType === 'agency'
-                      ? 'border-purple-500 bg-purple-500/10'
+                      ? 'border-blue-500 bg-blue-500/10'
                       : 'border-slate-600 bg-slate-700/50 hover:border-slate-500'
                   }`}
                 >
                   <div className="flex flex-col items-center gap-1.5">
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                      userType === 'agency' ? 'bg-purple-500/20' : 'bg-slate-600'
+                      userType === 'agency' ? 'bg-blue-500/20' : 'bg-slate-600'
                     }`}>
-                      <svg className={`w-4 h-4 ${userType === 'agency' ? 'text-purple-400' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className={`w-4 h-4 ${userType === 'agency' ? 'text-blue-400' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                       </svg>
                     </div>
-                    <span className={`text-sm font-medium ${userType === 'agency' ? 'text-purple-400' : 'text-slate-400'}`}>
+                    <span className={`text-sm font-medium ${userType === 'agency' ? 'text-blue-400' : 'text-slate-400'}`}>
                       광고 대행사
                     </span>
                     <span className="text-xs text-slate-500">여러 셀러 관리</span>

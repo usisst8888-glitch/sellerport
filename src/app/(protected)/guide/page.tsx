@@ -533,7 +533,7 @@ function TrackingContent() {
               </div>
             </li>
             <li className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-sm shrink-0">✓</span>
+              <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-sm shrink-0">✓</span>
               <div>
                 <span className="text-white font-medium">전환율 (CVR)</span>
                 <span className="text-slate-400 ml-2">클릭 대비 구매 비율</span>
@@ -1090,7 +1090,7 @@ function AdChannelsContent({ initialChannel }: { initialChannel?: string | null 
 
       {/* 연동 팁 */}
       <section>
-        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-xl p-6 border border-blue-500/20">
+        <div className="bg-gradient-to-r from-blue-500/10 to-blue-500/10 rounded-xl p-6 border border-blue-500/20">
           <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
             <span className="text-xl">💡</span> 연동 팁
           </h3>
@@ -1441,9 +1441,9 @@ function InstagramDmContent() {
           <div className="bg-slate-800/50 rounded-lg p-3">
             <p className="text-xs text-slate-500 mb-2">관심 표현</p>
             <div className="flex flex-wrap gap-1.5">
-              <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full">궁금</span>
-              <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full">알려주세요</span>
-              <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full">DM</span>
+              <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full">궁금</span>
+              <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full">알려주세요</span>
+              <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full">DM</span>
             </div>
           </div>
           <div className="bg-slate-800/50 rounded-lg p-3">
@@ -1506,7 +1506,7 @@ function InstagramDmContent() {
       </section>
 
       {/* CTA */}
-      <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 rounded-xl p-6 border border-pink-500/20">
+      <div className="bg-gradient-to-r from-pink-500/10 to-blue-500/10 rounded-xl p-6 border border-pink-500/20">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-white font-semibold mb-1">지금 바로 시작하기</h3>
@@ -1572,7 +1572,7 @@ function FAQContent() {
         </div>
       ))}
 
-      <div className="mt-8 p-6 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-500/20">
+      <div className="mt-8 p-6 bg-gradient-to-r from-blue-500/10 to-blue-500/10 rounded-xl border border-blue-500/20">
         <h3 className="text-white font-semibold mb-2">더 궁금한 점이 있으신가요?</h3>
         <p className="text-slate-400 text-sm mb-4">
           이메일로 문의해 주시면 빠르게 답변 드리겠습니다.

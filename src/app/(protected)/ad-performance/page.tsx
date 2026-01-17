@@ -56,24 +56,7 @@ interface Product {
 // 채널 타입 한글 라벨 매핑
 const channelTypeLabels: Record<string, string> = {
   instagram: '인스타그램',
-  naver_blog: '네이버 블로그',
   meta: 'Meta 광고',
-  google: 'Google Ads',
-  google_ads: 'Google Ads',
-  naver_search: '네이버 검색광고',
-  naver_gfa: '네이버 GFA',
-  kakao: '카카오모먼트',
-  karrot: '당근 비즈니스',
-  toss: '토스',
-  dable: '데이블',
-  influencer: '인플루언서',
-  experience: '체험단',
-  blog: '블로그',
-  cafe: '카페/커뮤니티',
-  email: '이메일/뉴스레터',
-  sms: 'SMS',
-  offline: '오프라인 광고',
-  etc: '기타',
 }
 
 const getChannelLabel = (channelType: string): string => {
@@ -193,22 +176,15 @@ export default function ConversionsPage() {
   } | null>(null)
   const [syncingSmartstore, setSyncingSmartstore] = useState(false)
 
+  // 전환 데이터 설명 팝업
+  const [showConversionInfoModal, setShowConversionInfoModal] = useState(false)
+
   // 구독 상태
   const [subscriptionStatus, setSubscriptionStatus] = useState<'trial' | 'active' | 'expired' | 'none'>('none')
   const [trialDaysLeft, setTrialDaysLeft] = useState<number>(0)
 
   // 데이터 접근 가능 여부 (체험 중이거나 구독 중)
   const hasAccess = subscriptionStatus === 'trial' || subscriptionStatus === 'active'
-
-  // 플랫폼이 검색광고인지 확인
-  const isSearchAdPlatform = (channelType: string) => {
-    return ['naver_search', 'google', 'kakao'].includes(channelType)
-  }
-
-  // 플랫폼이 소셜광고인지 확인 (광고소재 기반)
-  const isSocialAdPlatform = (channelType: string) => {
-    return ['meta', 'naver_gfa'].includes(channelType)
-  }
 
   const fetchConnectedData = async () => {
     const supabase = createClient()
@@ -452,10 +428,7 @@ export default function ConversionsPage() {
   // 광고 채널 동기화 엔드포인트 매핑
   const getSyncEndpoint = (channelType: string): string | null => {
     const endpoints: Record<string, string> = {
-      'naver_search': '/api/ad-channels/naver-search/sync',
-      'naver_gfa': '/api/ad-channels/naver-gfa/sync',
       'meta': '/api/ad-channels/meta/sync',
-      'google': '/api/ad-channels/google/sync',
     }
     return endpoints[channelType] || null
   }
@@ -463,13 +436,8 @@ export default function ConversionsPage() {
   // 채널 타입별 배지 색상
   const getChannelBadgeStyle = (channelType: string) => {
     const styles: Record<string, { bg: string; text: string; label: string }> = {
-      'naver_search': { bg: 'bg-green-500/20', text: 'text-green-400', label: 'SA' },
-      'naver_gfa': { bg: 'bg-green-500/20', text: 'text-green-400', label: 'GFA' },
       'meta': { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Meta' },
-      'google': { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Google' },
-      'kakao': { bg: 'bg-yellow-500/20', text: 'text-yellow-400', label: 'Kakao' },
       'instagram': { bg: 'bg-pink-500/20', text: 'text-pink-400', label: 'Instagram' },
-      'naver_blog': { bg: 'bg-green-500/20', text: 'text-green-400', label: '블로그' },
     }
     return styles[channelType] || { bg: 'bg-slate-500/20', text: 'text-slate-400', label: channelType }
   }
@@ -479,15 +447,6 @@ export default function ConversionsPage() {
     const logos: Record<string, string> = {
       'instagram': '/channel_logo/insta.png',
       'meta': '/channel_logo/meta.png',
-      'google': '/channel_logo/google_ads.png',
-      'google_ads': '/channel_logo/google_ads.png',
-      'naver_search': '/channel_logo/naver_search.png',
-      'naver_gfa': '/channel_logo/naver_gfa.png',
-      'naver_blog': '/channel_logo/naver_blog.png',
-      'toss': '/channel_logo/toss.png',
-      'influencer': '/channel_logo/influencer.png',
-      'experience': '/channel_logo/experience.png',
-      'thread': '/channel_logo/thread.png',
     }
     return logos[channelType] || '/channel_logo/meta.png'
   }
@@ -739,17 +698,20 @@ export default function ConversionsPage() {
       {/* 연동 현황 카드 섹션 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* 광고 채널 카드 */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20 p-5">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-500/10 border border-blue-500/20 p-5">
           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl" />
           <div className="relative">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                  <img src="/channel_logo/meta.png" alt="Meta" className="w-8 h-8" />
+                  <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                  </svg>
                 </div>
                 <div>
                   <h3 className="font-semibold text-white">광고 채널</h3>
-                  <p className="text-xs text-slate-400">Meta 광고비 동기화</p>
+                  <p className="text-xs text-slate-400">유료 광고 성과 연동</p>
                 </div>
               </div>
               {adChannels.length > 0 && (
@@ -761,54 +723,59 @@ export default function ConversionsPage() {
 
             {adChannels.length > 0 ? (
               <div className="space-y-2">
-                {adChannels.slice(0, 2).map((channel) => (
-                  <div key={channel.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 border border-slate-700/50">
-                    <div className="flex items-center gap-3">
-                      <img src={getChannelLogoPath(channel.channel_type)} alt={channel.channel_type} className="w-8 h-8 rounded-lg" />
-                      <div>
-                        <p className="text-sm font-medium text-white">{channel.channel_name || channel.account_name}</p>
-                        <p className="text-xs text-slate-500">
-                          {channel.last_sync_at
-                            ? `${Math.floor((Date.now() - new Date(channel.last_sync_at).getTime()) / 60000)}분 전 동기화`
-                            : '동기화 필요'}
-                        </p>
+                {adChannels.map((channel) => {
+                  const isPaidAd = channel.channel_type === 'meta'
+                  const syncEndpoint = getSyncEndpoint(channel.channel_type)
+                  return (
+                    <div key={channel.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <img src={getChannelLogoPath(channel.channel_type)} alt={channel.channel_type} className="w-8 h-8 rounded-lg flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-white truncate">{channel.channel_name || channel.account_name}</p>
+                          <p className="text-xs text-slate-500">
+                            {channel.last_sync_at
+                              ? `${Math.floor((Date.now() - new Date(channel.last_sync_at).getTime()) / 60000)}분 전`
+                              : getChannelLabel(channel.channel_type)}
+                          </p>
+                        </div>
                       </div>
+                      {isPaidAd && syncEndpoint && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const response = await fetch(syncEndpoint, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ channelId: channel.id })
+                              })
+                              const result = await response.json()
+                              if (result.success) {
+                                setMessage({ type: 'success', text: `${channel.channel_name || channel.account_name} 동기화 완료` })
+                                fetchConnectedData()
+                              } else {
+                                setMessage({ type: 'error', text: result.error || '동기화 실패' })
+                              }
+                            } catch {
+                              setMessage({ type: 'error', text: '동기화 중 오류 발생' })
+                            }
+                          }}
+                          className="ml-2 px-2.5 py-1.5 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center gap-1 flex-shrink-0"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          동기화
+                        </button>
+                      )}
                     </div>
-                    <button
-                      onClick={async () => {
-                        const endpoint = getSyncEndpoint(channel.channel_type)
-                        if (!endpoint) return
-                        try {
-                          const response = await fetch(endpoint, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ channelId: channel.id })
-                          })
-                          const result = await response.json()
-                          if (result.success) {
-                            setMessage({ type: 'success', text: `${channel.channel_name} 동기화 완료` })
-                            fetchConnectedData()
-                          } else {
-                            setMessage({ type: 'error', text: result.error || '동기화 실패' })
-                          }
-                        } catch {
-                          setMessage({ type: 'error', text: '동기화 중 오류 발생' })
-                        }
-                      }}
-                      className="px-3 py-1.5 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center gap-1.5"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      동기화
-                    </button>
-                  </div>
-                ))}
-                {adChannels.length > 2 && (
-                  <Link href="/ad-channels" className="block text-center text-xs text-slate-400 hover:text-white py-2">
-                    +{adChannels.length - 2}개 더 보기
-                  </Link>
-                )}
+                  )
+                })}
+                <Link
+                  href="/ad-channels"
+                  className="block text-center text-xs text-slate-400 hover:text-white py-2 border border-dashed border-slate-700 rounded-lg hover:border-slate-600 transition-colors"
+                >
+                  + 채널 추가
+                </Link>
               </div>
             ) : (
               <div className="text-center py-4">
@@ -824,75 +791,97 @@ export default function ConversionsPage() {
           </div>
         </div>
 
-        {/* 스마트스토어 카드 */}
+        {/* 내 쇼핑몰 카드 */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 p-5">
           <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl" />
           <div className="relative">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center">
-                  <img src="/site_logo/smartstore.png" alt="스마트스토어" className="w-8 h-8" />
+                  <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white">전환 데이터</h3>
-                  <p className="text-xs text-slate-400">스마트스토어 주문 동기화</p>
+                  <h3 className="font-semibold text-white">내 쇼핑몰</h3>
+                  <p className="text-xs text-slate-400">연동된 쇼핑몰 목록</p>
                 </div>
               </div>
-              {connectedSites.length > 0 && (
-                <span className="px-2 py-1 text-xs font-medium bg-green-500/20 text-green-400 rounded-full">
-                  {connectedSites.length}개 연동
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {connectedSites.filter(s => s.site_type === 'naver').length > 0 && (
+                  <button
+                    onClick={() => setShowConversionInfoModal(true)}
+                    className="text-slate-500 hover:text-blue-400 transition-colors"
+                    title="전환 데이터 동기화란?"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </button>
+                )}
+                {connectedSites.length > 0 && (
+                  <span className="px-2 py-1 text-xs font-medium bg-green-500/20 text-green-400 rounded-full">
+                    {connectedSites.length}개 연동
+                  </span>
+                )}
+              </div>
             </div>
 
             {connectedSites.length > 0 ? (
               <div className="space-y-2">
-                {connectedSites.slice(0, 2).map((site) => (
-                  <div key={site.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 border border-slate-700/50">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={site.site_type === 'naver' ? '/site_logo/smartstore.png' : site.site_type === 'cafe24' ? '/site_logo/cafe24.png' : '/site_logo/imweb.png'}
-                        alt={site.site_type}
-                        className="w-8 h-8 rounded-lg"
-                      />
-                      <div>
-                        <p className="text-sm font-medium text-white">{site.site_name}</p>
-                        <p className="text-xs text-slate-500">
-                          {site.last_sync_at
-                            ? `${Math.floor((Date.now() - new Date(site.last_sync_at).getTime()) / 60000)}분 전 동기화`
-                            : '동기화 필요'}
-                        </p>
+                {connectedSites.map((site) => {
+                  const isNaver = site.site_type === 'naver'
+                  const getSiteLogo = () => {
+                    if (site.site_type === 'naver') return '/site_logo/smartstore.png'
+                    if (site.site_type === 'cafe24') return '/site_logo/cafe24.png'
+                    if (site.site_type === 'imweb') return '/site_logo/imweb.png'
+                    return '/site_logo/smartstore.png'
+                  }
+                  return (
+                    <div key={site.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <img
+                          src={getSiteLogo()}
+                          alt={site.site_type}
+                          className="w-8 h-8 rounded-lg flex-shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-white truncate">{site.site_name}</p>
+                          <p className="text-xs text-slate-500">
+                            {site.last_sync_at
+                              ? `${Math.floor((Date.now() - new Date(site.last_sync_at).getTime()) / 60000)}분 전`
+                              : site.site_type === 'naver' ? '스마트스토어' : site.site_type === 'cafe24' ? 'Cafe24' : '아임웹'}
+                          </p>
+                        </div>
                       </div>
+                      {/* 네이버 스마트스토어만 전환 동기화 버튼 */}
+                      {isNaver && (
+                        <button
+                          onClick={handleSyncSmartstore}
+                          disabled={syncingSmartstore}
+                          className="ml-2 px-2.5 py-1.5 text-xs font-medium bg-green-500 hover:bg-green-600 disabled:bg-green-500/50 text-white rounded-lg transition-colors flex items-center gap-1 flex-shrink-0"
+                        >
+                          {syncingSmartstore ? (
+                            <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                          ) : (
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                          )}
+                          {syncingSmartstore ? '동기화 중' : '전환 동기화'}
+                        </button>
+                      )}
                     </div>
-                  </div>
-                ))}
-                {connectedSites.length > 2 && (
-                  <Link href="/my-shoppingmall" className="block text-center text-xs text-slate-400 hover:text-white py-2">
-                    +{connectedSites.length - 2}개 더 보기
-                  </Link>
-                )}
-                {/* 스마트스토어 전환 동기화 버튼 */}
-                <button
-                  onClick={handleSyncSmartstore}
-                  disabled={syncingSmartstore}
-                  className="w-full mt-2 px-4 py-2 text-sm font-medium bg-green-500 hover:bg-green-600 disabled:bg-green-500/50 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                  )
+                })}
+                <Link
+                  href="/my-shoppingmall"
+                  className="block text-center text-xs text-slate-400 hover:text-white py-2 border border-dashed border-slate-700 rounded-lg hover:border-slate-600 transition-colors"
                 >
-                  {syncingSmartstore ? (
-                    <>
-                      <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      동기화 중...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      전환 데이터 동기화
-                    </>
-                  )}
-                </button>
+                  + 쇼핑몰 추가
+                </Link>
               </div>
             ) : (
               <div className="text-center py-4">
@@ -961,12 +950,12 @@ export default function ConversionsPage() {
       )}
 
       {/* 광고 성과 통합 섹션 - 항상 표시 */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-900/20 to-slate-800/40 border border-violet-500/20">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-900/20 to-slate-800/40 border border-blue-500/20">
           <div className="p-6 border-b border-white/5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center">
-                  <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                 </div>
@@ -984,7 +973,7 @@ export default function ConversionsPage() {
             {/* 통합 성과 뷰 - 광고 캠페인 + 추적 링크 통합 */}
             {(adStatsLoading || loading) ? (
               <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-500"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
               </div>
             ) : (adStats.length > 0 || trackingLinks.length > 0) ? (
               <div className="space-y-6">
@@ -1143,7 +1132,7 @@ export default function ConversionsPage() {
                                         campaign.creative_type === 'video'
                                           ? 'bg-pink-500/20 text-pink-400'
                                           : campaign.creative_type === 'carousel'
-                                            ? 'bg-purple-500/20 text-purple-400'
+                                            ? 'bg-blue-500/20 text-blue-400'
                                             : 'bg-blue-500/20 text-blue-400'
                                       }`}>
                                         {campaign.creative_type === 'video' ? '릴스/영상' : campaign.creative_type === 'carousel' ? '캐러셀' : '이미지'}
@@ -1188,13 +1177,13 @@ export default function ConversionsPage() {
                             </td>
                             <td className="py-4 px-4">
                               <div className="flex justify-center">
-                              {/* Meta/Google 광고 AI 분석 버튼 */}
-                              {(campaign.channel_type === 'meta' || campaign.channel_type === 'google_ads') && (
+                              {/* Meta 광고 AI 분석 버튼 */}
+                              {campaign.channel_type === 'meta' && (
                                 <AdAnalysisButton
-                                  platform={campaign.channel_type === 'meta' ? 'meta' : 'instagram'}
+                                  platform="meta"
                                   contentType="image"
-                                  metaChannelId={campaign.channel_type === 'meta' ? campaign.channel_id : undefined}
-                                  metaCampaignId={campaign.channel_type === 'meta' ? campaign.campaign_id : undefined}
+                                  metaChannelId={campaign.channel_id}
+                                  metaCampaignId={campaign.campaign_id}
                                   metrics={{
                                     impressions: campaign.total_impressions,
                                     clicks: campaign.total_clicks,
@@ -1523,7 +1512,7 @@ export default function ConversionsPage() {
                 <select
                   value={editForm.status}
                   onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/50"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                 >
                   <option value="active">활성</option>
                   <option value="inactive">비활성</option>
@@ -1705,6 +1694,97 @@ export default function ConversionsPage() {
                 className="flex-1 h-11 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors disabled:opacity-50"
               >
                 {updatingRoas ? '저장 중...' : '저장'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 전환 데이터 설명 모달 */}
+      {showConversionInfoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-slate-800 rounded-2xl w-full max-w-lg border border-slate-700 shadow-2xl">
+            <div className="p-5 border-b border-slate-700 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+                  <img src="/site_logo/smartstore.png" alt="스마트스토어" className="w-6 h-6" />
+                </div>
+                <h3 className="font-bold text-white">전환 데이터 동기화란?</h3>
+              </div>
+              <button
+                onClick={() => setShowConversionInfoModal(false)}
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* 설명 */}
+              <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-700">
+                <h4 className="font-semibold text-white mb-2">nt 파라미터 기반 전환 추적</h4>
+                <p className="text-sm text-slate-400 leading-relaxed">
+                  네이버 스마트스토어는 광고를 통해 유입된 주문에 <span className="text-green-400 font-medium">nt 파라미터</span>를
+                  자동으로 기록합니다. 이 데이터를 셀러포트 크롬 확장 프로그램을 통해 수집하여
+                  광고 채널별 전환 성과를 정확하게 분석할 수 있습니다.
+                </p>
+              </div>
+
+              {/* 작동 방식 */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-white">작동 방식</h4>
+                <div className="space-y-2">
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-700/30">
+                    <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
+                    <div>
+                      <p className="text-sm text-white font-medium">크롬 확장 프로그램 설치</p>
+                      <p className="text-xs text-slate-400 mt-0.5">셀러포트 크롬 확장 프로그램을 설치합니다</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-700/30">
+                    <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold flex items-center justify-center flex-shrink-0">2</span>
+                    <div>
+                      <p className="text-sm text-white font-medium">스마트스토어 판매자센터 접속</p>
+                      <p className="text-xs text-slate-400 mt-0.5">판매자센터에서 주문 내역을 조회합니다</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-700/30">
+                    <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold flex items-center justify-center flex-shrink-0">3</span>
+                    <div>
+                      <p className="text-sm text-white font-medium">nt 파라미터 자동 수집</p>
+                      <p className="text-xs text-slate-400 mt-0.5">확장 프로그램이 주문의 nt 파라미터를 자동으로 수집합니다</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-700/30">
+                    <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 text-xs font-bold flex items-center justify-center flex-shrink-0">4</span>
+                    <div>
+                      <p className="text-sm text-white font-medium">전환 데이터 동기화</p>
+                      <p className="text-xs text-slate-400 mt-0.5">수집된 데이터를 셀러포트에 동기화하여 광고 성과 분석</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* nt 파라미터 예시 */}
+              <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-700">
+                <h4 className="font-medium text-white mb-2">nt 파라미터 예시</h4>
+                <div className="p-3 rounded-lg bg-black/30 font-mono text-xs text-green-400 overflow-x-auto">
+                  nt=naver_shopping_search
+                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  이 값을 통해 네이버 쇼핑 검색, 블로그, 카페 등 어떤 채널에서 유입되어 구매로 이어졌는지 알 수 있습니다.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-5 border-t border-slate-700">
+              <button
+                onClick={() => setShowConversionInfoModal(false)}
+                className="w-full h-11 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium transition-colors"
+              >
+                확인
               </button>
             </div>
           </div>

@@ -196,11 +196,11 @@ export default function DashboardPage() {
           <div className="relative w-full max-w-md mx-4 overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 shadow-2xl">
             {/* 배경 장식 */}
             <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl" />
 
             <div className="relative p-8 text-center">
               {/* 아이콘 */}
-              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30 flex items-center justify-center">
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-500/20 border border-blue-500/30 flex items-center justify-center">
                 <span className="text-4xl">🚀</span>
               </div>
 
@@ -267,7 +267,7 @@ export default function DashboardPage() {
       </div>
 
       {/* 오늘 실시간 현황 */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 p-5">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600/20 to-blue-600/20 border border-blue-500/30 p-5">
         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl" />
         <div className="relative flex items-center justify-between">
           <div>

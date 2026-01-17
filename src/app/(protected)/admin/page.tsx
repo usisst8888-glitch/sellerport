@@ -23,7 +23,7 @@ interface User {
 // 회원 유형 라벨
 const USER_TYPE_LABELS: Record<string, { label: string; color: string }> = {
   seller: { label: '셀러', color: 'text-blue-400 bg-blue-500/20' },
-  agency: { label: '대행사', color: 'text-purple-400 bg-purple-500/20' },
+  agency: { label: '대행사', color: 'text-blue-400 bg-blue-500/20' },
   designer: { label: '디자이너', color: 'text-pink-400 bg-pink-500/20' },
   influencer: { label: '인플루언서', color: 'text-cyan-400 bg-cyan-500/20' },
   manager: { label: '매니저', color: 'text-orange-400 bg-orange-500/20' },
@@ -222,7 +222,7 @@ export default function AdminPage() {
           onClick={() => setFilter('agency')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             filter === 'agency'
-              ? 'bg-purple-600 text-white'
+              ? 'bg-blue-600 text-white'
               : 'bg-slate-800 text-slate-400 hover:text-white'
           }`}
         >

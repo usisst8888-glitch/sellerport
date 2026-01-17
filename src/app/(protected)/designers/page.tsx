@@ -171,8 +171,8 @@ export default function DesignersPage() {
       </div>
 
       {/* 안내 배너 */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-900/30 to-slate-800/40 border border-violet-500/20 p-6">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/10 rounded-full blur-3xl" />
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-900/30 to-slate-800/40 border border-blue-500/20 p-6">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl" />
         <div className="relative flex items-center gap-6">
           <div className="text-5xl">🎨</div>
           <div className="flex-1">
@@ -182,7 +182,7 @@ export default function DesignersPage() {
               셀러포트 인증 디자이너가 도와드립니다.
             </p>
           </div>
-          <button className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium transition-colors whitespace-nowrap">
+          <button className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors whitespace-nowrap">
             무료 상담 신청
           </button>
         </div>
@@ -217,7 +217,7 @@ export default function DesignersPage() {
                       className="w-14 h-14 rounded-xl object-cover"
                     />
                   ) : (
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg">
                       {designer.name.charAt(0)}
                     </div>
                   )}

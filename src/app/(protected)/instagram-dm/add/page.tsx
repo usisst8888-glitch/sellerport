@@ -1010,7 +1010,7 @@ export default function InstagramDmAddPage() {
                   }}
                   className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-colors ${
                     sendMode === 'carousel'
-                      ? 'bg-purple-500 text-white'
+                      ? 'bg-blue-500 text-white'
                       : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600'
                   }`}
                 >
@@ -1157,9 +1157,9 @@ export default function InstagramDmAddPage() {
                         return (
                           <div
                             key={productId}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-500/20 border border-purple-500/30"
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-500/20 border border-blue-500/30"
                           >
-                            <span className="text-xs text-purple-300 font-bold">{index + 1}</span>
+                            <span className="text-xs text-blue-300 font-bold">{index + 1}</span>
                             {product.image_url && (
                               <img src={product.image_url} alt={product.name} className="w-6 h-6 rounded object-cover" />
                             )}
@@ -1220,7 +1220,7 @@ export default function InstagramDmAddPage() {
                         <div className="max-h-64 overflow-y-auto">
                           {productsLoading ? (
                             <div className="flex items-center justify-center py-4">
-                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-500"></div>
+                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
                             </div>
                           ) : filteredProducts.length === 0 ? (
                             <div className="p-4 text-center text-sm text-slate-400">
@@ -1247,7 +1247,7 @@ export default function InstagramDmAddPage() {
                                     }
                                   }}
                                   className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-600/50 border-b border-slate-600 last:border-b-0 text-left ${
-                                    isSelected ? 'bg-purple-500/10' : ''
+                                    isSelected ? 'bg-blue-500/10' : ''
                                   }`}
                                 >
                                   {product.image_url ? (
@@ -1264,7 +1264,7 @@ export default function InstagramDmAddPage() {
                                     <p className="text-xs text-slate-400">{product.price.toLocaleString()}원</p>
                                   </div>
                                   {isSelected ? (
-                                    <svg className="w-5 h-5 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-5 h-5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                     </svg>
                                   ) : (

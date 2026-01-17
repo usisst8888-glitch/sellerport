@@ -55,10 +55,10 @@ export function AdAnalysisButton({
         onClick={() => setShowModal(true)}
         className={`
           ${sizeClasses}
-          bg-gradient-to-r from-purple-500/20 to-blue-500/20
-          hover:from-purple-500/30 hover:to-blue-500/30
-          border border-purple-500/30 hover:border-purple-500/50
-          text-purple-300 hover:text-purple-200
+          bg-gradient-to-r from-blue-500/20 to-blue-500/20
+          hover:from-blue-500/30 hover:to-blue-500/30
+          border border-blue-500/30 hover:border-blue-500/50
+          text-blue-300 hover:text-blue-200
           rounded-lg font-medium
           transition-all duration-200
           flex items-center gap-1.5

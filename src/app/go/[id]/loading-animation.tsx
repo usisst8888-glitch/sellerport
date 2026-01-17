@@ -127,7 +127,7 @@ export default function LoadingAnimation({ trackingLinkId, targetUrl, pixelId }:
         {/* 애니메이션 컨테이너 */}
         <div className="relative w-32 h-32 mb-8">
           {/* 외곽 회전 원 */}
-          <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-pink-500 border-r-purple-500 animate-spin" />
+          <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-pink-500 border-r-blue-500 animate-spin" />
 
           {/* 중간 회전 원 (반대 방향) */}
           <div
@@ -175,7 +175,7 @@ export default function LoadingAnimation({ trackingLinkId, targetUrl, pixelId }:
           </h1>
           <div className="flex items-center justify-center gap-1">
             <span className="w-2 h-2 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
             <span className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
           </div>
         </div>
@@ -183,7 +183,7 @@ export default function LoadingAnimation({ trackingLinkId, targetUrl, pixelId }:
         {/* 진행 바 */}
         <div className="mt-8 w-64 h-1 bg-slate-700 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-400 rounded-full"
+            className="h-full bg-gradient-to-r from-pink-500 via-blue-500 to-cyan-400 rounded-full"
             style={{
               animation: isReady ? 'progress 1.5s ease-out forwards' : 'none',
             }}
