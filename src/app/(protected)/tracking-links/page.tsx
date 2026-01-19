@@ -292,7 +292,7 @@ export default function TrackingLinksPage() {
       </div>
 
       {/* 연동 상태 안내 */}
-      {(shoppingmalls.length === 0 || adChannels.length === 0) && (
+      {shoppingmalls.length === 0 && (
         <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30">
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center flex-shrink-0">
@@ -301,28 +301,16 @@ export default function TrackingLinksPage() {
               </svg>
             </div>
             <div>
-              <h3 className="font-semibold text-white mb-1">먼저 연동이 필요합니다</h3>
+              <h3 className="font-semibold text-white mb-1">먼저 쇼핑몰 연동이 필요합니다</h3>
               <p className="text-sm text-slate-400 mb-3">
-                추적 링크를 생성하려면 쇼핑몰과 광고 채널을 연동해주세요.
+                추적 링크를 생성하려면 쇼핑몰을 먼저 연동해주세요.
               </p>
-              <div className="flex gap-3">
-                {shoppingmalls.length === 0 && (
-                  <Link
-                    href="/my-shoppingmall"
-                    className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium transition-colors"
-                  >
-                    쇼핑몰 연동하기
-                  </Link>
-                )}
-                {adChannels.length === 0 && (
-                  <Link
-                    href="/ad-channels"
-                    className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium transition-colors"
-                  >
-                    광고 채널 연동하기
-                  </Link>
-                )}
-              </div>
+              <Link
+                href="/my-shoppingmall"
+                className="inline-block px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium transition-colors"
+              >
+                쇼핑몰 연동하기
+              </Link>
             </div>
           </div>
         </div>
