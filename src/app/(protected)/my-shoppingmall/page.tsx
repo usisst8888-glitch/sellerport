@@ -37,6 +37,7 @@ export default function MySitesPage() {
     application_secret: ''
   })
   const [saving, setSaving] = useState(false)
+  const [syncing, setSyncing] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   // URL 파라미터에서 성공/에러 메시지 처리
@@ -179,6 +180,48 @@ export default function MySitesPage() {
     }
   }
 
+  // 상품 동기화
+  const handleSyncProducts = async (siteId: string, siteType: string) => {
+    setSyncing(siteId)
+    try {
+      let endpoint = ''
+      if (siteType === 'naver') {
+        endpoint = '/api/naver/sync'
+      } else if (siteType === 'cafe24') {
+        endpoint = '/api/cafe24/sync'
+      } else {
+        setMessage({ type: 'error', text: '지원되지 않는 플랫폼입니다' })
+        return
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId, syncType: 'products' })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || '동기화에 실패했습니다')
+      }
+
+      setMessage({
+        type: 'success',
+        text: `상품 ${data.results?.products?.synced || 0}개가 동기화되었습니다`
+      })
+      fetchSites()
+    } catch (error) {
+      console.error('Sync error:', error)
+      setMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : '동기화에 실패했습니다'
+      })
+    } finally {
+      setSyncing(null)
+    }
+  }
+
   const getSiteTypeInfo = (type: string) => {
     return SITE_TYPES.find(t => t.value === type) || { value: type, label: type, icon: '/channel_logo/custom.png' }
   }
@@ -299,6 +342,27 @@ export default function MySitesPage() {
                   }`}>
                     {site.status === 'active' || site.status === 'connected' ? '활성' : site.status}
                   </span>
+                  {(site.status === 'active' || site.status === 'connected') && (site.site_type === 'naver' || site.site_type === 'cafe24') && (
+                    <button
+                      onClick={() => handleSyncProducts(site.id, site.site_type)}
+                      disabled={syncing === site.id}
+                      className="px-3 py-1.5 text-sm font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-lg flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      {syncing === site.id ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                          동기화 중...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          상품 동기화
+                        </>
+                      )}
+                    </button>
+                  )}
                   <button
                     onClick={() => handleDeleteSite(site.id)}
                     className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg"
