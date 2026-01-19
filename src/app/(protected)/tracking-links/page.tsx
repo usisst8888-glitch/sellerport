@@ -359,15 +359,6 @@ export default function TrackingLinksPage() {
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <div className="flex items-center gap-2 mb-2">
                       <p className="font-medium text-white truncate">{link.post_name || link.utm_campaign}</p>
-                      {link.channel_type && (
-                        <span className={`px-2 py-0.5 text-xs rounded flex-shrink-0 ${
-                          link.channel_type === 'meta' ? 'bg-blue-500/20 text-blue-400' :
-                          link.channel_type === 'instagram' ? 'bg-pink-500/20 text-pink-400' :
-                          'bg-slate-500/20 text-slate-400'
-                        }`}>
-                          {channelTypeLabels[link.channel_type] || link.channel_type}
-                        </span>
-                      )}
                     </div>
                     {/* 링크 URL 강조 표시 */}
                     <div className="flex items-center gap-2 p-3 rounded-lg bg-slate-900/80 border border-slate-700">
