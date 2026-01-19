@@ -27,6 +27,7 @@ interface TrackingLink {
   channel_type: string | null
   post_name: string | null
   store_slug: string | null
+  ad_channel_id: string | null
   products?: {
     id: string
     name: string
@@ -55,7 +56,6 @@ interface Product {
 
 // 채널 타입 한글 라벨 매핑
 const channelTypeLabels: Record<string, string> = {
-  instagram: '인스타그램',
   meta: 'Meta 광고',
 }
 
@@ -285,15 +285,6 @@ export default function ConversionsPage() {
         fetchAdStats(channels, user.id)
       }
     }
-
-    // Instagram 계정 연결 상태 확인 (instagram_accounts 테이블에서)
-    const { data: instagramAccounts } = await supabase
-      .from('instagram_accounts')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('status', 'connected')
-      .limit(1)
-
   }
 
   // 네이버 쇼핑몰 연동
@@ -597,7 +588,6 @@ export default function ConversionsPage() {
   const getChannelBadgeStyle = (channelType: string) => {
     const styles: Record<string, { bg: string; text: string; label: string }> = {
       'meta': { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Meta' },
-      'instagram': { bg: 'bg-pink-500/20', text: 'text-pink-400', label: 'Instagram' },
     }
     return styles[channelType] || { bg: 'bg-slate-500/20', text: 'text-slate-400', label: channelType }
   }
@@ -605,7 +595,6 @@ export default function ConversionsPage() {
   // 채널 타입별 로고 경로 (썸네일이 없을 때 기본 로고)
   const getChannelLogoPath = (channelType: string): string => {
     const logos: Record<string, string> = {
-      'instagram': '/channel_logo/insta.png',
       'meta': '/channel_logo/meta.png',
     }
     return logos[channelType] || '/channel_logo/meta.png'
@@ -893,100 +882,6 @@ export default function ConversionsPage() {
 
       {/* 연동 현황 카드 섹션 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* 광고 채널 카드 */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-500/10 border border-blue-500/20 p-5">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl" />
-          <div className="relative">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-white">광고 채널</h3>
-                  <p className="text-xs text-slate-400">유료 광고 성과 연동</p>
-                </div>
-              </div>
-              {adChannels.length > 0 && (
-                <span className="px-2 py-1 text-xs font-medium bg-green-500/20 text-green-400 rounded-full">
-                  {adChannels.length}개 연동
-                </span>
-              )}
-            </div>
-
-            {adChannels.length > 0 ? (
-              <div className="space-y-2">
-                {adChannels.map((channel) => {
-                  const isPaidAd = channel.channel_type === 'meta'
-                  const syncEndpoint = getSyncEndpoint(channel.channel_type)
-                  return (
-                    <div key={channel.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 border border-slate-700/50">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <img src={getChannelLogoPath(channel.channel_type)} alt={channel.channel_type} className="w-8 h-8 rounded-lg flex-shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-white truncate">{channel.channel_name || channel.account_name}</p>
-                          <p className="text-xs text-slate-500">
-                            {channel.last_sync_at
-                              ? `${Math.floor((Date.now() - new Date(channel.last_sync_at).getTime()) / 60000)}분 전`
-                              : getChannelLabel(channel.channel_type)}
-                          </p>
-                        </div>
-                      </div>
-                      {isPaidAd && syncEndpoint && (
-                        <button
-                          onClick={async () => {
-                            try {
-                              const response = await fetch(syncEndpoint, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ channelId: channel.id })
-                              })
-                              const result = await response.json()
-                              if (result.success) {
-                                setMessage({ type: 'success', text: `${channel.channel_name || channel.account_name} 동기화 완료` })
-                                fetchConnectedData()
-                              } else {
-                                setMessage({ type: 'error', text: result.error || '동기화 실패' })
-                              }
-                            } catch {
-                              setMessage({ type: 'error', text: '동기화 중 오류 발생' })
-                            }
-                          }}
-                          className="ml-2 px-2.5 py-1.5 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center gap-1 flex-shrink-0"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                          동기화
-                        </button>
-                      )}
-                    </div>
-                  )
-                })}
-                <button
-                  onClick={() => setShowAdChannelModal(true)}
-                  className="block w-full text-center text-xs text-slate-400 hover:text-white py-2 border border-dashed border-slate-700 rounded-lg hover:border-slate-600 transition-colors"
-                >
-                  + 채널 추가
-                </button>
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-sm text-slate-400 mb-3">연동된 광고 채널이 없습니다</p>
-                <button
-                  onClick={() => setShowAdChannelModal(true)}
-                  className="inline-block px-4 py-2 text-sm font-medium bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-                >
-                  광고 채널 연동하기
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* 내 쇼핑몰 카드 */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 p-5">
           <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl" />
@@ -1087,6 +982,98 @@ export default function ConversionsPage() {
                   className="inline-block px-4 py-2 text-sm font-medium bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
                 >
                   쇼핑몰 연동하기
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 광고 계정 카드 */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-500/10 border border-blue-500/20 p-5">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl" />
+          <div className="relative">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white">광고 계정</h3>
+                  <p className="text-xs text-slate-400">유료 광고 성과 연동</p>
+                </div>
+              </div>
+              {adChannels.length > 0 && (
+                <span className="px-2 py-1 text-xs font-medium bg-green-500/20 text-green-400 rounded-full">
+                  {adChannels.length}개 연동
+                </span>
+              )}
+            </div>
+
+            {adChannels.filter(ch => ch.channel_type === 'meta').length > 0 ? (
+              <div className="space-y-2">
+                {adChannels.filter(ch => ch.channel_type === 'meta').map((channel) => {
+                  const syncEndpoint = getSyncEndpoint(channel.channel_type)
+                  return (
+                    <div key={channel.id} className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <img src={getChannelLogoPath(channel.channel_type)} alt={channel.channel_type} className="w-8 h-8 rounded-lg flex-shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-white truncate">{channel.channel_name || channel.account_name}</p>
+                            <p className="text-xs text-slate-500">Meta 유료광고</p>
+                          </div>
+                        </div>
+                        {syncEndpoint && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                setMessage({ type: 'success', text: `${channel.channel_name || channel.account_name} 동기화 중...` })
+                                const response = await fetch(syncEndpoint, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ channelId: channel.id })
+                                })
+                                const result = await response.json()
+                                if (result.success) {
+                                  setMessage({ type: 'success', text: `${channel.channel_name || channel.account_name} 동기화 완료` })
+                                  fetchConnectedData()
+                                } else {
+                                  setMessage({ type: 'error', text: result.error || '동기화 실패' })
+                                }
+                              } catch {
+                                setMessage({ type: 'error', text: '동기화 중 오류 발생' })
+                              }
+                            }}
+                            className="ml-2 px-2.5 py-1.5 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center gap-1 flex-shrink-0"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            동기화
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+                <button
+                  onClick={() => setShowAdChannelModal(true)}
+                  className="block w-full text-center text-xs text-slate-400 hover:text-white py-2 border border-dashed border-slate-700 rounded-lg hover:border-slate-600 transition-colors"
+                >
+                  + 계정 추가
+                </button>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-slate-400 mb-3">연동된 광고 계정이 없습니다</p>
+                <button
+                  onClick={() => setShowAdChannelModal(true)}
+                  className="inline-block px-4 py-2 text-sm font-medium bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                >
+                  광고 계정 연동하기
                 </button>
               </div>
             )}
@@ -1281,7 +1268,10 @@ export default function ConversionsPage() {
                       <tr className="text-left text-sm text-slate-400 border-b border-white/5">
                         <th className="pb-3 font-medium">캠페인/추적링크</th>
                         <th className="pb-3 font-medium text-center px-4">광고비</th>
+                        <th className="pb-3 font-medium text-center px-4">노출</th>
                         <th className="pb-3 font-medium text-center px-4">클릭</th>
+                        <th className="pb-3 font-medium text-center px-4">CTR</th>
+                        <th className="pb-3 font-medium text-center px-4">CPC</th>
                         <th className="pb-3 font-medium text-center px-4">전환</th>
                         <th className="pb-3 font-medium text-center px-4">매출</th>
                         <th className="pb-3 font-medium text-center px-4">ROAS</th>
@@ -1326,7 +1316,7 @@ export default function ConversionsPage() {
                                     {campaign.creative_type && (
                                       <span className={`px-2 py-0.5 text-xs rounded ${
                                         campaign.creative_type === 'video'
-                                          ? 'bg-pink-500/20 text-pink-400'
+                                          ? 'bg-teal-500/20 text-teal-400'
                                           : campaign.creative_type === 'carousel'
                                             ? 'bg-blue-500/20 text-blue-400'
                                             : 'bg-blue-500/20 text-blue-400'
@@ -1340,22 +1330,72 @@ export default function ConversionsPage() {
                                         A/B 테스트 ({campaign.creative_count}개 소재)
                                       </span>
                                     )}
+                                    {/* 추적 링크 사용 여부 - 해당 채널의 추적 링크 찾기 */}
+                                    {(() => {
+                                      const matchingLink = trackingLinks.find(link => link.ad_channel_id === campaign.channel_id)
+                                      if (matchingLink) {
+                                        return (
+                                          <span className="px-2 py-0.5 text-xs rounded bg-emerald-500/20 text-emerald-400 flex items-center gap-1">
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                            </svg>
+                                            추적 링크
+                                          </span>
+                                        )
+                                      }
+                                      return (
+                                        <span className="px-2 py-0.5 text-xs rounded bg-slate-700/50 text-slate-500 flex items-center gap-1">
+                                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                          </svg>
+                                          추적 링크 미사용
+                                        </span>
+                                      )
+                                    })()}
                                     <span className="text-base text-white truncate max-w-[400px]" title={campaign.campaign_name}>
                                       {campaign.campaign_name}
                                     </span>
                                   </div>
-                                  <div className="flex items-center gap-2 text-sm text-slate-500">
-                                    <span>노출 {campaign.total_impressions.toLocaleString()}</span>
-                                    <span>·</span>
-                                    <span>CTR {campaign.ctr.toFixed(2)}%</span>
-                                    <span>·</span>
-                                    <span>CPC {campaign.cpc.toLocaleString()}원</span>
-                                  </div>
+                                  {/* 추적 링크 URL 표시 */}
+                                  {(() => {
+                                    const matchingLink = trackingLinks.find(link => link.ad_channel_id === campaign.channel_id)
+                                    if (matchingLink && (matchingLink.go_url || matchingLink.tracking_url)) {
+                                      return (
+                                        <div className="flex items-center gap-2 mt-1">
+                                          <span className="text-xs text-emerald-400 truncate max-w-[320px]" title={matchingLink.go_url || matchingLink.tracking_url}>
+                                            {matchingLink.go_url || matchingLink.tracking_url}
+                                          </span>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              copyToClipboard(matchingLink.go_url || matchingLink.tracking_url, matchingLink.id)
+                                            }}
+                                            className="p-1 rounded hover:bg-white/10 transition-colors flex-shrink-0"
+                                            title="URL 복사"
+                                          >
+                                            {copiedId === matchingLink.id ? (
+                                              <svg className="w-3 h-3 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                              </svg>
+                                            ) : (
+                                              <svg className="w-3 h-3 text-slate-500 hover:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                              </svg>
+                                            )}
+                                          </button>
+                                        </div>
+                                      )
+                                    }
+                                    return null
+                                  })()}
                                 </div>
                               </div>
                             </td>
                             <td className="py-4 text-center text-base text-white px-4">{campaign.total_spend.toLocaleString()}원</td>
+                            <td className="py-4 text-center text-base text-white px-4">{campaign.total_impressions.toLocaleString()}</td>
                             <td className="py-4 text-center text-base text-white px-4">{campaign.total_clicks.toLocaleString()}</td>
+                            <td className="py-4 text-center text-base text-white px-4">{campaign.ctr.toFixed(2)}%</td>
+                            <td className="py-4 text-center text-base text-white px-4">{campaign.cpc.toLocaleString()}원</td>
                             <td className="py-4 text-center text-base px-4">
                               {hasAccess ? (
                                 <span className="text-emerald-400">{campaign.total_conversions.toLocaleString()}</span>
@@ -1446,11 +1486,18 @@ export default function ConversionsPage() {
                                 <div className="flex flex-col gap-1.5 flex-1 min-w-0">
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <span className={`px-2 py-0.5 text-xs rounded ${channelBadge.bg} ${channelBadge.text}`}>
-                                      {effectiveChannelType === 'instagram' ? '인스타그램 DM 자동발송' : getChannelLabel(effectiveChannelType)}</span>
+                                      {getChannelLabel(effectiveChannelType)}</span>
                                     <span className={`px-2 py-0.5 text-xs rounded ${
                                       link.status === 'active' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-500/20 text-slate-400'
                                     }`}>
                                       {link.status === 'active' ? '활성' : '비활성'}
+                                    </span>
+                                    {/* 추적 링크 사용 표시 */}
+                                    <span className="px-2 py-0.5 text-xs rounded bg-emerald-500/20 text-emerald-400 flex items-center gap-1">
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                      </svg>
+                                      추적 링크
                                     </span>
                                   </div>
                                   <span className="text-base text-white truncate max-w-[400px]" title={link.utm_campaign || link.post_name || ''}>
@@ -1495,7 +1542,10 @@ export default function ConversionsPage() {
                                 {(link.ad_spend || 0).toLocaleString()}원
                               </button>
                             </td>
+                            <td className="py-4 text-center text-base text-slate-500 px-4">-</td>
                             <td className="py-4 text-center text-base text-white px-4">{link.clicks.toLocaleString()}</td>
+                            <td className="py-4 text-center text-base text-slate-500 px-4">-</td>
+                            <td className="py-4 text-center text-base text-white px-4">{link.clicks > 0 && link.ad_spend > 0 ? Math.round(link.ad_spend / link.clicks).toLocaleString() + '원' : '-'}</td>
                             <td className="py-4 text-center px-4">
                               {hasAccess ? (
                                 <div className="flex flex-col items-center">
@@ -1537,15 +1587,11 @@ export default function ConversionsPage() {
                             </td>
                             <td className="py-4 px-4">
                               <div className="flex items-center justify-center gap-1">
-                                {/* AI 분석 버튼 - 인스타그램, Meta 광고 */}
-                                {(effectiveChannelType === 'instagram' || effectiveChannelType === 'meta') && (
+                                {/* AI 분석 버튼 - Meta 광고 */}
+                                {effectiveChannelType === 'meta' && (
                                   <AdAnalysisButton
-                                    platform={effectiveChannelType as 'instagram' | 'meta'}
-                                    contentType={
-                                      effectiveChannelType === 'meta' ? 'image' :
-                                      link.thumbnail_url?.includes('carousel') ? 'carousel' :
-                                      link.thumbnail_url?.includes('video') || link.thumbnail_url?.includes('reel') ? 'reels' : 'image'
-                                    }
+                                    platform="meta"
+                                    contentType="image"
                                     imageUrls={link.thumbnail_url ? [link.thumbnail_url] : undefined}
                                     metrics={{
                                       impressions: 0,
@@ -1561,18 +1607,7 @@ export default function ConversionsPage() {
                                   />
                                 )}
                                 {/* 수정 버튼 */}
-                                {effectiveChannelType === 'instagram' ? (
-                                  <Link
-                                    href={`/instagram-dm/add?edit=${link.id}`}
-                                    className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-                                    title="수정"
-                                  >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                    </svg>
-                                  </Link>
-                                ) : (
-                                  <button
+                                <button
                                     onClick={() => {
                                       setEditingLinkFull(link)
                                       setEditForm({ name: link.utm_campaign, status: link.status })
@@ -1584,7 +1619,6 @@ export default function ConversionsPage() {
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                     </svg>
                                   </button>
-                                )}
                                 {/* 삭제 버튼 */}
                                 <button
                                   onClick={() => setDeletingLink(link)}
@@ -1600,6 +1634,7 @@ export default function ConversionsPage() {
                           </tr>
                         )
                       })}
+
                     </tbody>
                   </table>
                 </div>
@@ -2048,7 +2083,7 @@ export default function ConversionsPage() {
                 <div className="space-y-6">
                   {/* 승자 소재 표시 */}
                   {abTestResult.analysis.winner && (
-                    <div className="p-4 rounded-xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30">
+                    <div className="p-4 rounded-xl bg-gradient-to-r from-teal-500/20 to-cyan-500/20 border border-teal-500/30">
                       <div className="flex items-center gap-3 mb-3">
                         <span className="text-2xl">🏆</span>
                         <div>
@@ -2412,23 +2447,6 @@ export default function ConversionsPage() {
                 </svg>
               </button>
 
-              {/* Instagram */}
-              <button
-                onClick={() => {
-                  setShowAdChannelModal(false)
-                  window.location.href = '/api/auth/instagram'
-                }}
-                className="w-full p-4 rounded-xl border border-slate-600 hover:border-pink-500 hover:bg-pink-500/10 transition-all flex items-center gap-4"
-              >
-                <img src="/channel_logo/insta.png" alt="Instagram" className="w-12 h-12 rounded-lg" />
-                <div className="text-left flex-1">
-                  <p className="font-medium text-white">인스타그램</p>
-                  <p className="text-xs text-slate-400">오가닉 콘텐츠 성과 추적</p>
-                </div>
-                <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
             </div>
 
             {/* 푸터 */}
