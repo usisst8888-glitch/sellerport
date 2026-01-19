@@ -23,14 +23,6 @@ interface Product {
   my_shoppingmall_id: string
 }
 
-interface AdChannel {
-  id: string
-  channel_type: string
-  channel_name: string
-  account_name: string | null
-  status: string
-}
-
 interface TrackingLink {
   id: string
   utm_source: string
@@ -58,17 +50,12 @@ const siteTypeLabels: Record<string, string> = {
   smartstore: '스마트스토어',
   cafe24: 'Cafe24',
   imweb: '아임웹',
-}
-
-const channelTypeLabels: Record<string, string> = {
-  meta: 'Meta 광고',
-  instagram: '인스타그램',
+  naver: '스마트스토어',
 }
 
 export default function TrackingLinksPage() {
   const [shoppingmalls, setShoppingmalls] = useState<MyShoppingmall[]>([])
   const [products, setProducts] = useState<Product[]>([])
-  const [adChannels, setAdChannels] = useState<AdChannel[]>([])
   const [trackingLinks, setTrackingLinks] = useState<TrackingLink[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
@@ -76,7 +63,6 @@ export default function TrackingLinksPage() {
   // 폼 상태
   const [selectedShoppingmall, setSelectedShoppingmall] = useState<string>('')
   const [selectedProduct, setSelectedProduct] = useState<string>('')
-  const [selectedChannel, setSelectedChannel] = useState<string>('')
   const [campaignName, setCampaignName] = useState('')
   const [productSearch, setProductSearch] = useState('')
 
@@ -84,6 +70,7 @@ export default function TrackingLinksPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [syncingMall, setSyncingMall] = useState<string | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -111,19 +98,13 @@ export default function TrackingLinksPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // 쇼핑몰, 광고채널, 추적링크 모두 클라이언트 Supabase로 직접 조회
-      const [shoppingmallsRes, channelsRes, linksRes] = await Promise.all([
+      // 쇼핑몰, 추적링크 조회
+      const [shoppingmallsRes, linksRes] = await Promise.all([
         supabase
           .from('my_shoppingmall')
           .select('id, site_type, site_name, store_id, status')
           .eq('user_id', user.id)
           .in('status', ['connected', 'active'])
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('ad_channels')
-          .select('id, channel_type, channel_name, account_name, status')
-          .eq('user_id', user.id)
-          .eq('status', 'connected')
           .order('created_at', { ascending: false }),
         supabase
           .from('tracking_links')
@@ -141,7 +122,6 @@ export default function TrackingLinksPage() {
       ])
 
       if (shoppingmallsRes.data) setShoppingmalls(shoppingmallsRes.data)
-      if (channelsRes.data) setAdChannels(channelsRes.data)
       if (linksRes.data) setTrackingLinks(linksRes.data)
     } catch (error) {
       console.error('Failed to fetch data:', error)
@@ -167,14 +147,13 @@ export default function TrackingLinksPage() {
   }
 
   const handleCreateLink = async () => {
-    if (!selectedProduct || !selectedChannel) {
-      setMessage({ type: 'error', text: '상품과 광고 채널을 선택해주세요' })
+    if (!selectedProduct) {
+      setMessage({ type: 'error', text: '상품을 선택해주세요' })
       return
     }
 
     const product = products.find(p => p.id === selectedProduct)
-    const channel = adChannels.find(c => c.id === selectedChannel)
-    if (!product || !channel) return
+    if (!product) return
 
     setCreating(true)
     try {
@@ -184,10 +163,8 @@ export default function TrackingLinksPage() {
         body: JSON.stringify({
           productId: product.id,
           targetUrl: product.product_url || `https://smartstore.naver.com/${product.external_product_id}`,
-          channelType: channel.channel_type,
-          adChannelId: channel.id,
-          utmSource: channel.channel_type,
-          utmMedium: 'paid',
+          utmSource: 'direct',
+          utmMedium: 'link',
           utmCampaign: campaignName || product.name,
           postName: campaignName || product.name,
         })
@@ -212,7 +189,6 @@ export default function TrackingLinksPage() {
   const resetForm = () => {
     setSelectedShoppingmall('')
     setSelectedProduct('')
-    setSelectedChannel('')
     setCampaignName('')
     setProductSearch('')
   }
@@ -223,12 +199,61 @@ export default function TrackingLinksPage() {
     setTimeout(() => setCopiedId(null), 2000)
   }
 
+  const handleSyncProducts = async (mall: MyShoppingmall, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setSyncingMall(mall.id)
+    setMessage({ type: 'success', text: `${mall.site_name} 상품 동기화 중...` })
+
+    try {
+      let endpoint = ''
+      if (mall.site_type === 'naver') {
+        endpoint = '/api/smartstore/sync-products'
+      } else if (mall.site_type === 'cafe24') {
+        endpoint = '/api/cafe24/sync-products'
+      } else if (mall.site_type === 'imweb') {
+        endpoint = '/api/imweb/sync-products'
+      }
+
+      if (!endpoint) {
+        setMessage({ type: 'error', text: '지원하지 않는 쇼핑몰 유형입니다' })
+        return
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId: mall.id })
+      })
+
+      const result = await response.json()
+      if (result.success) {
+        setMessage({ type: 'success', text: `${result.synced || 0}개 상품이 동기화되었습니다` })
+        // 상품 목록 다시 불러오기
+        if (selectedShoppingmall === mall.id) {
+          fetchProducts(mall.id)
+        }
+      } else {
+        setMessage({ type: 'error', text: result.error || '상품 동기화에 실패했습니다' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: '상품 동기화 중 오류가 발생했습니다' })
+    } finally {
+      setSyncingMall(null)
+    }
+  }
+
+  const getSiteLogo = (siteType: string) => {
+    if (siteType === 'naver') return '/site_logo/smartstore.png'
+    if (siteType === 'cafe24') return '/site_logo/cafe24.png'
+    if (siteType === 'imweb') return '/site_logo/imweb.png'
+    return '/site_logo/smartstore.png'
+  }
+
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(productSearch.toLowerCase())
   )
 
   const selectedProductData = products.find(p => p.id === selectedProduct)
-  const selectedChannelData = adChannels.find(c => c.id === selectedChannel)
 
   if (loading) {
     return (
@@ -432,7 +457,7 @@ export default function TrackingLinksPage() {
             <div className="p-5 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
               <div>
                 <h3 className="font-bold text-white text-lg">추적 링크 생성</h3>
-                <p className="text-sm text-slate-400 mt-0.5">상품과 광고 채널을 선택하세요</p>
+                <p className="text-sm text-slate-400 mt-0.5">상품을 선택하고 추적 링크를 생성하세요</p>
               </div>
               <button
                 onClick={() => { setShowCreateModal(false); resetForm() }}
@@ -451,20 +476,45 @@ export default function TrackingLinksPage() {
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   1. 쇼핑몰 선택
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2">
                   {shoppingmalls.map((mall) => (
-                    <button
+                    <div
                       key={mall.id}
                       onClick={() => setSelectedShoppingmall(mall.id)}
-                      className={`p-3 rounded-xl border text-left transition-all ${
+                      className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
                         selectedShoppingmall === mall.id
                           ? 'border-blue-500 bg-blue-500/10'
                           : 'border-slate-600 hover:border-slate-500 bg-slate-700/30'
                       }`}
                     >
-                      <p className="font-medium text-white text-sm">{mall.site_name}</p>
-                      <p className="text-xs text-slate-400">{siteTypeLabels[mall.site_type] || mall.site_type}</p>
-                    </button>
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={getSiteLogo(mall.site_type)}
+                          alt={mall.site_type}
+                          className="w-8 h-8 rounded-lg"
+                        />
+                        <div>
+                          <p className="font-medium text-white text-sm">{mall.site_name}</p>
+                          <p className="text-xs text-slate-400">{siteTypeLabels[mall.site_type] || mall.site_type}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => handleSyncProducts(mall, e)}
+                        disabled={syncingMall === mall.id}
+                        className="px-2.5 py-1.5 text-xs font-medium bg-green-500 hover:bg-green-600 disabled:bg-green-500/50 text-white rounded-lg transition-colors flex items-center gap-1"
+                      >
+                        {syncingMall === mall.id ? (
+                          <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                        ) : (
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                        )}
+                        {syncingMall === mall.id ? '동기화 중' : '상품 동기화'}
+                      </button>
+                    </div>
                   ))}
                 </div>
                 {shoppingmalls.length === 0 && (
@@ -524,41 +574,11 @@ export default function TrackingLinksPage() {
                 </div>
               )}
 
-              {/* Step 3: 광고 채널 선택 */}
+              {/* Step 3: 캠페인명 (선택) */}
               {selectedProduct && (
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    3. 광고 채널 선택
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {adChannels.map((channel) => (
-                      <button
-                        key={channel.id}
-                        onClick={() => setSelectedChannel(channel.id)}
-                        className={`p-3 rounded-xl border text-left transition-all ${
-                          selectedChannel === channel.id
-                            ? 'border-blue-500 bg-blue-500/10'
-                            : 'border-slate-600 hover:border-slate-500 bg-slate-700/30'
-                        }`}
-                      >
-                        <p className="font-medium text-white text-sm">
-                          {channelTypeLabels[channel.channel_type] || channel.channel_type}
-                        </p>
-                        <p className="text-xs text-slate-400">{channel.account_name || channel.channel_name}</p>
-                      </button>
-                    ))}
-                  </div>
-                  {adChannels.length === 0 && (
-                    <p className="text-sm text-slate-500 text-center py-4">연동된 광고 채널이 없습니다</p>
-                  )}
-                </div>
-              )}
-
-              {/* Step 4: 캠페인명 (선택) */}
-              {selectedChannel && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
-                    4. 캠페인명 (선택)
+                    3. 캠페인명 (선택)
                   </label>
                   <input
                     type="text"
@@ -572,19 +592,13 @@ export default function TrackingLinksPage() {
               )}
 
               {/* 미리보기 */}
-              {selectedProduct && selectedChannel && (
+              {selectedProduct && (
                 <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-700">
                   <p className="text-xs text-slate-500 mb-2">생성될 추적 링크 정보</p>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-slate-400 w-16">상품</span>
                       <span className="text-sm text-white">{selectedProductData?.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400 w-16">채널</span>
-                      <span className="text-sm text-white">
-                        {channelTypeLabels[selectedChannelData?.channel_type || ''] || selectedChannelData?.channel_type}
-                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-slate-400 w-16">캠페인</span>
@@ -605,7 +619,7 @@ export default function TrackingLinksPage() {
               </button>
               <button
                 onClick={handleCreateLink}
-                disabled={!selectedProduct || !selectedChannel || creating}
+                disabled={!selectedProduct || creating}
                 className="flex-1 h-11 rounded-xl bg-blue-500 hover:bg-blue-400 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {creating ? '생성 중...' : '링크 생성'}
