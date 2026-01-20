@@ -25,8 +25,8 @@ const PLANS = [
   {
     id: 'basic',
     name: 'Basic',
-    price: 19900,
-    priceLabel: '19,900원/월',
+    price: 9900,
+    priceLabel: '9,900원/월',
     features: ['슬롯 50개', '사이트 3개 연동', '기본 통계'],
     popular: false,
   },

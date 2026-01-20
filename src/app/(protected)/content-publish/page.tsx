@@ -1223,9 +1223,9 @@ function MetaTab({ channels, hasAccess }: { channels: AdChannel[]; hasAccess: bo
           <span className="text-sm text-slate-400">캠페인 목표</span>
           <div className="flex gap-2">
             {[
-              { id: 'conversions', label: '전환', icon: '🎯' },
-              { id: 'traffic', label: '트래픽', icon: '🔗' },
-              { id: 'awareness', label: '인지도', icon: '👁️' },
+              { id: 'conversions', label: '전환' },
+              { id: 'traffic', label: '트래픽' },
+              { id: 'awareness', label: '인지도' },
             ].map((objective) => (
               <button
                 key={objective.id}
@@ -1236,7 +1236,6 @@ function MetaTab({ channels, hasAccess }: { channels: AdChannel[]; hasAccess: bo
                     : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
                 }`}
               >
-                <span className="mr-1.5">{objective.icon}</span>
                 {objective.label}
               </button>
             ))}

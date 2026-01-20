@@ -623,7 +623,7 @@ export default function SignupPage() {
               {loading ? '처리 중...' : '7일 무료 체험 시작'}
             </Button>
             <p className="text-center text-xs text-slate-500 mt-2">
-              체험 기간 종료 후 월 12,900원으로 계속 이용하세요
+              체험 기간 종료 후 월 9,900원으로 계속 이용하세요
             </p>
           </form>
 

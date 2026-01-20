@@ -395,7 +395,7 @@ export default function Home() {
                   </div>
 
                   <div className="flex items-baseline gap-1 mb-6">
-                    <span className="text-5xl font-bold text-white">12,900원</span>
+                    <span className="text-5xl font-bold text-white">9,900원</span>
                     <span className="text-gray-400 text-lg">/월</span>
                   </div>
 

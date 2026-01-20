@@ -306,6 +306,6 @@ export const Products = {
 
   // 구독 상품
   subscription: {
-    premium: { name: '프리미엄 구독', amount: 12900 },
+    premium: { name: '프리미엄 구독', amount: 9900 },
   },
 }

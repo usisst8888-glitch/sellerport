@@ -236,7 +236,7 @@ export default function SettingsPage() {
               <div>
                 <p className="text-lg text-slate-300">구독 상태</p>
                 <p className="text-sm text-slate-500 mt-1">
-                  {subscription.status === 'active' ? '월 12,900원' :
+                  {subscription.status === 'active' ? '월 9,900원' :
                    subscription.status === 'trial' ? '7일 무료 체험' : '체험 기간 종료'}
                 </p>
               </div>

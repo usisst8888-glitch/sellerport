@@ -38,11 +38,9 @@ export async function POST(request: NextRequest) {
     const syncResults: {
       profile: boolean
       media: number
-      insights: boolean
     } = {
       profile: false,
-      media: 0,
-      insights: false
+      media: 0
     }
 
     // 1. 프로필 정보 가져오기
@@ -109,92 +107,22 @@ export async function POST(request: NextRequest) {
       if (mediaData.data && Array.isArray(mediaData.data)) {
         recentMedia = mediaData.data
         syncResults.media = recentMedia.length
-
-        // 비즈니스/크리에이터 계정이면 게시물별 인사이트도 가져오기
-        if (userInfo.account_type === 'BUSINESS' || userInfo.account_type === 'CREATOR') {
-          for (let i = 0; i < recentMedia.length; i++) {
-            const media = recentMedia[i]
-            try {
-              // 미디어 타입에 따라 가져올 메트릭이 다름
-              const metrics = media.media_type === 'VIDEO' || media.media_type === 'REELS'
-                ? 'impressions,reach,saved,video_views'
-                : 'impressions,reach,saved,engagement'
-
-              const insightUrl = new URL(`https://graph.instagram.com/${media.id}/insights`)
-              insightUrl.searchParams.set('metric', metrics)
-              insightUrl.searchParams.set('access_token', accessToken)
-
-              const insightResponse = await fetch(insightUrl.toString())
-              const insightData = await insightResponse.json()
-
-              if (insightData.data && Array.isArray(insightData.data)) {
-                const mediaInsights: typeof recentMedia[0]['insights'] = {}
-                for (const metric of insightData.data) {
-                  if (metric.name && metric.values?.[0]?.value !== undefined) {
-                    mediaInsights[metric.name as keyof typeof mediaInsights] = metric.values[0].value
-                  }
-                }
-                recentMedia[i].insights = mediaInsights
-              }
-            } catch (insightError) {
-              // 개별 게시물 인사이트 실패는 무시하고 계속 진행
-              console.error(`Failed to fetch insights for media ${media.id}:`, insightError)
-            }
-          }
-        }
+        // 인사이트(노출, 도달 등)는 instagram_manage_insights 권한 + 페이스북 페이지 연결이 필요하므로 생략
+        // 인스타그램 오가닉 게시물은 좋아요/댓글 수만 표시
       }
     } catch (mediaError) {
       console.error('Failed to fetch media:', mediaError)
     }
 
-    // 3. 계정 인사이트 가져오기 (비즈니스/크리에이터 계정만)
-    let accountInsights: {
-      impressions?: number
-      reach?: number
-      profile_views?: number
-    } = {}
+    // 3. 계정 인사이트는 instagram_manage_insights 권한 + 페이스북 페이지 연결 필요하므로 생략
 
-    if (userInfo.account_type === 'BUSINESS' || userInfo.account_type === 'CREATOR') {
-      try {
-        const insightsUrl = new URL(`https://graph.instagram.com/${userInfo.user_id}/insights`)
-        insightsUrl.searchParams.set('metric', 'impressions,reach,profile_views')
-        insightsUrl.searchParams.set('period', 'day')
-        insightsUrl.searchParams.set('access_token', accessToken)
-
-        const insightsResponse = await fetch(insightsUrl.toString())
-        const insightsData = await insightsResponse.json()
-
-        if (insightsData.data && Array.isArray(insightsData.data)) {
-          for (const metric of insightsData.data) {
-            if (metric.name && metric.values?.[0]?.value !== undefined) {
-              accountInsights[metric.name as keyof typeof accountInsights] = metric.values[0].value
-            }
-          }
-          syncResults.insights = true
-        }
-      } catch (insightsError) {
-        console.error('Failed to fetch insights:', insightsError)
-      }
-    }
-
-    // 4. 총 좋아요/댓글/인사이트 수 계산
+    // 4. 총 좋아요/댓글 수 계산
     let totalLikes = 0
     let totalComments = 0
-    let totalImpressions = 0
-    let totalReach = 0
-    let totalSaved = 0
-    let totalVideoViews = 0
 
     for (const media of recentMedia) {
       totalLikes += media.like_count || 0
       totalComments += media.comments_count || 0
-      // 게시물별 인사이트 합계
-      if (media.insights) {
-        totalImpressions += media.insights.impressions || 0
-        totalReach += media.insights.reach || 0
-        totalSaved += media.insights.saved || 0
-        totalVideoViews += media.insights.video_views || 0
-      }
     }
 
     // 5. 채널 정보 업데이트
@@ -219,14 +147,7 @@ export async function POST(request: NextRequest) {
           recent_total_likes: totalLikes,
           recent_total_comments: totalComments,
           recent_media_count: recentMedia.length,
-          // 게시물별 인사이트 합계 (최근 25개 기준)
-          recent_total_impressions: totalImpressions,
-          recent_total_reach: totalReach,
-          recent_total_saved: totalSaved,
-          recent_total_video_views: totalVideoViews,
-          // 계정 레벨 인사이트 (일별)
-          ...accountInsights,
-          // 최근 미디어 상세 (게시물별 인사이트 포함)
+          // 최근 미디어 상세
           recent_media: recentMedia.map(m => ({
             id: m.id,
             media_type: m.media_type,
@@ -235,7 +156,8 @@ export async function POST(request: NextRequest) {
             timestamp: m.timestamp,
             like_count: m.like_count || 0,
             comments_count: m.comments_count || 0,
-            insights: m.insights || null
+            thumbnail_url: m.thumbnail_url || null,
+            media_url: m.media_url || null
           })),
           // 동기화 정보
           last_synced_at: new Date().toISOString()
@@ -257,8 +179,7 @@ export async function POST(request: NextRequest) {
       message: '전체 동기화가 완료되었습니다',
       synced: {
         profile: syncResults.profile,
-        media_count: syncResults.media,
-        insights: syncResults.insights
+        media_count: syncResults.media
       },
       data: {
         username: userInfo.username,
@@ -269,12 +190,7 @@ export async function POST(request: NextRequest) {
         followers_count: userInfo.followers_count,
         follows_count: userInfo.follows_count,
         recent_total_likes: totalLikes,
-        recent_total_comments: totalComments,
-        // 게시물별 인사이트 합계
-        recent_total_impressions: totalImpressions,
-        recent_total_reach: totalReach,
-        recent_total_saved: totalSaved,
-        recent_total_video_views: totalVideoViews
+        recent_total_comments: totalComments
       }
     })
 
