@@ -10,7 +10,7 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
 
-  const MONTHLY_PRICE = 12900
+  const MONTHLY_PRICE = 9900
 
   // 구독 정보 로드
   useEffect(() => {
@@ -63,12 +63,10 @@ export default function BillingPage() {
   }, [])
 
   const features = [
-    { icon: '📊', title: '광고 성과 관리', desc: '전환, 매출, ROAS 실시간 추적' },
-    { icon: '📱', title: '인스타그램 자동 DM', desc: '댓글 트리거 자동 DM 발송' },
-    { icon: '🎯', title: 'Meta 광고 연동', desc: '광고비/성과 자동 동기화' },
-    { icon: '📤', title: '콘텐츠 발행', desc: '인스타그램 피드/릴스/스토리 발행' },
-    { icon: '🔗', title: '무제한 추적 링크', desc: '광고별 유입/전환 추적' },
-    { icon: '🔔', title: '신호등 시스템', desc: '광고 효율 빨간불/노란불 알림' },
+    { title: '광고 성과 관리', desc: '전환, 매출, ROAS 실시간 추적' },
+    { title: '인스타그램 자동 DM', desc: '댓글 트리거 자동 DM 발송' },
+    { title: 'Meta 광고 연동', desc: '광고비/성과 자동 동기화' },
+    { title: '무제한 추적 링크', desc: '광고별 유입/전환 추적' },
   ]
 
   if (loading) {
@@ -168,9 +166,11 @@ export default function BillingPage() {
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="flex items-start gap-3 p-4 rounded-xl bg-slate-900/50 border border-white/5"
+                className="flex items-center gap-3 p-4 rounded-xl bg-slate-900/50 border border-white/5"
               >
-                <span className="text-2xl">{feature.icon}</span>
+                <svg className="w-5 h-5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
                 <div>
                   <p className="font-medium text-white">{feature.title}</p>
                   <p className="text-sm text-slate-400">{feature.desc}</p>
@@ -205,25 +205,19 @@ export default function BillingPage() {
       {/* 이용 안내 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="rounded-xl bg-slate-800/50 border border-white/5 p-4">
-          <h3 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
-            <span className="text-blue-400">💳</span> 결제 방법
-          </h3>
+          <h3 className="text-sm font-medium text-white mb-2">결제 방법</h3>
           <p className="text-sm text-slate-400">
             카카오페이, 신용카드, 계좌이체 등 다양한 결제 수단을 지원합니다.
           </p>
         </div>
         <div className="rounded-xl bg-slate-800/50 border border-white/5 p-4">
-          <h3 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
-            <span className="text-emerald-400">🔄</span> 자동 갱신
-          </h3>
+          <h3 className="text-sm font-medium text-white mb-2">자동 갱신</h3>
           <p className="text-sm text-slate-400">
             매월 자동으로 결제되며, 언제든지 해지할 수 있습니다.
           </p>
         </div>
         <div className="rounded-xl bg-slate-800/50 border border-white/5 p-4">
-          <h3 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
-            <span className="text-amber-400">📞</span> 고객 지원
-          </h3>
+          <h3 className="text-sm font-medium text-white mb-2">고객 지원</h3>
           <p className="text-sm text-slate-400">
             문의사항은 카카오톡 채널로 연락해주세요.
           </p>
