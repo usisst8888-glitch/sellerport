@@ -165,6 +165,8 @@ const utilityMenu: UtilityMenu = {
   items: [
     { title: '상품명 생성', href: '/product-name', badge: 'AI', badgeColor: 'blue' },
     { title: 'GIF 생성', href: '/gif-generator', badge: 'AI', badgeColor: 'blue' },
+    { title: '자막 자동 제거', href: '/erase-subtitle', badge: 'AI', badgeColor: 'blue' },
+    { title: '인스타 트래커', href: '/insta-tracker', badge: 'AI', badgeColor: 'blue' },
   ]
 }
 

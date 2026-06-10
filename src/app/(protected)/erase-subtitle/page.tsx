@@ -92,23 +92,23 @@ export default function EraseSubtitlePage() {
   const [tab, setTab] = useState<"new" | "history">("new");
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
+    <div className="space-y-6 max-w-5xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold mb-1">🇨🇳 자막 자동 제거</h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm text-slate-400">
           영상에 박힌 <strong>중국어 하드코딩 자막</strong>을 매 프레임마다 자동
           감지(PaddleOCR) + LaMa로 제거. <strong>박스 그릴 필요 없음</strong>{" "}
           — 업로드만 하면 끝.
         </p>
       </div>
 
-      <div className="flex gap-1 mb-5 border-b border-zinc-200 dark:border-zinc-800">
+      <div className="flex gap-1 mb-5 border-b border-white/5">
         <button
           onClick={() => setTab("new")}
           className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${
             tab === "new"
-              ? "border-red-500 text-red-600 dark:text-red-400"
-              : "border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+              ? "border-blue-500 text-blue-400"
+              : "border-transparent text-slate-400 hover:text-white"
           }`}
         >
           새 작업
@@ -117,8 +117,8 @@ export default function EraseSubtitlePage() {
           onClick={() => setTab("history")}
           className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${
             tab === "history"
-              ? "border-red-500 text-red-600 dark:text-red-400"
-              : "border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+              ? "border-blue-500 text-blue-400"
+              : "border-transparent text-slate-400 hover:text-white"
           }`}
         >
           이전 작업
@@ -231,7 +231,7 @@ function NewJobTab() {
   return (
     <>
       {!start && (
-        <section className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 mb-6">
+        <section className="bg-slate-800/50 border border-white/5 rounded-xl p-6 mb-6">
           <label className="block text-sm font-medium mb-2">영상 파일</label>
           <input
             type="file"
@@ -241,10 +241,10 @@ function NewJobTab() {
               setFile(e.target.files?.[0] || null);
               setError("");
             }}
-            className="block w-full text-sm text-zinc-600 dark:text-zinc-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-red-500 file:text-white hover:file:bg-red-600 file:cursor-pointer"
+            className="block w-full text-sm text-slate-400 dark:text-zinc-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-500 file:cursor-pointer"
           />
           {file && (
-            <p className="mt-2 text-xs text-zinc-500">
+            <p className="mt-2 text-xs text-slate-400">
               {file.name} · {(file.size / 1024 / 1024).toFixed(1)}MB
             </p>
           )}
@@ -260,12 +260,12 @@ function NewJobTab() {
           </button>
 
           {error && (
-            <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">
+            <p className="mt-3 text-sm text-red-400">
               {error}
             </p>
           )}
 
-          <div className="mt-5 pt-4 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-500 leading-relaxed">
+          <div className="mt-5 pt-4 border-t border-white/5 text-xs text-slate-400 leading-relaxed">
             💡 흐름: ① 업로드 → ② Modal 서버리스 GPU에서 PaddleOCR로 매
             프레임 한자 자동 감지 → ③ LaMa로 정밀 inpainting → ④ 결과 로컬
             저장
@@ -306,7 +306,7 @@ function ProgressView({
 }) {
   return (
     <section className="space-y-5">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5">
+      <div className="bg-slate-800/50 border border-white/5 rounded-xl p-5">
         <div className="flex items-center gap-3 mb-3">
           <StatusDot status={poll?.status || "starting"} />
           <div>
@@ -321,7 +321,7 @@ function ProgressView({
                       ? "🎨 Modal에서 처리 중…"
                       : "⏳ 시작 중"}
             </div>
-            <div className="text-xs text-zinc-500 mt-0.5">
+            <div className="text-xs text-slate-400 mt-0.5">
               {isProcessing && `${elapsed.toFixed(1)}초 경과`}
               {!isProcessing &&
                 poll?.completedAt &&
@@ -330,14 +330,14 @@ function ProgressView({
           </div>
           <button
             onClick={onReset}
-            className="ml-auto text-xs text-zinc-400 hover:text-rose-500"
+            className="ml-auto text-xs text-slate-500 hover:text-red-400"
           >
             새 영상으로
           </button>
         </div>
 
         {poll?.error && (
-          <div className="text-xs text-rose-600 dark:text-rose-400 mb-3 p-2 rounded bg-rose-50 dark:bg-rose-950/30 whitespace-pre-wrap">
+          <div className="text-xs text-red-400 mb-3 p-2 rounded bg-red-500/10 whitespace-pre-wrap">
             {poll.error}
           </div>
         )}
@@ -359,13 +359,13 @@ function ProgressView({
       </div>
 
       {poll?.status === "succeeded" && poll.fileUrl && (
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5">
+        <div className="bg-slate-800/50 border border-white/5 rounded-xl p-5">
           <div className="flex items-center justify-between mb-3 gap-3">
             <div className="min-w-0">
               <h3 className="text-sm font-semibold">🎬 결과 영상</h3>
-              <p className="text-xs text-zinc-500 mt-0.5">
+              <p className="text-xs text-slate-400 mt-0.5">
                 {fmtBytes(poll.fileSize)} · 24시간 임시 보관 (
-                <strong className="text-amber-600 dark:text-amber-400">
+                <strong className="text-amber-400">
                   {fmtRemaining(poll.expiresAt)}
                 </strong>
                 )
@@ -373,7 +373,7 @@ function ProgressView({
             </div>
             <a
               href={`${poll.fileUrl}?dl=1`}
-              className="shrink-0 text-xs px-3 py-1.5 rounded bg-red-500 text-white hover:bg-red-600"
+              className="shrink-0 text-xs px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-500"
             >
               📥 지금 다운로드
             </a>
@@ -384,14 +384,14 @@ function ProgressView({
             playsInline
             className="max-w-[320px] w-full mx-auto rounded-lg bg-black"
           />
-          <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+          <p className="mt-2 text-xs text-amber-400">
             ⚠️ 24시간 후 자동 삭제됩니다. 필요한 영상은 지금 다운받아두세요.
           </p>
         </div>
       )}
 
       {poll?.status === "expired" && (
-        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-xl p-5 text-sm text-amber-700 dark:text-amber-300">
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-5 text-sm text-amber-300">
           ⏰ 24시간이 지나 결과 영상이 자동 삭제됐어요. 영상을 다시 업로드해서
           처리해주세요.
         </div>
@@ -450,25 +450,25 @@ function HistoryTab() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-zinc-500">최근 작업 {jobs.length}개</p>
+        <p className="text-xs text-slate-400">최근 작업 {jobs.length}개</p>
         <button
           onClick={reload}
-          className="text-xs text-zinc-400 hover:text-red-500"
+          className="text-xs text-slate-500 hover:text-blue-400"
         >
           새로고침
         </button>
       </div>
 
       {error && (
-        <div className="text-sm text-rose-600 dark:text-rose-400">{error}</div>
+        <div className="text-sm text-red-400">{error}</div>
       )}
 
       {loading ? (
-        <div className="text-center py-12 text-zinc-400 text-sm">
+        <div className="text-center py-12 text-slate-500 text-sm">
           불러오는 중…
         </div>
       ) : jobs.length === 0 ? (
-        <div className="text-center py-12 text-zinc-400 text-sm">
+        <div className="text-center py-12 text-slate-500 text-sm">
           아직 작업한 영상이 없어요.
         </div>
       ) : (
@@ -490,10 +490,10 @@ function JobCard({
   onDelete: (id: string, filename: string | null) => void;
 }) {
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex flex-col gap-2">
+    <div className="bg-slate-800/50 border border-white/5 rounded-xl p-4 flex flex-col gap-2">
       <div className="flex items-center gap-3 text-xs">
         <StatusDot status={job.status} />
-        <span className="font-semibold text-zinc-700 dark:text-zinc-200">
+        <span className="font-semibold text-slate-200">
           {job.status === "succeeded"
             ? "완료"
             : job.status === "failed"
@@ -502,15 +502,15 @@ function JobCard({
                 ? "취소"
                 : "진행 중"}
         </span>
-        <span className="text-zinc-400">·</span>
-        <span className="text-zinc-500">{fmtDateTime(job.createdAt)}</span>
+        <span className="text-slate-500">·</span>
+        <span className="text-slate-400">{fmtDateTime(job.createdAt)}</span>
       </div>
 
       <div className="text-sm font-medium truncate">
         {job.originalFilename || "(이름 없음)"}
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
         {job.videoMeta && (
           <span>
             {job.videoMeta.width}×{job.videoMeta.height} ·{" "}
@@ -522,7 +522,7 @@ function JobCard({
 
       {job.error && (
         <div
-          className="text-xs text-rose-600 dark:text-rose-400 truncate"
+          className="text-xs text-red-400 truncate"
           title={job.error}
         >
           ⚠ {job.error}
@@ -536,32 +536,32 @@ function JobCard({
               href={job.fileUrl}
               target="_blank"
               rel="noreferrer"
-              className="text-xs px-3 py-1.5 rounded border border-zinc-200 dark:border-zinc-800 hover:border-red-300 dark:hover:border-red-700"
+              className="text-xs px-3 py-1.5 rounded border border-white/5 hover:border-blue-500/50"
             >
               ▶ 재생
             </a>
             <a
               href={`${job.fileUrl}?dl=1`}
-              className="text-xs px-3 py-1.5 rounded bg-red-500 text-white hover:bg-red-600"
+              className="text-xs px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-500"
             >
               📥 다운로드
             </a>
             {job.expiresAt && (
-              <span className="text-[10px] text-amber-600 dark:text-amber-400">
+              <span className="text-[10px] text-amber-400">
                 ⏰ {fmtRemaining(job.expiresAt)}
               </span>
             )}
           </>
         ) : job.isExpired ? (
-          <span className="text-xs px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300">
+          <span className="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">
             ⏰ 만료됨 (24h 경과)
           </span>
         ) : (
-          <span className="text-xs text-zinc-400">파일 없음</span>
+          <span className="text-xs text-slate-500">파일 없음</span>
         )}
         <button
           onClick={() => onDelete(job.jobId, job.originalFilename)}
-          className="ml-auto text-xs text-zinc-400 hover:text-rose-500"
+          className="ml-auto text-xs text-slate-500 hover:text-red-400"
         >
           삭제
         </button>
@@ -592,9 +592,9 @@ function Row({
 }) {
   return (
     <div className="flex gap-3">
-      <span className="text-zinc-500 shrink-0 w-24">{label}</span>
+      <span className="text-slate-400 shrink-0 w-24">{label}</span>
       <span
-        className={`text-zinc-700 dark:text-zinc-200 break-all ${mono ? "font-mono text-xs" : ""}`}
+        className={`text-slate-200 break-all ${mono ? "font-mono text-xs" : ""}`}
       >
         {value}
       </span>

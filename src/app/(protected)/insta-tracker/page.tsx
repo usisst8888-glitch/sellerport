@@ -84,7 +84,7 @@ const POST_TYPE_BADGE: Record<string, string> = {
   image: "bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300",
   video: "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
   unknown:
-    "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300",
+    "bg-zinc-100 text-slate-400 dark:bg-zinc-800 dark:text-zinc-300",
 };
 
 const POST_TYPE_LABEL: Record<string, string> = {
@@ -100,21 +100,21 @@ export default function InstaTrackerPage() {
   const [tab, setTab] = useState<"feeds" | "profiles">("feeds");
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
+    <div className="space-y-6 max-w-6xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold mb-1">📡 인스타 트래커</h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm text-slate-400">
           등록한 프로필을 매일 1회 체크해서 <strong>최근 24시간 이내</strong> 새 포스트를 모아드려요. 게시 시각이 24h 지난 건 자동 삭제돼요.
         </p>
       </div>
 
-      <div className="flex gap-1 mb-5 border-b border-zinc-200 dark:border-zinc-800">
+      <div className="flex gap-1 mb-5 border-b border-white/5">
         <button
           onClick={() => setTab("feeds")}
           className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${
             tab === "feeds"
-              ? "border-red-500 text-red-600 dark:text-red-400"
-              : "border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+              ? "border-blue-500 text-blue-400"
+              : "border-transparent text-slate-400 hover:text-white"
           }`}
         >
           새 피드
@@ -123,8 +123,8 @@ export default function InstaTrackerPage() {
           onClick={() => setTab("profiles")}
           className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${
             tab === "profiles"
-              ? "border-red-500 text-red-600 dark:text-red-400"
-              : "border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+              ? "border-blue-500 text-blue-400"
+              : "border-transparent text-slate-400 hover:text-white"
           }`}
         >
           프로필 관리
@@ -258,15 +258,15 @@ function FeedsTab() {
   return (
     <div className="space-y-4">
       {/* 컨트롤 바 */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex flex-wrap items-center gap-3">
+      <div className="bg-slate-800/50 border border-white/5 rounded-xl p-4 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-zinc-500">정렬</span>
+          <span className="text-xs text-slate-400">정렬</span>
           <select
             value={sort}
             onChange={(e) =>
               setSort(e.target.value as typeof sort)
             }
-            className="text-sm rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 px-2 py-1"
+            className="text-sm rounded border border-white/5 bg-zinc-50 dark:bg-zinc-950 px-2 py-1"
           >
             <option value="first_seen">발견순</option>
             <option value="posted">게시일순</option>
@@ -275,13 +275,13 @@ function FeedsTab() {
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-zinc-500">타입</span>
+          <span className="text-xs text-slate-400">타입</span>
           <select
             value={type}
             onChange={(e) =>
               setType(e.target.value as typeof type)
             }
-            className="text-sm rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 px-2 py-1"
+            className="text-sm rounded border border-white/5 bg-zinc-50 dark:bg-zinc-950 px-2 py-1"
           >
             <option value="all">전체</option>
             <option value="reel">릴스만</option>
@@ -293,7 +293,7 @@ function FeedsTab() {
           <button
             onClick={() => triggerNow("async")}
             disabled={triggering || !!activeRunId}
-            className="text-sm px-3 py-1.5 rounded bg-red-500 text-white hover:bg-red-600 disabled:opacity-50"
+            className="text-sm px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50"
           >
             {activeRunId
               ? "Apify 작업중…"
@@ -303,7 +303,7 @@ function FeedsTab() {
           </button>
           <button
             onClick={refresh}
-            className="text-sm px-3 py-1.5 rounded border border-zinc-200 dark:border-zinc-800 hover:border-red-300 dark:hover:border-red-700"
+            className="text-sm px-3 py-1.5 rounded border border-white/5 hover:border-red-300 dark:hover:border-red-700"
           >
             새로고침
           </button>
@@ -312,17 +312,17 @@ function FeedsTab() {
 
       {/* 상태 메시지 */}
       {(pollMsg || triggerError || data?.lastRun) && (
-        <div className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-2.5 text-xs">
+        <div className="bg-zinc-50 dark:bg-zinc-950 border border-white/5 rounded-lg px-4 py-2.5 text-xs">
           {triggerError && (
-            <span className="text-rose-600 dark:text-rose-400">
+            <span className="text-red-400">
               ⚠️ {triggerError}
             </span>
           )}
           {pollMsg && !triggerError && (
-            <span className="text-zinc-700 dark:text-zinc-300">{pollMsg}</span>
+            <span className="text-slate-200 dark:text-zinc-300">{pollMsg}</span>
           )}
           {!pollMsg && !triggerError && data?.lastRun && (
-            <span className="text-zinc-500">
+            <span className="text-slate-400">
               마지막 체크: {fmtDateTime(data.lastRun.started_at)} (
               {data.lastRun.triggered_by || "—"})
               {data.lastRun.status === "done" && (
@@ -330,14 +330,14 @@ function FeedsTab() {
                   {" "}
                   · 받은 {data.lastRun.fetched_post_count || 0}개 → 저장{" "}
                   {data.lastRun.saved_post_count || 0}개 → 처음 본{" "}
-                  <strong className="text-red-500">
+                  <strong className="text-blue-400">
                     {data.lastRun.new_post_count || 0}개
                   </strong>
                 </>
               )}
               {data.lastRun.status === "running" && " · 진행 중"}
               {data.lastRun.status === "failed" && (
-                <span className="text-rose-500">
+                <span className="text-red-400">
                   {" "}
                   · 실패 ({data.lastRun.error})
                 </span>
@@ -349,13 +349,13 @@ function FeedsTab() {
 
       {/* 결과 */}
       {error && (
-        <div className="text-sm text-rose-600 dark:text-rose-400">{error}</div>
+        <div className="text-sm text-red-400">{error}</div>
       )}
 
       {loading ? (
-        <div className="text-center py-12 text-zinc-400 text-sm">불러오는 중…</div>
+        <div className="text-center py-12 text-slate-500 text-sm">불러오는 중…</div>
       ) : posts.length === 0 ? (
-        <div className="text-center py-12 text-zinc-400 text-sm">
+        <div className="text-center py-12 text-slate-500 text-sm">
           최근 24시간 이내 발견된 포스트가 없어요. 프로필을 등록하고 &ldquo;지금 체크&rdquo;를 눌러보세요.
         </div>
       ) : (
@@ -376,9 +376,9 @@ function PostCard({ post, index }: { post: Post; index: number }) {
     <a
       href={post.url}
       target="_blank"
-      rel="noreferrer"
+      rel="noopener"
       style={{ animationDelay: `${delayMs}ms` }}
-      className="animate-fade-in-up group flex bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden hover:border-red-300 dark:hover:border-red-700 hover:shadow-md transition-all"
+      className="animate-fade-in-up group flex bg-slate-800/50 border border-white/5 rounded-xl overflow-hidden hover:border-red-300 dark:hover:border-red-700 hover:shadow-md transition-all"
     >
       {/* 왼쪽: 정사각 썸네일 */}
       <div className="shrink-0 w-32 h-32 sm:w-40 sm:h-40 bg-zinc-100 dark:bg-zinc-800 relative">
@@ -391,7 +391,7 @@ function PostCard({ post, index }: { post: Post; index: number }) {
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-zinc-400 text-xs">
+          <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs">
             썸네일 없음
           </div>
         )}
@@ -408,35 +408,35 @@ function PostCard({ post, index }: { post: Post; index: number }) {
       {/* 오른쪽: 정보 */}
       <div className="flex-1 min-w-0 p-4 flex flex-col gap-2">
         <div className="flex items-center gap-2 text-xs">
-          <span className="font-semibold text-zinc-700 dark:text-zinc-200 truncate">
+          <span className="font-semibold text-slate-200 truncate">
             @{post.username}
           </span>
-          <span className="text-zinc-400">·</span>
-          <span className="text-zinc-500" title={post.posted_at}>
+          <span className="text-slate-500">·</span>
+          <span className="text-slate-400" title={post.posted_at}>
             {fmtRelTime(post.posted_at)}
           </span>
-          <span className="ml-auto text-zinc-400 shrink-0 group-hover:text-red-500 transition-colors">
+          <span className="ml-auto text-slate-500 shrink-0 group-hover:text-blue-400 transition-colors">
             원본 ↗
           </span>
         </div>
 
         {/* 캡션 — 2줄 */}
         {post.caption && (
-          <p className="text-sm text-zinc-700 dark:text-zinc-200 leading-relaxed line-clamp-2">
+          <p className="text-sm text-slate-200 leading-relaxed line-clamp-2">
             {post.caption}
           </p>
         )}
 
         {/* 메트릭 + 해시태그 */}
         <div className="mt-auto flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-3 text-xs text-zinc-600 dark:text-zinc-400">
+          <div className="flex items-center gap-3 text-xs text-slate-400">
             {post.view_count !== null && post.view_count !== undefined && (
               <span
                 className="flex items-center gap-1"
                 title={`조회 ${post.view_count.toLocaleString()}`}
               >
                 <span className="opacity-60">👁</span>{" "}
-                <strong className="font-semibold text-zinc-700 dark:text-zinc-200">
+                <strong className="font-semibold text-slate-200">
                   {fmtViews(post.view_count)}
                 </strong>
               </span>
@@ -462,13 +462,13 @@ function PostCard({ post, index }: { post: Post; index: number }) {
               {post.hashtags.slice(0, 3).map((h) => (
                 <span
                   key={h}
-                  className="text-[10px] text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded"
+                  className="text-[10px] text-slate-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded"
                 >
                   #{h}
                 </span>
               ))}
               {post.hashtags.length > 3 && (
-                <span className="text-[10px] text-zinc-400">
+                <span className="text-[10px] text-slate-500">
                   +{post.hashtags.length - 3}
                 </span>
               )}
@@ -573,11 +573,11 @@ function ProfilesTab() {
   return (
     <div className="space-y-5">
       {/* 일괄 등록 */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5">
+      <div className="bg-slate-800/50 border border-white/5 rounded-xl p-5">
         <label className="block text-sm font-medium mb-2">
           프로필 일괄 등록
         </label>
-        <p className="text-xs text-zinc-500 mb-3">
+        <p className="text-xs text-slate-400 mb-3">
           URL, @handle, 또는 username 형식 모두 OK. 줄바꿈/쉼표/공백으로 구분.
           예: <code className="px-1 bg-zinc-100 dark:bg-zinc-800 rounded">https://www.instagram.com/cristiano/</code>{" "}
           또는 <code className="px-1 bg-zinc-100 dark:bg-zinc-800 rounded">@cristiano</code>{" "}
@@ -588,18 +588,18 @@ function ProfilesTab() {
           onChange={(e) => setBulkInput(e.target.value)}
           rows={4}
           placeholder={`@brand1\nhttps://www.instagram.com/brand2/\nbrand3`}
-          className="w-full text-sm rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 px-3 py-2 font-mono resize-y focus:outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-700"
+          className="w-full text-sm rounded-lg border border-white/5 bg-zinc-50 dark:bg-zinc-950 px-3 py-2 font-mono resize-y focus:outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-700"
         />
         <div className="flex items-center gap-2 mt-3">
           <button
             onClick={handleAdd}
             disabled={submitting || !bulkInput.trim()}
-            className="text-sm px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600 disabled:opacity-50"
+            className="text-sm px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50"
           >
             {submitting ? "등록 중…" : "등록"}
           </button>
           {submitMsg && (
-            <span className="text-xs text-zinc-600 dark:text-zinc-400">
+            <span className="text-xs text-slate-400">
               {submitMsg}
             </span>
           )}
@@ -607,34 +607,34 @@ function ProfilesTab() {
       </div>
 
       {/* 목록 */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5">
+      <div className="bg-slate-800/50 border border-white/5 rounded-xl p-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold">
             등록된 프로필{" "}
-            <span className="text-zinc-500 font-normal">
+            <span className="text-slate-400 font-normal">
               ({activeCount} 활성 / {profiles.length} 전체)
             </span>
           </h3>
           <button
             onClick={reload}
-            className="text-xs text-zinc-400 hover:text-red-500"
+            className="text-xs text-slate-500 hover:text-blue-400"
           >
             새로고침
           </button>
         </div>
 
         {error && (
-          <div className="text-sm text-rose-600 dark:text-rose-400 mb-2">
+          <div className="text-sm text-red-400 mb-2">
             {error}
           </div>
         )}
 
         {loading ? (
-          <div className="text-center py-8 text-zinc-400 text-sm">
+          <div className="text-center py-8 text-slate-500 text-sm">
             불러오는 중…
           </div>
         ) : profiles.length === 0 ? (
-          <div className="text-center py-8 text-zinc-400 text-sm">
+          <div className="text-center py-8 text-slate-500 text-sm">
             아직 등록된 프로필이 없어요. 위에서 등록해보세요.
           </div>
         ) : (
@@ -654,19 +654,19 @@ function ProfilesTab() {
                 <a
                   href={`https://www.instagram.com/${p.username}/`}
                   target="_blank"
-                  rel="noreferrer"
-                  className="text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:text-red-500 truncate"
+                  rel="noopener"
+                  className="text-sm font-medium text-slate-200 hover:text-blue-400 truncate"
                 >
                   @{p.username}
                 </a>
-                <span className="text-xs text-zinc-400 ml-auto shrink-0">
+                <span className="text-xs text-slate-500 ml-auto shrink-0">
                   {p.last_checked_at
                     ? `마지막: ${fmtRelTime(p.last_checked_at)}`
                     : "아직 체크 안 함"}
                 </span>
                 <button
                   onClick={() => remove(p.username)}
-                  className="text-xs text-zinc-400 hover:text-rose-500 shrink-0"
+                  className="text-xs text-slate-500 hover:text-red-400 shrink-0"
                   title="삭제"
                 >
                   ✕
