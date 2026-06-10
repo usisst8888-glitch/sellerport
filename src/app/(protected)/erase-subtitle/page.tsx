@@ -92,9 +92,9 @@ export default function EraseSubtitlePage() {
   const [tab, setTab] = useState<"new" | "history">("new");
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto text-white">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">🇨🇳 자막 자동 제거</h1>
+        <h1 className="text-2xl font-bold text-white mb-1">🇨🇳 자막 자동 제거</h1>
         <p className="text-sm text-slate-400">
           영상에 박힌 <strong>중국어 하드코딩 자막</strong>을 매 프레임마다 자동
           감지(PaddleOCR) + LaMa로 제거. <strong>박스 그릴 필요 없음</strong>{" "}
@@ -232,7 +232,7 @@ function NewJobTab() {
     <>
       {!start && (
         <section className="bg-slate-800/50 border border-white/5 rounded-xl p-6 mb-6">
-          <label className="block text-sm font-medium mb-2">영상 파일</label>
+          <label className="block text-sm font-medium text-white mb-2">영상 파일</label>
           <input
             type="file"
             accept="video/*"
@@ -241,7 +241,7 @@ function NewJobTab() {
               setFile(e.target.files?.[0] || null);
               setError("");
             }}
-            className="block w-full text-sm text-slate-400 dark:text-zinc-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-500 file:cursor-pointer"
+            className="block w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-500 file:cursor-pointer"
           />
           {file && (
             <p className="mt-2 text-xs text-slate-400">
@@ -310,7 +310,7 @@ function ProgressView({
         <div className="flex items-center gap-3 mb-3">
           <StatusDot status={poll?.status || "starting"} />
           <div>
-            <div className="text-sm font-semibold">
+            <div className="text-sm font-semibold text-white">
               {poll?.status === "succeeded"
                 ? "✅ 완료 — 로컬에 저장됨"
                 : poll?.status === "failed"
@@ -362,7 +362,7 @@ function ProgressView({
         <div className="bg-slate-800/50 border border-white/5 rounded-xl p-5">
           <div className="flex items-center justify-between mb-3 gap-3">
             <div className="min-w-0">
-              <h3 className="text-sm font-semibold">🎬 결과 영상</h3>
+              <h3 className="text-sm font-semibold text-white">🎬 결과 영상</h3>
               <p className="text-xs text-slate-400 mt-0.5">
                 {fmtBytes(poll.fileSize)} · 24시간 임시 보관 (
                 <strong className="text-amber-400">
@@ -506,7 +506,7 @@ function JobCard({
         <span className="text-slate-400">{fmtDateTime(job.createdAt)}</span>
       </div>
 
-      <div className="text-sm font-medium truncate">
+      <div className="text-sm font-medium text-white truncate">
         {job.originalFilename || "(이름 없음)"}
       </div>
 

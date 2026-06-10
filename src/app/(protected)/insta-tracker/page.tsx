@@ -84,7 +84,7 @@ const POST_TYPE_BADGE: Record<string, string> = {
   image: "bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300",
   video: "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
   unknown:
-    "bg-zinc-100 text-slate-400 dark:bg-zinc-800 dark:text-zinc-300",
+    "bg-slate-700 text-slate-300",
 };
 
 const POST_TYPE_LABEL: Record<string, string> = {
@@ -100,9 +100,9 @@ export default function InstaTrackerPage() {
   const [tab, setTab] = useState<"feeds" | "profiles">("feeds");
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto text-white">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">📡 인스타 트래커</h1>
+        <h1 className="text-2xl font-bold text-white mb-1">📡 인스타 트래커</h1>
         <p className="text-sm text-slate-400">
           등록한 프로필을 매일 1회 체크해서 <strong>최근 24시간 이내</strong> 새 포스트를 모아드려요. 게시 시각이 24h 지난 건 자동 삭제돼요.
         </p>
@@ -141,9 +141,9 @@ function FeedsTab() {
   const [data, setData] = useState<FeedsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [sort, setSort] = useState<"first_seen" | "posted" | "views" | "likes">(
-    "first_seen",
-  );
+  const [sort, setSort] = useState<
+    "first_seen" | "posted" | "views" | "likes" | "comments"
+  >("first_seen");
   const [type, setType] = useState<"all" | "reel" | "carousel">("all");
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -266,12 +266,13 @@ function FeedsTab() {
             onChange={(e) =>
               setSort(e.target.value as typeof sort)
             }
-            className="text-sm rounded border border-white/5 bg-zinc-50 dark:bg-zinc-950 px-2 py-1"
+            className="text-sm rounded border border-white/5 bg-slate-900 text-white px-2 py-1"
           >
             <option value="first_seen">발견순</option>
             <option value="posted">게시일순</option>
             <option value="views">조회수순</option>
             <option value="likes">좋아요순</option>
+            <option value="comments">댓글순</option>
           </select>
         </div>
         <div className="flex items-center gap-2">
@@ -281,7 +282,7 @@ function FeedsTab() {
             onChange={(e) =>
               setType(e.target.value as typeof type)
             }
-            className="text-sm rounded border border-white/5 bg-zinc-50 dark:bg-zinc-950 px-2 py-1"
+            className="text-sm rounded border border-white/5 bg-slate-900 text-white px-2 py-1"
           >
             <option value="all">전체</option>
             <option value="reel">릴스만</option>
@@ -303,7 +304,7 @@ function FeedsTab() {
           </button>
           <button
             onClick={refresh}
-            className="text-sm px-3 py-1.5 rounded border border-white/5 hover:border-red-300 dark:hover:border-red-700"
+            className="text-sm px-3 py-1.5 rounded border border-white/5 hover:border-blue-500/50"
           >
             새로고침
           </button>
@@ -312,14 +313,14 @@ function FeedsTab() {
 
       {/* 상태 메시지 */}
       {(pollMsg || triggerError || data?.lastRun) && (
-        <div className="bg-zinc-50 dark:bg-zinc-950 border border-white/5 rounded-lg px-4 py-2.5 text-xs">
+        <div className="bg-slate-900 text-white border border-white/5 rounded-lg px-4 py-2.5 text-xs">
           {triggerError && (
             <span className="text-red-400">
               ⚠️ {triggerError}
             </span>
           )}
           {pollMsg && !triggerError && (
-            <span className="text-slate-200 dark:text-zinc-300">{pollMsg}</span>
+            <span className="text-slate-200 text-slate-300">{pollMsg}</span>
           )}
           {!pollMsg && !triggerError && data?.lastRun && (
             <span className="text-slate-400">
@@ -378,10 +379,10 @@ function PostCard({ post, index }: { post: Post; index: number }) {
       target="_blank"
       rel="noopener"
       style={{ animationDelay: `${delayMs}ms` }}
-      className="animate-fade-in-up group flex bg-slate-800/50 border border-white/5 rounded-xl overflow-hidden hover:border-red-300 dark:hover:border-red-700 hover:shadow-md transition-all"
+      className="animate-fade-in-up group flex bg-slate-800/50 border border-white/5 rounded-xl overflow-hidden hover:border-blue-500/50 hover:shadow-md transition-all"
     >
       {/* 왼쪽: 정사각 썸네일 */}
-      <div className="shrink-0 w-32 h-32 sm:w-40 sm:h-40 bg-zinc-100 dark:bg-zinc-800 relative">
+      <div className="shrink-0 w-32 h-32 sm:w-40 sm:h-40 bg-slate-800/80 relative">
         {post.thumbnail_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -462,7 +463,7 @@ function PostCard({ post, index }: { post: Post; index: number }) {
               {post.hashtags.slice(0, 3).map((h) => (
                 <span
                   key={h}
-                  className="text-[10px] text-slate-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded"
+                  className="text-[10px] text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded"
                 >
                   #{h}
                 </span>
@@ -579,16 +580,16 @@ function ProfilesTab() {
         </label>
         <p className="text-xs text-slate-400 mb-3">
           URL, @handle, 또는 username 형식 모두 OK. 줄바꿈/쉼표/공백으로 구분.
-          예: <code className="px-1 bg-zinc-100 dark:bg-zinc-800 rounded">https://www.instagram.com/cristiano/</code>{" "}
-          또는 <code className="px-1 bg-zinc-100 dark:bg-zinc-800 rounded">@cristiano</code>{" "}
-          또는 <code className="px-1 bg-zinc-100 dark:bg-zinc-800 rounded">cristiano</code>
+          예: <code className="px-1 bg-slate-800/80 rounded">https://www.instagram.com/cristiano/</code>{" "}
+          또는 <code className="px-1 bg-slate-800/80 rounded">@cristiano</code>{" "}
+          또는 <code className="px-1 bg-slate-800/80 rounded">cristiano</code>
         </p>
         <textarea
           value={bulkInput}
           onChange={(e) => setBulkInput(e.target.value)}
           rows={4}
           placeholder={`@brand1\nhttps://www.instagram.com/brand2/\nbrand3`}
-          className="w-full text-sm rounded-lg border border-white/5 bg-zinc-50 dark:bg-zinc-950 px-3 py-2 font-mono resize-y focus:outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-700"
+          className="w-full text-sm rounded-lg border border-white/5 bg-slate-900 text-white px-3 py-2 font-mono resize-y focus:outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-700"
         />
         <div className="flex items-center gap-2 mt-3">
           <button
@@ -638,7 +639,7 @@ function ProfilesTab() {
             아직 등록된 프로필이 없어요. 위에서 등록해보세요.
           </div>
         ) : (
-          <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          <div className="divide-y divide-white/5">
             {profiles.map((p) => (
               <div
                 key={p.username}

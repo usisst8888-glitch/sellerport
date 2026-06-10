@@ -42,7 +42,7 @@ export function AnalysisView({ a }: { a: Analysis }) {
           <h3 className="text-xs font-semibold text-slate-400 mb-1.5">
             🔥 어그로 제목
           </h3>
-          <p className="text-lg font-bold text-zinc-800 dark:text-zinc-100 leading-snug">
+          <p className="text-lg font-bold text-white leading-snug">
             {a.title}
           </p>
         </section>
@@ -70,10 +70,10 @@ export function AnalysisView({ a }: { a: Analysis }) {
             {keywords.map((k, i) => (
               <div
                 key={`${k.keyword}-${i}`}
-                className="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-950 border border-white/5 rounded-lg px-3 py-2"
+                className="flex items-center gap-2 bg-slate-900 text-white border border-white/5 rounded-lg px-3 py-2"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-100 truncate">
+                  <div className="text-sm font-semibold text-white truncate">
                     {k.keyword}
                     {k.translation && (
                       <span className="ml-2 text-xs font-normal text-slate-400">
@@ -118,7 +118,7 @@ export function AnalysisView({ a }: { a: Analysis }) {
           <h3 className="text-xs font-semibold text-slate-400 mb-1.5">
             🎙 원본 전사 (영상에서 들리는 말 그대로)
           </h3>
-          <p className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed bg-zinc-50 dark:bg-zinc-950 border border-white/5 rounded-lg p-3">
+          <p className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed bg-slate-900 text-white border border-white/5 rounded-lg p-3">
             {a.transcript}
           </p>
         </section>
@@ -139,13 +139,13 @@ export function AnalysisView({ a }: { a: Analysis }) {
             {scenes.map((sc) => (
               <div
                 key={sc.index}
-                className="flex gap-3 bg-zinc-50 dark:bg-zinc-950 border border-white/5 rounded-lg p-3"
+                className="flex gap-3 bg-slate-900 text-white border border-white/5 rounded-lg p-3"
               >
                 <div className="flex flex-col items-center gap-0.5 shrink-0 pt-0.5">
                   <span className="text-xs font-bold text-slate-500">
                     {sc.index + 1}
                   </span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-slate-400 dark:text-zinc-300">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-400 text-slate-300">
                     {sc.emotion}
                   </span>
                 </div>

@@ -63,7 +63,7 @@ export default function AnalyzeStandalonePage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto text-white">
       <div className="mb-6 flex items-center gap-3">
         <Link
           href="/insta-tracker"
@@ -72,7 +72,7 @@ export default function AnalyzeStandalonePage() {
           ← 인스타 트래커
         </Link>
       </div>
-      <h1 className="text-2xl font-bold mb-1">🤖 인스타 영상 분석</h1>
+      <h1 className="text-2xl font-bold text-white mb-1">🤖 인스타 영상 분석</h1>
       <p className="text-sm text-slate-400 mb-6">
         인스타그램 릴스/포스트 URL을 붙여넣으면 Gemini가{" "}
         <strong>전사 + 어그로 제목 + 4씬 쇼츠 대본 + 샤오홍슈/도우인 검색 키워드</strong>
@@ -92,7 +92,7 @@ export default function AnalyzeStandalonePage() {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://www.instagram.com/reel/{shortcode}/"
-            className="flex-1 text-sm rounded-lg border border-white/5 bg-zinc-50 dark:bg-zinc-950 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-700"
+            className="flex-1 text-sm rounded-lg border border-white/5 bg-slate-900 text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-700"
           />
           <button
             type="submit"
@@ -122,7 +122,7 @@ export default function AnalyzeStandalonePage() {
       {analysis && (
         <div className="bg-slate-800/50 border border-white/5 rounded-xl p-5">
           {cached && (
-            <div className="mb-4 text-xs text-slate-400 px-3 py-1.5 bg-zinc-50 dark:bg-zinc-950 rounded inline-block">
+            <div className="mb-4 text-xs text-slate-400 px-3 py-1.5 bg-slate-900 text-white rounded inline-block">
               💾 캐시된 결과 — 다시 분석하려면{" "}
               <button
                 onClick={reanalyze}
